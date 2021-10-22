@@ -11,7 +11,7 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-    cout << "------------------Net------------------" << endl;
+    cout << "------------------NET------------------" << endl;
 
     // 初始化变量。
     int port = 0;

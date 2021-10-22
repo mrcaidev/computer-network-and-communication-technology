@@ -17,7 +17,7 @@ WSADATA initWSA() {
 
 void quit() {
     WSACleanup();
-    cout << "---------------------------------------" << endl;
+    cout << "------------------END------------------" << endl;
     exit(0);
 }
 
