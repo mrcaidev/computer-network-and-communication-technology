@@ -26,10 +26,15 @@ class CNTSocket {
     CNTSocket(int type);
     ~CNTSocket();
     SOCKET getSocket();
-    void bindOwnPort(int port);
+    void setSendTimeout(int millisecond);
+    void setRecvTimeout(int millisecond);
+    void bindUpperPort(int port);
+    void bindSelfPort(int port);
     void bindLowerPort(int port);
-    void sendToLower(string message);
-    void recvFromUpper(char *buffer);
+    int sendToUpper(string message);
+    int sendToLower(string message);
+    int recvFromUpper(char *buffer);
+    int recvFromLower(char *buffer);
 };
 
 CNTSocket::CNTSocket(int type) {
@@ -45,7 +50,33 @@ CNTSocket::~CNTSocket() { closesocket(this->sock); }
 
 SOCKET CNTSocket::getSocket() { return this->sock; }
 
-void CNTSocket::bindOwnPort(int port) {
+void CNTSocket::setSendTimeout(int millisecond) {
+    int state = setsockopt(this->sock, SOL_SOCKET, SO_SNDTIMEO,
+                           (char *)&millisecond, sizeof(int));
+    if (state == SOCKET_ERROR) {
+        cout << "Error: setsockopt() failed. (" << WSAGetLastError() << ")"
+             << endl;
+        exit(-1);
+    }
+}
+
+void CNTSocket::setRecvTimeout(int millisecond) {
+    int state = setsockopt(this->sock, SOL_SOCKET, SO_RCVTIMEO,
+                           (char *)&millisecond, sizeof(int));
+    if (state == SOCKET_ERROR) {
+        cout << "Error: setsockopt() failed. (" << WSAGetLastError() << ")"
+             << endl;
+        exit(-1);
+    }
+}
+
+void CNTSocket::bindUpperPort(int port) {
+    this->upperAddr.sin_family = AF_INET;
+    this->upperAddr.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+    this->upperAddr.sin_port = htons(port);
+}
+
+void CNTSocket::bindSelfPort(int port) {
     this->addr.sin_family = AF_INET;
     this->addr.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
     this->addr.sin_port = htons(port);
@@ -64,7 +95,18 @@ void CNTSocket::bindLowerPort(int port) {
     this->lowerAddr.sin_port = htons(port);
 }
 
-void CNTSocket::sendToLower(string message) {
+int CNTSocket::sendToUpper(string message) {
+    int sentBytes = sendto(this->sock, message.c_str(), message.length(), 0,
+                           (SOCKADDR *)&this->upperAddr, sizeof(SOCKADDR));
+
+    if (sentBytes == 0) {
+        cout << "0 bytes of message is sent. (" << WSAGetLastError() << ")"
+             << endl;
+    }
+    return sentBytes;
+}
+
+int CNTSocket::sendToLower(string message) {
     int sentBytes = sendto(this->sock, message.c_str(), message.length(), 0,
                            (SOCKADDR *)&this->lowerAddr, sizeof(SOCKADDR));
 
@@ -72,9 +114,10 @@ void CNTSocket::sendToLower(string message) {
         cout << "0 bytes of message is sent. (" << WSAGetLastError() << ")"
              << endl;
     }
+    return sentBytes;
 }
 
-void CNTSocket::recvFromUpper(char *buffer) {
+int CNTSocket::recvFromUpper(char *buffer) {
     int size = sizeof(SOCKADDR);
 
     int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
@@ -86,4 +129,20 @@ void CNTSocket::recvFromUpper(char *buffer) {
     } else {
         buffer[recvBytes] = '\0';
     }
+    return recvBytes;
+}
+
+int CNTSocket::recvFromLower(char *buffer) {
+    int size = sizeof(SOCKADDR);
+
+    int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
+                             (SOCKADDR *)&this->lowerAddr, &size);
+
+    if (recvBytes == 0) {
+        cout << "0 bytes of message is received. (" << WSAGetLastError() << ")"
+             << endl;
+    } else {
+        buffer[recvBytes] = '\0';
+    }
+    return recvBytes;
 }
