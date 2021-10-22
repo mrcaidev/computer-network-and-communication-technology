@@ -29,30 +29,26 @@ int main(int argc, char *argv[]) {
     cout << "APP port at: ";
     cin >> port;
     sock.bindUpperPort(port);
-
     cout << "NET port at: ";
     cin >> port;
     sock.bindSelfPort(port);
-
     cout << "PHY port at: ";
     cin >> port;
     sock.bindLowerPort(port);
 
+    // 等待事件。
     while (true) {
         cout << "---------------------------------------" << endl;
-        cout << "Select mode: (1::Send, 2::Recv)" << endl << ">>> ";
-        cin >> mode;
-        if (mode == 1) {
-            cout << "Message to send: ";
-            cin >> message;
-            sock.sendToLower(message);
-            message.clear();
-        } else if (mode == 2) {
-            sock.recvFromUpper(buffer);
-            cout << "Message received: " << buffer << endl;
-            memset(buffer, 0, MAX_BUFFER_SIZE);
+        // 上层告知当前模式。
+        sock.recvFromUpper(buffer);
+        mode = atoi(buffer);
+        if (mode == QUIT) {
+            quit();
         } else {
-            cout << "Invalid option!" << endl;
+            cout << "else" << endl;
         }
     }
+
+    // 清理并退出程序。
+    quit();
 }

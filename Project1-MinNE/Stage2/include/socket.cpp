@@ -15,6 +15,12 @@ WSADATA initWSA() {
     return wsaData;
 }
 
+void quit() {
+    WSACleanup();
+    cout << "---------------------------------------" << endl;
+    exit(0);
+}
+
 class CNTSocket {
   private:
     SOCKET sock;

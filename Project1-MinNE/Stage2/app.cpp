@@ -41,13 +41,16 @@ int main(int argc, char *argv[]) {
         cin >> mode;
         // 模式对应的事件。
         if (mode == QUIT) {
-            return 0;
+            sock.sendToLower(to_string(mode));
+            quit();
         } else if (mode == RECV_MODE) {
+            sock.sendToLower(to_string(mode));
             cout << "Waiting...";
             int len = sock.recvFromLower(buffer);
             cout << "\rReceived: " << decode(buffer) << endl;
             memset(buffer, 0, sizeof(buffer));
         } else if (mode == SEND_MODE) {
+            sock.sendToLower(to_string(mode));
             cout << "Send: ";
             cin >> message;
             sock.sendToLower(encode(message));
@@ -56,4 +59,5 @@ int main(int argc, char *argv[]) {
             cout << "Invalid option!" << endl;
         }
     }
+    quit();
 }
