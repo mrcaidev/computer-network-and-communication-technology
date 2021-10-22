@@ -11,8 +11,9 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-    // 初始化变量。
     cout << "------------------App------------------" << endl;
+
+    // 初始化变量。
     int port = 0;
     int mode = 0;
     char buffer[MAX_BUFFER_SIZE];

@@ -12,14 +12,20 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
     cout << "------------------Net------------------" << endl;
+
+    // 初始化变量。
     int port = 0;
     int mode = 0;
     char buffer[MAX_BUFFER_SIZE];
     string message = "";
 
+    // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
     CNTSocket sock(SOCK_DGRAM);
+    sock.setSendTimeout(SEND_TIMEOUT);
+    sock.setRecvTimeout(RECV_TIMEOUT);
 
+    // 绑定上层、本层、下层端口。
     cout << "APP port at: ";
     cin >> port;
     sock.bindUpperPort(port);
