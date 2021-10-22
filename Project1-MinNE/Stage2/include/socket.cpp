@@ -2,8 +2,6 @@
 #include <winsock2.h>
 using namespace std;
 
-#define MAX_BUFFER_SIZE 65536
-
 WSADATA initWSA() {
     WSADATA wsaData;
     int state = WSAStartup(MAKEWORD(2, 2), &wsaData);

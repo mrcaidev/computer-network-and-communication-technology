@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
         } else if (mode == RECV_MODE) {
             sock.sendToLower(to_string(mode));
             cout << "Waiting...";
-            int len = sock.recvFromLower(buffer);
+            sock.recvFromLower(buffer);
             cout << "\rReceived: " << decode(buffer) << endl;
             memset(buffer, 0, sizeof(buffer));
         } else if (mode == SEND_MODE) {
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
             sock.sendToLower(encode(message));
             message.clear();
         } else {
-            cout << "Invalid option!" << endl;
+            cout << "Invalid mode <" << mode << ">!" << endl;
         }
     }
     quit();

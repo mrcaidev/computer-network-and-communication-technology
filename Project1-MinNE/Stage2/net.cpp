@@ -44,8 +44,15 @@ int main(int argc, char *argv[]) {
         mode = atoi(buffer);
         if (mode == QUIT) {
             quit();
+        } else if (mode == RECV_MODE) {
+            cout << "Waiting...";
+            sock.recvFromLower(buffer);
+            cout << "\rReceived: " << buffer << endl;
+            // 提起
+        } else if (mode == SEND_MODE) {
+            // 发送模式。
         } else {
-            cout << "else" << endl;
+            cout << "Invalid mode <" << mode << ">!" << endl;
         }
     }
 
