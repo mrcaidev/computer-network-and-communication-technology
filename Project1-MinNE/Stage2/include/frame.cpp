@@ -1,4 +1,4 @@
-#pragma once
+// #pragma once
 #include <iostream>
 #include "coding.cpp"
 #include "param.h"
@@ -40,25 +40,109 @@ int kmp(string str, string pattern) {
     return -1;
 }
 
-int calcSendFrameNum(int messageLen) {
-    return messageLen % DATA_LEN ? messageLen / DATA_LEN + 1
-                                 : messageLen / DATA_LEN;
+class Frame {
+  private:
+    unsigned short srcPort;
+    unsigned short seq;
+    string data;
+    unsigned short dstPort;
+    string CRC;
+
+  public:
+    Frame();
+    Frame(string raw);
+    Frame(unsigned short srcPort, unsigned short seq, string data,
+          unsigned short dstPort);
+    ~Frame();
+    void setSrcPort(unsigned short port);
+    void setDstPort(unsigned short port);
+    void setSeq(unsigned short seq);
+    void setData(string data);
+    string getData();
+    string generateCRC();
+    bool verifyCRC();
+    string stringify();
+    static string transform(string message);
+    static string addLocator(string message);
+    static string extractMessage(string raw);
+    static int calcNum(int messageLen);
+};
+
+Frame::Frame() {
+    this->srcPort = 0;
+    this->seq = 0;
+    this->data = "";
+    this->dstPort = 0;
+    this->CRC = "";
 }
 
-string transform(string message) {
-    string transMessage = "";
-    int suspiciousPos = kmp(message, "11111");
-    while (suspiciousPos != -1) {
-        transMessage += message.substr(0, suspiciousPos + 5);
-        transMessage += "0";
-        message = message.substr(suspiciousPos + 5);
-        suspiciousPos = kmp(message, "11111");
-    }
-    transMessage += message;
-    return transMessage;
+Frame::Frame(string raw) {
+    string message = extractMessage(raw);
+    // 提取源地址。
+    this->srcPort = binToDec(message.substr(0, PORT_LEN), PORT_LEN);
+    message = message.substr(PORT_LEN);
+    // 提取序号。
+    this->seq = binToDec(message.substr(0, SEQ_LEN), SEQ_LEN);
+    message = message.substr(SEQ_LEN);
+    cout << "\rFrame[" << this->seq << "] ";
+    // 提取CRC码。
+    string CRC = message.substr(message.length() - CRC_LEN);
+    message = message.substr(0, message.length() - CRC_LEN);
+    // 提取目的地址。
+    this->dstPort =
+        binToDec(message.substr(message.length() - PORT_LEN), PORT_LEN);
+    message = message.substr(0, message.length() - PORT_LEN);
+    // 提取消息。
+    this->data = message;
+    cout << message << endl;
 }
 
-string extractMessage(string raw) {
+Frame::Frame(unsigned short srcPort, unsigned short seq, string data,
+             unsigned short dstPort) {
+    this->srcPort = srcPort;
+    this->seq = seq;
+    this->data = data;
+    this->dstPort = dstPort;
+    this->CRC = "";
+}
+
+Frame::~Frame() {
+    this->srcPort = 0;
+    this->seq = 0;
+    this->data.clear();
+    this->dstPort = 0;
+    this->CRC.clear();
+}
+
+void Frame::setSrcPort(unsigned short port) { this->srcPort = port; }
+
+void Frame::setDstPort(unsigned short port) { this->dstPort = port; }
+
+void Frame::setSeq(unsigned short seq) { this->seq = seq; }
+
+void Frame::setData(string data) { this->data = data; }
+
+string Frame::getData() { return this->data; }
+
+string Frame::generateCRC() {
+    this->CRC = "00000000";
+    return this->CRC;
+}
+
+bool Frame::verifyCRC() { return true; }
+
+string Frame::stringify() {
+    string message = "";
+    message += decToBin(this->srcPort, PORT_LEN);
+    message += decToBin(this->seq, SEQ_LEN);
+    message += this->data;
+    message += decToBin(this->dstPort, PORT_LEN);
+    message += this->generateCRC();
+    message = this->addLocator(message);
+    return message;
+}
+
+string Frame::extractMessage(string raw) {
     string message = "";
     string remainedMessage = raw.substr(kmp(raw, LOCATOR) + LOCATOR_LEN);
     int suspiciousPos = kmp(remainedMessage, "11111");
@@ -77,7 +161,20 @@ string extractMessage(string raw) {
     return message;
 }
 
-string addLocator(string message) {
+string Frame::transform(string message) {
+    string transMessage = "";
+    int suspiciousPos = kmp(message, "11111");
+    while (suspiciousPos != -1) {
+        transMessage += message.substr(0, suspiciousPos + 5);
+        transMessage += "0";
+        message = message.substr(suspiciousPos + 5);
+        suspiciousPos = kmp(message, "11111");
+    }
+    transMessage += message;
+    return transMessage;
+}
+
+string Frame::addLocator(string message) {
     string ret = "";
     // 对于字符串，`a += b`开销低于`a = a + b`。
     ret += LOCATOR;
@@ -86,29 +183,7 @@ string addLocator(string message) {
     return ret;
 }
 
-string generateCRC(string message) {
-    string CRC = "00000000";
-    return CRC;
-}
-
-bool verifyCRC(string message) { return true; }
-
-string readMessage(string capMessage) {
-    // 提取源地址。
-    string srcPort = capMessage.substr(0, PORT_LEN);
-    capMessage = capMessage.substr(PORT_LEN);
-    // 提取序号。
-    string seq = capMessage.substr(0, SEQ_LEN);
-    capMessage = capMessage.substr(SEQ_LEN);
-    cout << "Frame[" << binToDec(seq, SEQ_LEN) << "] " << endl;
-    // 提取CRC码。
-    string CRC = capMessage.substr(capMessage.length() - CRC_LEN);
-    capMessage = capMessage.substr(0, capMessage.length() - CRC_LEN);
-    // 提取目的地址。
-    string dstPort = capMessage.substr(capMessage.length() - PORT_LEN);
-    capMessage = capMessage.substr(0, capMessage.length() - PORT_LEN);
-    // 提取消息。
-    string innerMessage = capMessage;
-    cout << innerMessage << endl;
-    return innerMessage;
+int Frame::calcNum(int messageLen) {
+    return messageLen % DATA_LEN ? messageLen / DATA_LEN + 1
+                                 : messageLen / DATA_LEN;
 }

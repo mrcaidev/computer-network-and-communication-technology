@@ -38,8 +38,10 @@ class CNTSocket {
     void bindLowerPort(unsigned short port);
     int sendToUpper(string message);
     int sendToLower(string message);
+    int sendToLowerAsBits(string message);
     int recvFromUpper(char *buffer);
     int recvFromLower(char *buffer);
+    int recvFromLowerAsBits(char *buffer);
 };
 
 CNTSocket::CNTSocket(int type) {
@@ -52,8 +54,6 @@ CNTSocket::CNTSocket(int type) {
 }
 
 CNTSocket::~CNTSocket() { closesocket(this->sock); }
-
-SOCKET CNTSocket::getSocket() { return this->sock; }
 
 void CNTSocket::setSendTimeout(int millisecond) {
     int state = setsockopt(this->sock, SOL_SOCKET, SO_SNDTIMEO,
@@ -122,6 +122,26 @@ int CNTSocket::sendToLower(string message) {
     return sentBytes;
 }
 
+int CNTSocket::sendToLowerAsBits(string message) {
+    char *bitsArr = new char[message.length()];
+    for (int i = 0; i < message.length(); i++) {
+        if (message[i] == '1') {
+            bitsArr[i] = 1;
+        } else {
+            bitsArr[i] = 0;
+        }
+    }
+
+    int sentBytes = sendto(this->sock, bitsArr, message.length(), 0,
+                           (SOCKADDR *)&this->lowerAddr, sizeof(SOCKADDR));
+
+    if (sentBytes == 0) {
+        cout << "0 bytes of message is sent. (" << WSAGetLastError() << ")"
+             << endl;
+    }
+    return sentBytes;
+}
+
 int CNTSocket::recvFromUpper(char *buffer) {
     int size = sizeof(SOCKADDR);
 
@@ -149,5 +169,29 @@ int CNTSocket::recvFromLower(char *buffer) {
     } else {
         buffer[recvBytes] = '\0';
     }
+    return recvBytes;
+}
+
+int CNTSocket::recvFromLowerAsBits(char *buffer) {
+    int size = sizeof(SOCKADDR);
+
+    int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
+                             (SOCKADDR *)&this->lowerAddr, &size);
+
+    if (recvBytes == 0) {
+        cout << "0 bytes of message is received. (" << WSAGetLastError() << ")"
+             << endl;
+    } else {
+        buffer[recvBytes] = '\0';
+    }
+
+    for (int i = 0; i < recvBytes; i++) {
+        if (buffer[i] == 0) {
+            buffer[i] = '0';
+        } else {
+            buffer[i] = '1';
+        }
+    }
+
     return recvBytes;
 }

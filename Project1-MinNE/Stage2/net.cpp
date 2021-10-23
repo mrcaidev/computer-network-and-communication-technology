@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     string upperMessage = "";
     string selfMessage = "";
     string lowerMessage = "";
-    string innerMessage = "";
+    string thisMessage = "";
     int sendFrameNum = 0;
     int recvFrameNum = 0;
 
@@ -63,62 +63,65 @@ int main(int argc, char *argv[]) {
         } else if (mode == RECV_MODE) {
             cout << "Waiting...";
             // 知道要收多少帧，然后逐帧接收。
-            sock.recvFromLower(buffer);
-            recvFrameNum = atoi(buffer);
+            sock.recvFromLowerAsBits(buffer);
+            Frame reqFrame(buffer);
+            recvFrameNum = binToDec(reqFrame.getData(), SEQ_LEN);
             sock.sendToUpper(to_string(recvFrameNum));
+            cout << "\r";
             for (int frame = 0; frame < recvFrameNum; frame++) {
                 // 下层消息。
-                sock.recvFromLower(buffer);
+                sock.recvFromLowerAsBits(buffer);
                 lowerMessage = buffer;
                 memset(buffer, 0, sizeof(buffer));
                 // 提取信息。
-                selfMessage = extractMessage(lowerMessage);
-                if (verifyCRC(selfMessage)) {
-                    innerMessage = readMessage(selfMessage);
-                    sock.sendToUpper(innerMessage);
+                Frame thisFrame(lowerMessage);
+                if (thisFrame.verifyCRC()) {
+                    sock.sendToUpper(thisFrame.getData());
                 } else {
                     // 要求重传。
                 }
-                innerMessage.clear();
+                thisMessage.clear();
                 selfMessage.clear();
                 lowerMessage.clear();
             }
+
             /* ----------------------发送模式-------------------------- */
         } else if (mode == SEND_MODE) {
             // 目标端口。
             sock.recvFromUpper(buffer);
             dstPort = atoi(buffer);
-            cout << "This message will be sent to port " << dstPort << "."
-                 << endl;
             memset(buffer, 0, sizeof(buffer));
             // 上层消息。
             sock.recvFromUpper(buffer);
             upperMessage = buffer;
             memset(buffer, 0, sizeof(buffer));
-            // 告知对方要发多少帧，然后逐帧发送。
-            sendFrameNum = calcSendFrameNum(upperMessage.length());
-            sock.sendToLower(to_string(sendFrameNum));
+            // 告知对方要发多少帧。
+            sendFrameNum = Frame::calcNum(upperMessage.length());
+            Frame reqFrame(upperPort, seq, decToBin(sendFrameNum, SEQ_LEN),
+                           dstPort);
+            selfMessage = reqFrame.stringify();
+            sock.sendToLowerAsBits(selfMessage);
+            cout << "Frame[" << seq << "] " << selfMessage << endl;
+            selfMessage.clear();
+            seq = (seq + 1) % 256;
+            // 逐帧发送。
             for (int frame = 0; frame < sendFrameNum; frame++) {
                 if (frame == sendFrameNum - 1) {
                     // 最后一帧，直接发送剩余信息。
-                    innerMessage = upperMessage;
+                    thisMessage = upperMessage;
                 } else {
                     // 不是最后一帧，取剩余信息的前一部分。
-                    innerMessage = upperMessage.substr(0, DATA_LEN);
+                    thisMessage = upperMessage.substr(0, DATA_LEN);
                     upperMessage = upperMessage.substr(DATA_LEN);
                 }
                 // 封装。
-                selfMessage += decToBin(upperPort, PORT_LEN);
-                selfMessage += decToBin(seq, SEQ_LEN);
-                selfMessage += innerMessage;
-                selfMessage += decToBin(dstPort, PORT_LEN);
-                selfMessage += generateCRC(selfMessage);
-                selfMessage = addLocator(selfMessage);
+                Frame thisFrame(upperPort, seq, thisMessage, dstPort);
+                selfMessage = thisFrame.stringify();
                 // 打印并传输。
-                cout << "Frame[" << seq << "]" << selfMessage << endl;
-                sock.sendToLower(selfMessage);
+                cout << "Frame[" << seq << "] " << selfMessage << endl;
+                sock.sendToLowerAsBits(selfMessage);
                 // 清理并前进。
-                innerMessage.clear();
+                thisMessage.clear();
                 selfMessage.clear();
                 seq = (seq + 1) % 256;
             }
