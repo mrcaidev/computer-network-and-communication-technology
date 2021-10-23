@@ -1,52 +1,67 @@
 #include <iostream>
+#include <windows.h>
 #include <cmath>
+#include "param.h"
 using namespace std;
 
-string charToBin(char ascii) {
+string decToBin(unsigned short dec) {
     string bin = "";
-    int asciiNum = int(ascii);
-    while (asciiNum || bin.length() != 8) {
-        bin.insert(0, to_string(asciiNum % 2));
-        asciiNum /= 2;
+    while (dec || bin.length() != BITS_PER_CHAR) {
+        bin.insert(0, to_string(dec % 2));
+        dec /= 2;
     }
     return bin;
 }
 
-string encode(string message) {
+unsigned short binToDec(string bin) {
+    unsigned short dec = 0;
+    for (int i = 0; i < BITS_PER_CHAR; i++) {
+        if (bin[i] == '0')
+            continue;
+        dec += pow(2.0, BITS_PER_CHAR - 1 - i);
+    }
+    return dec;
+}
+
+string encode(string unicode) {
     string secret = "";
-    for (int i = 0; i < message.length(); i++) {
-        secret.append(charToBin(message[i]));
+    unsigned short decArr[MAX_CHAR_NUM] = {0};
+    int len =
+        MultiByteToWideChar(CP_ACP, 0, (LPCCH)unicode.c_str(), -1, nullptr, 0);
+    MultiByteToWideChar(CP_ACP, 0, (LPCCH)unicode.c_str(), -1, (LPWSTR)decArr,
+                        len);
+    for (int i = 0; i < len - 1; i++) {
+        secret.append(decToBin(decArr[i]));
     }
     return secret;
 }
 
-char binToChar(string bin) {
-    int sum = 0;
-    for (int i = 0; i < 8; i++) {
-        if (bin[i] == '0')
-            continue;
-        sum += pow(2.0, 7 - i);
+string decode(string secret) {
+    unsigned short decArr[MAX_CHAR_NUM] = {0};
+    for (int i = 0; i < secret.length() / BITS_PER_CHAR; i++) {
+        string bin = secret.substr(i * BITS_PER_CHAR, BITS_PER_CHAR);
+        decArr[i] = binToDec(bin);
     }
-    return char(sum);
-}
 
-string decode(char *secret) {
-    string secretString = secret;
-    string message = "";
-    int len = secretString.length();
-    for (int index = 0; index < len; index += 8) {
-        string bin = secretString.substr(index, 8);
-        char ascii = binToChar(bin);
-        message.append(1, ascii);
-    }
+    int len = WideCharToMultiByte(CP_ACP, 0, (LPCWCH)decArr, -1, nullptr, 0,
+                                  nullptr, FALSE);
+    char *temp = new char[len];
+    memset(temp, 0, len);
+    WideCharToMultiByte(CP_ACP, 0, (LPCWCH)decArr, -1, temp, len, nullptr,
+                        FALSE);
+
+    string message = temp;
+    delete[] temp;
     return message;
 }
 
-// int main(int argc, char const *argv[]) {
-//     string raw = "Hello";
+// int main() {
+//     string raw = "";
+//     cout << "Raw:     ";
+//     cin >> raw;
 //     string secret = encode(raw);
 //     string message = decode(secret);
-//     cout << "Secret: " << secret << endl;
+//     cout << "Secret:  " << secret << endl;
 //     cout << "Message: " << message << endl;
 //     return 0;
 // }

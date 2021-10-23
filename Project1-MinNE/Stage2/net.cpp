@@ -50,7 +50,14 @@ int main(int argc, char *argv[]) {
             cout << "\rReceived: " << buffer << endl;
             // 提起
         } else if (mode == SEND_MODE) {
-            // 发送模式。
+            // 目标端口。
+            sock.recvFromUpper(buffer);
+            string dstPort = buffer;
+            cout << "This message will be sent to port " << decode(buffer)
+                 << "." << endl;
+            // 消息。
+            sock.recvFromUpper(buffer);
+            message = buffer;
         } else {
             cout << "Invalid mode <" << mode << ">!" << endl;
         }

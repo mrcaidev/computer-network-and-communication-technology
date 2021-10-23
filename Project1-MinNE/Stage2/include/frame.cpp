@@ -60,6 +60,18 @@ string findFrame(string raw) {
     return raw.substr(start + 8, end - start - 8);
 }
 
+int calcFrameNum(int messageLen) {
+    int totalLen = 8 + 8 + 4 + messageLen + 8 + 8 + 8;
+}
+
+void capsulate(string message) {
+    // 数据之前加上序号。
+    // 前面加源端口。
+    // 后面加目的端口。
+    // 后面加校验码。
+    // 帧头帧尾加定位码。
+}
+
 // int main(int argc, char const *argv[]) {
 //     string raw = "00101010111";
 //     string secret = addLocator(raw);

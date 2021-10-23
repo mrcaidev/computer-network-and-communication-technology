@@ -44,13 +44,22 @@ int main(int argc, char *argv[]) {
             sock.sendToLower(to_string(mode));
             quit();
         } else if (mode == RECV_MODE) {
+            // 通知下层正在接收。
             sock.sendToLower(to_string(mode));
+            // 获取二进制编码消息并解码。
             cout << "Waiting...";
             sock.recvFromLower(buffer);
             cout << "\rReceived: " << decode(buffer) << endl;
             memset(buffer, 0, sizeof(buffer));
         } else if (mode == SEND_MODE) {
+            // 通知下层正在发送。
             sock.sendToLower(to_string(mode));
+            // 目标端口。
+            cout << "Destination port: ";
+            cin >> message;
+            sock.sendToLower(encode(message));
+            message.clear();
+            // 消息。
             cout << "Send: ";
             cin >> message;
             sock.sendToLower(encode(message));
