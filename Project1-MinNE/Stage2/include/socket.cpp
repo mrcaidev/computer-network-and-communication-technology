@@ -32,9 +32,9 @@ class CNTSocket {
     SOCKET getSocket();
     void setSendTimeout(int millisecond);
     void setRecvTimeout(int millisecond);
-    void bindUpperPort(int port);
-    void bindSelfPort(int port);
-    void bindLowerPort(int port);
+    void bindUpperPort(unsigned short port);
+    void bindSelfPort(unsigned short port);
+    void bindLowerPort(unsigned short port);
     int sendToUpper(string message);
     int sendToLower(string message);
     int recvFromUpper(char *buffer);
@@ -74,13 +74,13 @@ void CNTSocket::setRecvTimeout(int millisecond) {
     }
 }
 
-void CNTSocket::bindUpperPort(int port) {
+void CNTSocket::bindUpperPort(unsigned short port) {
     this->upperAddr.sin_family = AF_INET;
     this->upperAddr.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
     this->upperAddr.sin_port = htons(port);
 }
 
-void CNTSocket::bindSelfPort(int port) {
+void CNTSocket::bindSelfPort(unsigned short port) {
     this->addr.sin_family = AF_INET;
     this->addr.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
     this->addr.sin_port = htons(port);
@@ -93,7 +93,7 @@ void CNTSocket::bindSelfPort(int port) {
     }
 }
 
-void CNTSocket::bindLowerPort(int port) {
+void CNTSocket::bindLowerPort(unsigned short port) {
     this->lowerAddr.sin_family = AF_INET;
     this->lowerAddr.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
     this->lowerAddr.sin_port = htons(port);

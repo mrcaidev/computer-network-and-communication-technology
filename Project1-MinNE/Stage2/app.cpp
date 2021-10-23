@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
     cout << "------------------APP------------------" << endl;
 
     // 初始化变量。
-    int port = 0;
+    unsigned short port = 0;
     int mode = 0;
     char buffer[MAX_BUFFER_SIZE];
     string message = "";
@@ -56,9 +56,9 @@ int main(int argc, char *argv[]) {
             sock.sendToLower(to_string(mode));
             // 目标端口。
             cout << "Destination port: ";
-            cin >> message;
-            sock.sendToLower(encode(message));
-            message.clear();
+            cin >> port;
+            sock.sendToLower(decToBin(port));
+            port = 0;
             // 消息。
             cout << "Send: ";
             cin >> message;
