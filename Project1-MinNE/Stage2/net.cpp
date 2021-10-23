@@ -8,16 +8,23 @@
 #include "include/param.h"
 #include "include/socket.cpp"
 #include "include/coding.cpp"
+#include "include/frame.cpp"
 using namespace std;
 
 int main(int argc, char *argv[]) {
     cout << "------------------NET------------------" << endl;
 
     // 初始化变量。
-    int port = 0;
+    unsigned short upperPort = 0;
+    unsigned short selfPort = 0;
+    unsigned short lowerPort = 0;
+    unsigned short dstPort = 0;
     int mode = 0;
+    int seq = 0;
     char buffer[MAX_BUFFER_SIZE];
-    string message = "";
+    string upperMessage = "";
+    string selfMessage = "";
+    string frameMessage = "";
 
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
@@ -27,14 +34,14 @@ int main(int argc, char *argv[]) {
 
     // 绑定上层、本层、下层端口。
     cout << "APP port at: ";
-    cin >> port;
-    sock.bindUpperPort(port);
+    cin >> upperPort;
+    sock.bindUpperPort(upperPort);
     cout << "NET port at: ";
-    cin >> port;
-    sock.bindSelfPort(port);
+    cin >> selfPort;
+    sock.bindSelfPort(selfPort);
     cout << "PHY port at: ";
-    cin >> port;
-    sock.bindLowerPort(port);
+    cin >> lowerPort;
+    sock.bindLowerPort(lowerPort);
 
     // 等待事件。
     while (true) {
@@ -52,12 +59,36 @@ int main(int argc, char *argv[]) {
         } else if (mode == SEND_MODE) {
             // 目标端口。
             sock.recvFromUpper(buffer);
-            string dstPort = buffer;
-            cout << "This message will be sent to port " << decode(buffer)
-                 << "." << endl;
+            dstPort = atoi(buffer);
+            cout << "This message will be sent to port " << dstPort << "."
+                 << endl;
+            memset(buffer, 0, sizeof(buffer));
             // 消息。
             sock.recvFromUpper(buffer);
-            message = buffer;
+            upperMessage = buffer;
+            cout << "Upper message: " << upperMessage << endl;
+            memset(buffer, 0, sizeof(buffer));
+            // 封装。
+            int frameNum = calcFrameNum(upperMessage.length());
+            for (int frame = 0; frame < frameNum; frame++) {
+                if (frame == frameNum - 1) {
+                    frameMessage = upperMessage;
+                } else {
+                    frameMessage = upperMessage.substr(0, DATA_LEN);
+                    upperMessage = upperMessage.substr(DATA_LEN);
+                }
+                selfMessage += decToBin(upperPort, PORT_LEN);
+                selfMessage += decToBin(seq, SEQ_LEN);
+                selfMessage += frameMessage;
+                selfMessage += decToBin(dstPort, PORT_LEN);
+                // TODO: 校验码。
+                selfMessage = LOCATOR + trans(selfMessage) + LOCATOR;
+                cout << "Self message: " << selfMessage << endl;
+                // sock.sendToLower(selfMessage);
+                frameMessage.clear();
+                selfMessage.clear();
+                seq = (seq + 1) % 256;
+            }
         } else {
             cout << "Invalid mode <" << mode << ">!" << endl;
         }

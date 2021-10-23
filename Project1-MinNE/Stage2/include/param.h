@@ -3,8 +3,8 @@
 
 #define MAX_BUFFER_SIZE 65536
 
-#define SEND_TIMEOUT 5000
-#define RECV_TIMEOUT 5000
+#define SEND_TIMEOUT 20000
+#define RECV_TIMEOUT 20000
 
 #define QUIT 0
 #define RECV_MODE 1
@@ -16,7 +16,9 @@
 
 #define LOCATOR_LEN 8
 #define PORT_LEN 16
-#define SEQ_LEN 4
+#define SEQ_LEN 8
 #define CRC_LEN 8
+#define DATA_LEN 32
+#define FRAME_LEN 96
 
 #endif

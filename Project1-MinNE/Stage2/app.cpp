@@ -14,10 +14,12 @@ int main(int argc, char *argv[]) {
     cout << "------------------APP------------------" << endl;
 
     // 初始化变量。
-    unsigned short port = 0;
+    unsigned short selfPort = 0;
+    unsigned short lowerPort = 0;
+    unsigned short dstPort = 0;
     int mode = 0;
     char buffer[MAX_BUFFER_SIZE];
-    string message = "";
+    string selfMessage = "";
 
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
@@ -27,11 +29,11 @@ int main(int argc, char *argv[]) {
 
     // 绑定本层与下层端口。
     cout << "APP port at: ";
-    cin >> port;
-    sock.bindSelfPort(port);
+    cin >> selfPort;
+    sock.bindSelfPort(selfPort);
     cout << "NET port at: ";
-    cin >> port;
-    sock.bindLowerPort(port);
+    cin >> lowerPort;
+    sock.bindLowerPort(lowerPort);
 
     // 等待事件。
     while (true) {
@@ -56,14 +58,14 @@ int main(int argc, char *argv[]) {
             sock.sendToLower(to_string(mode));
             // 目标端口。
             cout << "Destination port: ";
-            cin >> port;
-            sock.sendToLower(decToBin(port));
-            port = 0;
+            cin >> dstPort;
+            sock.sendToLower(to_string(dstPort));
+            dstPort = 0;
             // 消息。
             cout << "Send: ";
-            cin >> message;
-            sock.sendToLower(encode(message));
-            message.clear();
+            cin >> selfMessage;
+            sock.sendToLower(encode(selfMessage));
+            selfMessage.clear();
         } else {
             cout << "Invalid mode <" << mode << ">!" << endl;
         }

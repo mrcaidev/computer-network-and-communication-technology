@@ -19,7 +19,7 @@ int *getNext(string pattern) {
     return next;
 }
 
-int kmpOrder(string str, string pattern) {
+int kmp(string str, string pattern) {
     int *next = getNext(pattern);
     int strLen = str.length();
     int patternLen = pattern.length();
@@ -38,11 +38,36 @@ int kmpOrder(string str, string pattern) {
     return -1;
 }
 
-int kmpRev(string str, string pattern) {
-    string strRev(str.rbegin(), str.rend());
-    string patternRev(pattern.rbegin(), pattern.rend());
-    int res = kmpOrder(strRev, patternRev);
-    return str.length() - res - 8;
+string trans(string message) {
+    string transMessage = "";
+    int suspiciousPos = kmp(message, "11111");
+    while (suspiciousPos != -1) {
+        transMessage += message.substr(0, suspiciousPos + 5);
+        transMessage += "0";
+        message = message.substr(suspiciousPos + 5);
+        suspiciousPos = kmp(message, "11111");
+    }
+    transMessage += message;
+    return transMessage;
+}
+
+string invTrans(string raw) {
+    string message = "";
+    string remainedMessage = raw.substr(kmp(raw, LOCATOR) + LOCATOR_LEN);
+    int suspiciousPos = kmp(remainedMessage, "11111");
+    while (suspiciousPos != -1) {
+        if (remainedMessage[suspiciousPos + 5] == '1') {
+            // 到达帧尾。
+            message += remainedMessage.substr(0, suspiciousPos - 1);
+            return message;
+        } else {
+            // 删除这个0。
+            message += remainedMessage.substr(0, suspiciousPos + 5);
+            remainedMessage = remainedMessage.substr(suspiciousPos + 6);
+            suspiciousPos = kmp(remainedMessage, "11111");
+        }
+    }
+    return message;
 }
 
 string addLocator(string message) {
@@ -54,30 +79,9 @@ string addLocator(string message) {
     return ret;
 }
 
-string findFrame(string raw) {
-    int start = kmpOrder(raw, LOCATOR);
-    int end = kmpRev(raw, LOCATOR);
-    return raw.substr(start + 8, end - start - 8);
-}
-
 int calcFrameNum(int messageLen) {
-    int totalLen = 8 + 8 + 4 + messageLen + 8 + 8 + 8;
+    return messageLen % DATA_LEN ? messageLen / DATA_LEN + 1
+                                 : messageLen / DATA_LEN;
 }
 
-void capsulate(string message) {
-    // 数据之前加上序号。
-    // 前面加源端口。
-    // 后面加目的端口。
-    // 后面加校验码。
-    // 帧头帧尾加定位码。
-}
-
-// int main(int argc, char const *argv[]) {
-//     string raw = "00101010111";
-//     string secret = addLocator(raw);
-//     string message = findFrame(secret);
-//     cout << "Raw:             " << raw << endl;
-//     cout << "Secret:  " << secret << endl;
-//     cout << "Message:         " << message << endl;
-//     return 0;
-// }
+// int main(int argc, char const *argv[]) { return 0; }
