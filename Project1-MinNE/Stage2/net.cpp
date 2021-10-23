@@ -26,8 +26,9 @@ int main(int argc, char *argv[]) {
     string selfMessage = "";
     string lowerMessage = "";
     string thisMessage = "";
-    int sendFrameNum = 0;
-    int recvFrameNum = 0;
+    int sendNum = 0;
+    int recvNum = 0;
+    int resendNum = 0;
 
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
@@ -62,28 +63,45 @@ int main(int argc, char *argv[]) {
             /* ----------------------接收模式-------------------------- */
         } else if (mode == RECV_MODE) {
             cout << "Waiting...";
-            // 知道要收多少帧，然后逐帧接收。
+            // 知道要收多少帧。
             sock.recvFromLowerAsBits(buffer);
             Frame reqFrame(buffer);
-            recvFrameNum = binToDec(reqFrame.getData());
-            sock.sendToUpper(to_string(recvFrameNum));
+            recvNum = binToDec(reqFrame.getData());
+            sock.sendToUpper(to_string(recvNum));
+            memset(buffer, 0, sizeof(buffer));
+            reqFrame.~Frame();
+            // 逐帧接收。
             cout << "\r";
-            for (int frame = 0; frame < recvFrameNum; frame++) {
+            for (int frame = 0; frame < recvNum + resendNum; frame++) {
                 // 下层消息。
                 sock.recvFromLowerAsBits(buffer);
                 lowerMessage = buffer;
                 memset(buffer, 0, sizeof(buffer));
                 // 提取信息。
                 Frame thisFrame(lowerMessage);
-                if (thisFrame.verifyChecksum()) {
+                cout << "\rFrame[" << thisFrame.getSeq() << "] ";
+                if (thisFrame.isVerified()) {
+                    // 校验和正确：本层打印数据，向上层递消息，向下层发ACK。
+                    cout << thisFrame.getData() << endl;
                     sock.sendToUpper(thisFrame.getData());
+                    Frame ackFrame(upperPort, thisFrame.getSeq(), encode(ACK),
+                                   thisFrame.getSrcPort());
+                    sock.sendToLowerAsBits(ackFrame.stringify());
                 } else {
+                    // 校验和错误：本层打印报错，向下层发NAK。
                     cout << "Verification failed!" << endl;
+                    resendNum++;
+                    Frame nakFrame(upperPort, thisFrame.getSeq(), encode(NAK),
+                                   thisFrame.getSrcPort());
+                    sock.sendToLowerAsBits(nakFrame.stringify());
                 }
+                // 清理。
                 thisMessage.clear();
                 selfMessage.clear();
                 lowerMessage.clear();
+                thisFrame.~Frame();
             }
+            resendNum = 0;
 
             /* ----------------------发送模式-------------------------- */
         } else if (mode == SEND_MODE) {
@@ -96,36 +114,61 @@ int main(int argc, char *argv[]) {
             upperMessage = buffer;
             memset(buffer, 0, sizeof(buffer));
             // 告知对方要发多少帧。
-            sendFrameNum = Frame::calcNum(upperMessage.length());
-            Frame reqFrame(upperPort, seq, decToBin(sendFrameNum, SEQ_LEN),
-                           dstPort);
+            sendNum = Frame::calcNum(upperMessage.length());
+            Frame reqFrame(upperPort, seq, decToBin(sendNum, SEQ_LEN), dstPort);
             selfMessage = reqFrame.stringify();
             sock.sendToLowerAsBits(selfMessage);
             cout << "\rFrame[" << seq << "] " << selfMessage << endl;
             selfMessage.clear();
+            reqFrame.~Frame();
             seq = (seq + 1) % 256;
-            // 逐帧发送。
-            for (int frame = 0; frame < sendFrameNum; frame++) {
-                if (frame == sendFrameNum - 1) {
-                    // 最后一帧，直接发送剩余信息。
+            // 逐帧封装。
+            Frame *packages = new Frame[sendNum];
+            for (int frame = 0; frame < sendNum; frame++) {
+                if (frame == sendNum - 1) {
+                    // 最后一帧，直接打包剩余信息。
                     thisMessage = upperMessage;
+                    upperMessage.clear();
                 } else {
-                    // 不是最后一帧，取剩余信息的前一部分。
+                    // 不是最后一帧，打包剩余信息的前一部分。
                     thisMessage = upperMessage.substr(0, DATA_LEN);
                     upperMessage = upperMessage.substr(DATA_LEN);
                 }
-                // 封装。
+                // 封装进帧结构。
                 Frame thisFrame(upperPort, seq, thisMessage, dstPort);
-                selfMessage = thisFrame.stringify();
-                // 打印并传输。
-                cout << "\rFrame[" << seq << "] " << selfMessage << endl;
-                sock.sendToLowerAsBits(selfMessage);
+                packages[frame] = thisFrame;
                 // 清理并前进。
                 thisMessage.clear();
                 selfMessage.clear();
                 seq = (seq + 1) % 256;
             }
-            upperMessage.clear();
+            // 逐帧发送。
+            for (int frame = 0; frame < sendNum; frame++) {
+                // 如果不是重传，就先打印。
+                if (selfMessage == "") {
+                    selfMessage = packages[frame].stringify();
+                    cout << "\rFrame[" << packages[frame].getSeq() << "] "
+                         << selfMessage << endl;
+                }
+                sock.sendToLowerAsBits(selfMessage);
+                // 处理ACK或NAK。
+                sock.recvFromLowerAsBits(buffer);
+                Frame respFrame(buffer);
+                if (decode(respFrame.getData()) == NAK) {
+                    cout << "\rFrame[" << packages[frame].getSeq()
+                         << "] Resend." << endl;
+                    frame--;
+                } else if (decode(respFrame.getData()) == ACK) {
+                    selfMessage.clear();
+                } else {
+                    cout << "Invalid response." << endl;
+                    selfMessage.clear();
+                }
+                memset(buffer, 0, sizeof(buffer));
+                respFrame.~Frame();
+            }
+            // 全部发完，清理封装的帧。
+            delete[] packages;
 
             /* ----------------------广播模式-------------------------- */
         } else if (mode == BROADCAST_MODE) {

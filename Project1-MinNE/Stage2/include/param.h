@@ -19,3 +19,6 @@
 #define SEQ_LEN 8
 #define CHECKSUM_LEN 16
 #define DATA_LEN 32
+
+#define ACK "!"
+#define NAK "?"
