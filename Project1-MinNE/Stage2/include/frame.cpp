@@ -46,7 +46,7 @@ class Frame {
     unsigned short seq;
     string data;
     unsigned short dstPort;
-    string CRC;
+    unsigned short checksum;
 
   public:
     Frame();
@@ -54,15 +54,23 @@ class Frame {
     Frame(unsigned short srcPort, unsigned short seq, string data,
           unsigned short dstPort);
     ~Frame();
+
     void setSrcPort(unsigned short port);
     void setDstPort(unsigned short port);
+
     void setSeq(unsigned short seq);
+    unsigned short getSeq();
+
     void setData(string data);
     string getData();
-    string generateCRC();
-    bool verifyCRC();
+
+    void setChecksum(unsigned short checksum);
+    bool verifyChecksum();
+
     string stringify();
+
     static string transform(string message);
+    static unsigned short generateChecksum(string message);
     static string addLocator(string message);
     static string extractMessage(string raw);
     static int calcNum(int messageLen);
@@ -73,24 +81,23 @@ Frame::Frame() {
     this->seq = 0;
     this->data = "";
     this->dstPort = 0;
-    this->CRC = "";
+    this->checksum = 0;
 }
 
 Frame::Frame(string raw) {
     string message = extractMessage(raw);
     // 提取源地址。
-    this->srcPort = binToDec(message.substr(0, PORT_LEN), PORT_LEN);
+    this->srcPort = binToDec(message.substr(0, PORT_LEN));
     message = message.substr(PORT_LEN);
     // 提取序号。
-    this->seq = binToDec(message.substr(0, SEQ_LEN), SEQ_LEN);
+    this->seq = binToDec(message.substr(0, SEQ_LEN));
     message = message.substr(SEQ_LEN);
     cout << "\rFrame[" << this->seq << "] ";
-    // 提取CRC码。
-    string CRC = message.substr(message.length() - CRC_LEN);
-    message = message.substr(0, message.length() - CRC_LEN);
+    // 提取checksum。
+    this->checksum = binToDec(message.substr(message.length() - CHECKSUM_LEN));
+    message = message.substr(0, message.length() - CHECKSUM_LEN);
     // 提取目的地址。
-    this->dstPort =
-        binToDec(message.substr(message.length() - PORT_LEN), PORT_LEN);
+    this->dstPort = binToDec(message.substr(message.length() - PORT_LEN));
     message = message.substr(0, message.length() - PORT_LEN);
     // 提取消息。
     this->data = message;
@@ -103,7 +110,7 @@ Frame::Frame(unsigned short srcPort, unsigned short seq, string data,
     this->seq = seq;
     this->data = data;
     this->dstPort = dstPort;
-    this->CRC = "";
+    this->checksum = 0;
 }
 
 Frame::~Frame() {
@@ -111,7 +118,7 @@ Frame::~Frame() {
     this->seq = 0;
     this->data.clear();
     this->dstPort = 0;
-    this->CRC.clear();
+    this->checksum = 0;
 }
 
 void Frame::setSrcPort(unsigned short port) { this->srcPort = port; }
@@ -120,16 +127,30 @@ void Frame::setDstPort(unsigned short port) { this->dstPort = port; }
 
 void Frame::setSeq(unsigned short seq) { this->seq = seq; }
 
+unsigned short Frame::getSeq() { return this->seq; }
+
 void Frame::setData(string data) { this->data = data; }
 
 string Frame::getData() { return this->data; }
 
-string Frame::generateCRC() {
-    this->CRC = "00000000";
-    return this->CRC;
+void Frame::setChecksum(unsigned short checksum) {
+    string message = "";
+    message += decToBin(this->srcPort, PORT_LEN);
+    message += decToBin(this->seq, SEQ_LEN);
+    message += this->data;
+    message += decToBin(this->dstPort, PORT_LEN);
+    this->checksum = this->generateChecksum(message);
 }
 
-bool Frame::verifyCRC() { return true; }
+bool Frame::verifyChecksum() {
+    string message = "";
+    message += decToBin(this->srcPort, PORT_LEN);
+    message += decToBin(this->seq, SEQ_LEN);
+    message += this->data;
+    message += decToBin(this->dstPort, PORT_LEN);
+
+    return this->checksum == this->generateChecksum(message);
+}
 
 string Frame::stringify() {
     string message = "";
@@ -137,7 +158,8 @@ string Frame::stringify() {
     message += decToBin(this->seq, SEQ_LEN);
     message += this->data;
     message += decToBin(this->dstPort, PORT_LEN);
-    message += this->generateCRC();
+    this->setChecksum(this->generateChecksum(message));
+    message += decToBin(this->checksum, CHECKSUM_LEN);
     message = this->addLocator(message);
     return message;
 }
@@ -172,6 +194,16 @@ string Frame::transform(string message) {
     }
     transMessage += message;
     return transMessage;
+}
+
+unsigned short Frame::generateChecksum(string message) {
+    unsigned short checksum = 0;
+    int len = message.length() / 8;
+    for (int i = 0; i < len; i++) {
+        string piece = message.substr(i * 8, 8);
+        checksum += binToDec(piece);
+    }
+    return checksum;
 }
 
 string Frame::addLocator(string message) {

@@ -1,17 +1,17 @@
 <mxfile host="65bd71144e">
     <diagram id="x_P2wIiqwQ8MqYDpP26r" name="Page-1">
-        <mxGraphModel dx="716" dy="393" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="717" dy="615" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
                 <mxCell id="2" value="&lt;font style=&quot;font-size: 16px&quot;&gt;帧头 (8)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" parent="1" vertex="1">
-                    <mxGeometry x="240" y="200" width="80" height="40" as="geometry"/>
+                    <mxGeometry x="240" y="160" width="320" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="4" value="&lt;font style=&quot;font-size: 16px&quot;&gt;源地址 (16)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" parent="1" vertex="1">
-                    <mxGeometry x="320" y="200" width="160" height="40" as="geometry"/>
+                    <mxGeometry x="240" y="200" width="160" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="5" value="&lt;font style=&quot;font-size: 16px&quot;&gt;序号 (8)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" parent="1" vertex="1">
-                    <mxGeometry x="480" y="200" width="80" height="40" as="geometry"/>
+                    <mxGeometry x="400" y="200" width="160" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="6" value="&lt;font style=&quot;font-size: 16px&quot;&gt;数据 (32)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" parent="1" vertex="1">
                     <mxGeometry x="240" y="240" width="320" height="40" as="geometry"/>
@@ -19,11 +19,11 @@
                 <mxCell id="7" value="&lt;font style=&quot;font-size: 16px&quot;&gt;目的地址 (16)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" parent="1" vertex="1">
                     <mxGeometry x="240" y="280" width="160" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="8" value="&lt;font style=&quot;font-size: 16px&quot;&gt;CRC (8)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" parent="1" vertex="1">
-                    <mxGeometry x="400" y="280" width="80" height="40" as="geometry"/>
+                <mxCell id="8" value="&lt;font style=&quot;font-size: 16px&quot;&gt;checksum (16)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="280" width="160" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="9" value="&lt;font style=&quot;font-size: 16px&quot;&gt;帧尾 (8)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" parent="1" vertex="1">
-                    <mxGeometry x="480" y="280" width="80" height="40" as="geometry"/>
+                    <mxGeometry x="240" y="320" width="320" height="40" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>

@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     unsigned short lowerPort = 0;
     unsigned short dstPort = 0;
     int mode = 0;
-    int seq = 0;
+    unsigned short seq = 0;
     char buffer[MAX_BUFFER_SIZE];
     string upperMessage = "";
     string selfMessage = "";
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
             // 知道要收多少帧，然后逐帧接收。
             sock.recvFromLowerAsBits(buffer);
             Frame reqFrame(buffer);
-            recvFrameNum = binToDec(reqFrame.getData(), SEQ_LEN);
+            recvFrameNum = binToDec(reqFrame.getData());
             sock.sendToUpper(to_string(recvFrameNum));
             cout << "\r";
             for (int frame = 0; frame < recvFrameNum; frame++) {
@@ -75,10 +75,10 @@ int main(int argc, char *argv[]) {
                 memset(buffer, 0, sizeof(buffer));
                 // 提取信息。
                 Frame thisFrame(lowerMessage);
-                if (thisFrame.verifyCRC()) {
+                if (thisFrame.verifyChecksum()) {
                     sock.sendToUpper(thisFrame.getData());
                 } else {
-                    // 要求重传。
+                    cout << "Verification failed!" << endl;
                 }
                 thisMessage.clear();
                 selfMessage.clear();
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
                            dstPort);
             selfMessage = reqFrame.stringify();
             sock.sendToLowerAsBits(selfMessage);
-            cout << "Frame[" << seq << "] " << selfMessage << endl;
+            cout << "\rFrame[" << seq << "] " << selfMessage << endl;
             selfMessage.clear();
             seq = (seq + 1) % 256;
             // 逐帧发送。
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
                 Frame thisFrame(upperPort, seq, thisMessage, dstPort);
                 selfMessage = thisFrame.stringify();
                 // 打印并传输。
-                cout << "Frame[" << seq << "] " << selfMessage << endl;
+                cout << "\rFrame[" << seq << "] " << selfMessage << endl;
                 sock.sendToLowerAsBits(selfMessage);
                 // 清理并前进。
                 thisMessage.clear();

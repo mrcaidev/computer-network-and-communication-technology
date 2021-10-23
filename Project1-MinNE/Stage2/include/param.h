@@ -17,5 +17,5 @@
 #define LOCATOR_LEN 8
 #define PORT_LEN 16
 #define SEQ_LEN 8
-#define CRC_LEN 8
+#define CHECKSUM_LEN 16
 #define DATA_LEN 32

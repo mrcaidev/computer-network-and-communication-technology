@@ -14,12 +14,10 @@ string decToBin(int dec, int bits) {
     return bin;
 }
 
-int binToDec(string bin, int bits) {
+int binToDec(string bin) {
     int dec = 0;
-    for (int i = 0; i < bits; i++) {
-        if (bin[i] == '0')
-            continue;
-        dec += pow(2.0, bits - 1 - i);
+    for (int i = 0; i < bin.length(); i++) {
+        dec = (dec << 1) + bin[i] - '0';
     }
     return dec;
 }
@@ -41,7 +39,7 @@ string decode(string secret) {
     unsigned short decArr[MAX_CHAR_NUM] = {0};
     for (int i = 0; i < secret.length() / BITS_PER_CHAR; i++) {
         string bin = secret.substr(i * BITS_PER_CHAR, BITS_PER_CHAR);
-        decArr[i] = binToDec(bin, BITS_PER_CHAR);
+        decArr[i] = binToDec(bin);
     }
 
     int len = WideCharToMultiByte(CP_ACP, 0, (LPCWCH)decArr, -1, nullptr, 0,
