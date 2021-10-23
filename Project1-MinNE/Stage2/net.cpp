@@ -1,7 +1,7 @@
 /**
  * @name: net.cpp
  * @author: MrCai
- * @description: 网元应用层。
+ * @description: 网元网络层。
  */
 #include <iostream>
 #include <winsock2.h>
@@ -24,7 +24,8 @@ int main(int argc, char *argv[]) {
     char buffer[MAX_BUFFER_SIZE];
     string upperMessage = "";
     string selfMessage = "";
-    string frameMessage = "";
+    string lowerMessage = "";
+    string innerMessage = "";
 
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
@@ -49,13 +50,32 @@ int main(int argc, char *argv[]) {
         // 上层告知当前模式。
         sock.recvFromUpper(buffer);
         mode = atoi(buffer);
+        memset(buffer, 0, sizeof(buffer));
         if (mode == QUIT) {
             quit();
         } else if (mode == RECV_MODE) {
             cout << "Waiting...";
+            // 知道要收多少帧，然后逐帧接收。
             sock.recvFromLower(buffer);
-            cout << "\rReceived: " << buffer << endl;
-            // 提起
+            int recvFrameNum = atoi(buffer);
+            sock.sendToUpper(to_string(recvFrameNum));
+            for (int frame = 0; frame < recvFrameNum; frame++) {
+                // 下层消息。
+                sock.recvFromLower(buffer);
+                lowerMessage = buffer;
+                memset(buffer, 0, sizeof(buffer));
+                // 提取信息。
+                selfMessage = extractMessage(lowerMessage);
+                if (verifyCRC(selfMessage)) {
+                    innerMessage = readMessage(selfMessage);
+                    sock.sendToUpper(innerMessage);
+                } else {
+                    // 要求重传。
+                }
+                innerMessage.clear();
+                selfMessage.clear();
+                lowerMessage.clear();
+            }
         } else if (mode == SEND_MODE) {
             // 目标端口。
             sock.recvFromUpper(buffer);
@@ -63,32 +83,38 @@ int main(int argc, char *argv[]) {
             cout << "This message will be sent to port " << dstPort << "."
                  << endl;
             memset(buffer, 0, sizeof(buffer));
-            // 消息。
+            // 上层消息。
             sock.recvFromUpper(buffer);
             upperMessage = buffer;
-            cout << "Upper message: " << upperMessage << endl;
             memset(buffer, 0, sizeof(buffer));
-            // 封装。
-            int frameNum = calcFrameNum(upperMessage.length());
-            for (int frame = 0; frame < frameNum; frame++) {
-                if (frame == frameNum - 1) {
-                    frameMessage = upperMessage;
+            // 告知对方要发多少帧，然后逐帧发送。
+            int sendFrameNum = calcFrameNum(upperMessage.length());
+            sock.sendToLower(to_string(sendFrameNum));
+            for (int frame = 0; frame < sendFrameNum; frame++) {
+                if (frame == sendFrameNum - 1) {
+                    // 最后一帧，直接发送剩余信息。
+                    innerMessage = upperMessage;
                 } else {
-                    frameMessage = upperMessage.substr(0, DATA_LEN);
+                    // 不是最后一帧，取剩余信息的前一部分。
+                    innerMessage = upperMessage.substr(0, DATA_LEN);
                     upperMessage = upperMessage.substr(DATA_LEN);
                 }
+                // 封装。
                 selfMessage += decToBin(upperPort, PORT_LEN);
                 selfMessage += decToBin(seq, SEQ_LEN);
-                selfMessage += frameMessage;
+                selfMessage += innerMessage;
                 selfMessage += decToBin(dstPort, PORT_LEN);
-                // TODO: 校验码。
-                selfMessage = LOCATOR + trans(selfMessage) + LOCATOR;
-                cout << "Self message: " << selfMessage << endl;
-                // sock.sendToLower(selfMessage);
-                frameMessage.clear();
+                selfMessage += generateCRC(selfMessage);
+                selfMessage = addLocator(trans(selfMessage));
+                // 打印并传输。
+                cout << "Frame[" << seq << "]\t" << selfMessage << endl;
+                sock.sendToLower(selfMessage);
+                // 清理并前进。
+                innerMessage.clear();
                 selfMessage.clear();
                 seq = (seq + 1) % 256;
             }
+            upperMessage.clear();
         } else {
             cout << "Invalid mode <" << mode << ">!" << endl;
         }

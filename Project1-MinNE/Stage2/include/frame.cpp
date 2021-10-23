@@ -1,4 +1,6 @@
+#pragma once
 #include <iostream>
+#include "coding.cpp"
 #include "param.h"
 using namespace std;
 
@@ -38,6 +40,11 @@ int kmp(string str, string pattern) {
     return -1;
 }
 
+int calcFrameNum(int messageLen) {
+    return messageLen % DATA_LEN ? messageLen / DATA_LEN + 1
+                                 : messageLen / DATA_LEN;
+}
+
 string trans(string message) {
     string transMessage = "";
     int suspiciousPos = kmp(message, "11111");
@@ -51,7 +58,7 @@ string trans(string message) {
     return transMessage;
 }
 
-string invTrans(string raw) {
+string extractMessage(string raw) {
     string message = "";
     string remainedMessage = raw.substr(kmp(raw, LOCATOR) + LOCATOR_LEN);
     int suspiciousPos = kmp(remainedMessage, "11111");
@@ -79,9 +86,31 @@ string addLocator(string message) {
     return ret;
 }
 
-int calcFrameNum(int messageLen) {
-    return messageLen % DATA_LEN ? messageLen / DATA_LEN + 1
-                                 : messageLen / DATA_LEN;
+string generateCRC(string message) {
+    string CRC = "00000000";
+    return CRC;
+}
+
+bool verifyCRC(string message) { return true; }
+
+string readMessage(string capMessage) {
+    // 提取源地址。
+    string srcPort = capMessage.substr(0, PORT_LEN);
+    capMessage = capMessage.substr(PORT_LEN);
+    // 提取序号。
+    string seq = capMessage.substr(0, SEQ_LEN);
+    capMessage = capMessage.substr(SEQ_LEN);
+    cout << "Frame[" << binToDec(seq, SEQ_LEN) << "]\t" << endl;
+    // 提取CRC码。
+    string CRC = capMessage.substr(capMessage.length() - CRC_LEN);
+    capMessage = capMessage.substr(0, capMessage.length() - CRC_LEN);
+    // 提取目的地址。
+    string dstPort = capMessage.substr(capMessage.length() - PORT_LEN);
+    capMessage = capMessage.substr(0, capMessage.length() - PORT_LEN);
+    // 提取消息。
+    string innerMessage = capMessage;
+    cout << innerMessage << endl;
+    return innerMessage;
 }
 
 // int main(int argc, char const *argv[]) { return 0; }

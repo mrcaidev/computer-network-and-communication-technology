@@ -3,8 +3,8 @@
 
 #define MAX_BUFFER_SIZE 65536
 
-#define SEND_TIMEOUT 20000
-#define RECV_TIMEOUT 20000
+#define SEND_TIMEOUT 600000
+#define RECV_TIMEOUT 600000
 
 #define QUIT 0
 #define RECV_MODE 1

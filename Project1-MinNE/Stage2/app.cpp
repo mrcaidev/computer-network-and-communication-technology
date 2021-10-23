@@ -20,6 +20,7 @@ int main(int argc, char *argv[]) {
     int mode = 0;
     char buffer[MAX_BUFFER_SIZE];
     string selfMessage = "";
+    string lowerMessage = "";
 
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
@@ -48,11 +49,23 @@ int main(int argc, char *argv[]) {
         } else if (mode == RECV_MODE) {
             // 通知下层正在接收。
             sock.sendToLower(to_string(mode));
-            // 获取二进制编码消息并解码。
+            // 从下层接收消息。
             cout << "Waiting...";
+
             sock.recvFromLower(buffer);
-            cout << "\rReceived: " << decode(buffer) << endl;
-            memset(buffer, 0, sizeof(buffer));
+            int recvFrameNum = atoi(buffer);
+            cout << "\rReceived: ";
+            for (int i = 0; i < recvFrameNum; i++) {
+                sock.recvFromLower(buffer);
+                lowerMessage = buffer;
+                memset(buffer, 0, sizeof(buffer));
+                // 解码。
+                selfMessage = decode(lowerMessage);
+                cout << selfMessage;
+                lowerMessage.clear();
+                selfMessage.clear();
+            }
+            cout << endl;
         } else if (mode == SEND_MODE) {
             // 通知下层正在发送。
             sock.sendToLower(to_string(mode));
@@ -61,7 +74,7 @@ int main(int argc, char *argv[]) {
             cin >> dstPort;
             sock.sendToLower(to_string(dstPort));
             dstPort = 0;
-            // 消息。
+            // 本层消息。
             cout << "Send: ";
             cin >> selfMessage;
             sock.sendToLower(encode(selfMessage));
