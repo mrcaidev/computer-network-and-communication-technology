@@ -40,12 +40,12 @@ int kmp(string str, string pattern) {
     return -1;
 }
 
-int calcFrameNum(int messageLen) {
+int calcSendFrameNum(int messageLen) {
     return messageLen % DATA_LEN ? messageLen / DATA_LEN + 1
                                  : messageLen / DATA_LEN;
 }
 
-string trans(string message) {
+string transform(string message) {
     string transMessage = "";
     int suspiciousPos = kmp(message, "11111");
     while (suspiciousPos != -1) {
@@ -78,10 +78,10 @@ string extractMessage(string raw) {
 }
 
 string addLocator(string message) {
-    string ret;
+    string ret = "";
     // 对于字符串，`a += b`开销低于`a = a + b`。
     ret += LOCATOR;
-    ret += message;
+    ret += transform(message);
     ret += LOCATOR;
     return ret;
 }
@@ -100,7 +100,7 @@ string readMessage(string capMessage) {
     // 提取序号。
     string seq = capMessage.substr(0, SEQ_LEN);
     capMessage = capMessage.substr(SEQ_LEN);
-    cout << "Frame[" << binToDec(seq, SEQ_LEN) << "]\t" << endl;
+    cout << "Frame[" << binToDec(seq, SEQ_LEN) << "] " << endl;
     // 提取CRC码。
     string CRC = capMessage.substr(capMessage.length() - CRC_LEN);
     capMessage = capMessage.substr(0, capMessage.length() - CRC_LEN);
@@ -112,5 +112,3 @@ string readMessage(string capMessage) {
     cout << innerMessage << endl;
     return innerMessage;
 }
-
-// int main(int argc, char const *argv[]) { return 0; }

@@ -26,6 +26,8 @@ int main(int argc, char *argv[]) {
     string selfMessage = "";
     string lowerMessage = "";
     string innerMessage = "";
+    int sendFrameNum = 0;
+    int recvFrameNum = 0;
 
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
@@ -44,20 +46,25 @@ int main(int argc, char *argv[]) {
     cin >> lowerPort;
     sock.bindLowerPort(lowerPort);
 
-    // 等待事件。
+    /* --------------------初始化结束，下面开始持续收发-------------------- */
+
     while (true) {
         cout << "---------------------------------------" << endl;
         // 上层告知当前模式。
         sock.recvFromUpper(buffer);
         mode = atoi(buffer);
         memset(buffer, 0, sizeof(buffer));
+
+        /* --------------------------退出程序-------------------------- */
         if (mode == QUIT) {
             quit();
+
+            /* ----------------------接收模式-------------------------- */
         } else if (mode == RECV_MODE) {
             cout << "Waiting...";
             // 知道要收多少帧，然后逐帧接收。
             sock.recvFromLower(buffer);
-            int recvFrameNum = atoi(buffer);
+            recvFrameNum = atoi(buffer);
             sock.sendToUpper(to_string(recvFrameNum));
             for (int frame = 0; frame < recvFrameNum; frame++) {
                 // 下层消息。
@@ -76,6 +83,7 @@ int main(int argc, char *argv[]) {
                 selfMessage.clear();
                 lowerMessage.clear();
             }
+            /* ----------------------发送模式-------------------------- */
         } else if (mode == SEND_MODE) {
             // 目标端口。
             sock.recvFromUpper(buffer);
@@ -88,7 +96,7 @@ int main(int argc, char *argv[]) {
             upperMessage = buffer;
             memset(buffer, 0, sizeof(buffer));
             // 告知对方要发多少帧，然后逐帧发送。
-            int sendFrameNum = calcFrameNum(upperMessage.length());
+            sendFrameNum = calcSendFrameNum(upperMessage.length());
             sock.sendToLower(to_string(sendFrameNum));
             for (int frame = 0; frame < sendFrameNum; frame++) {
                 if (frame == sendFrameNum - 1) {
@@ -105,9 +113,9 @@ int main(int argc, char *argv[]) {
                 selfMessage += innerMessage;
                 selfMessage += decToBin(dstPort, PORT_LEN);
                 selfMessage += generateCRC(selfMessage);
-                selfMessage = addLocator(trans(selfMessage));
+                selfMessage = addLocator(selfMessage);
                 // 打印并传输。
-                cout << "Frame[" << seq << "]\t" << selfMessage << endl;
+                cout << "Frame[" << seq << "]" << selfMessage << endl;
                 sock.sendToLower(selfMessage);
                 // 清理并前进。
                 innerMessage.clear();
@@ -115,11 +123,15 @@ int main(int argc, char *argv[]) {
                 seq = (seq + 1) % 256;
             }
             upperMessage.clear();
+
+            /* ----------------------广播模式-------------------------- */
+        } else if (mode == BROADCAST_MODE) {
+            // TODO: 广播模式。
+
+            /* ------------------其他选项会提示错误---------------------- */
         } else {
             cout << "Invalid mode <" << mode << ">!" << endl;
         }
     }
-
-    // 清理并退出程序。
     quit();
 }

@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) {
     char buffer[MAX_BUFFER_SIZE];
     string selfMessage = "";
     string lowerMessage = "";
+    int recvFrameNum = 0;
 
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
@@ -36,36 +37,43 @@ int main(int argc, char *argv[]) {
     cin >> lowerPort;
     sock.bindLowerPort(lowerPort);
 
-    // 等待事件。
+    /* --------------------初始化结束，下面开始持续收发-------------------- */
+
     while (true) {
         cout << "---------------------------------------" << endl;
-        // 选择收/发模式。
+        // 选择当前模式。
         cout << "Select mode: (0::Quit, 1::Recv, 2::Send)" << endl << ">>> ";
         cin >> mode;
-        // 模式对应的事件。
+
+        /* -----------------------按`0`退出程序------------------------ */
         if (mode == QUIT) {
             sock.sendToLower(to_string(mode));
             quit();
+
+            /* ------------------按`1`进入接收模式---------------------- */
         } else if (mode == RECV_MODE) {
             // 通知下层正在接收。
             sock.sendToLower(to_string(mode));
-            // 从下层接收消息。
+            // 得知要收多少帧。
             cout << "Waiting...";
-
             sock.recvFromLower(buffer);
-            int recvFrameNum = atoi(buffer);
+            recvFrameNum = atoi(buffer);
+            // 逐帧接收。
             cout << "\rReceived: ";
             for (int i = 0; i < recvFrameNum; i++) {
+                // 读取缓冲。
                 sock.recvFromLower(buffer);
                 lowerMessage = buffer;
                 memset(buffer, 0, sizeof(buffer));
-                // 解码。
+                // 解码并打印。
                 selfMessage = decode(lowerMessage);
                 cout << selfMessage;
                 lowerMessage.clear();
                 selfMessage.clear();
             }
             cout << endl;
+
+            /* ------------------按`2`进入发送模式---------------------- */
         } else if (mode == SEND_MODE) {
             // 通知下层正在发送。
             sock.sendToLower(to_string(mode));
@@ -79,6 +87,12 @@ int main(int argc, char *argv[]) {
             cin >> selfMessage;
             sock.sendToLower(encode(selfMessage));
             selfMessage.clear();
+
+            /* ------------------按`3`进入广播模式---------------------- */
+        } else if (mode == BROADCAST_MODE) {
+            // TODO: 广播模式。
+
+            /* ------------------其他选项会提示错误---------------------- */
         } else {
             cout << "Invalid mode <" << mode << ">!" << endl;
         }
