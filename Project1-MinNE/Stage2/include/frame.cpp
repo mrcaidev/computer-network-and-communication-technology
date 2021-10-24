@@ -1,7 +1,7 @@
-// #pragma once
+#pragma once
 #include <iostream>
-#include "coding.cpp"
 #include "param.h"
+#include "coding.cpp"
 using namespace std;
 
 int *getNext(string pattern) {
@@ -73,7 +73,7 @@ class Frame {
     static unsigned short generateChecksum(string message);
     static string addLocator(string message);
     static string extractMessage(string raw);
-    static int calcNum(int messageLen);
+    static int calcTotal(int messageLen);
 };
 
 Frame::Frame() {
@@ -213,7 +213,7 @@ string Frame::addLocator(string message) {
     return ret;
 }
 
-int Frame::calcNum(int messageLen) {
+int Frame::calcTotal(int messageLen) {
     return messageLen % DATA_LEN ? messageLen / DATA_LEN + 1
                                  : messageLen / DATA_LEN;
 }

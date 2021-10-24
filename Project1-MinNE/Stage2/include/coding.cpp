@@ -1,7 +1,6 @@
 #pragma once
 #include <iostream>
 #include <windows.h>
-#include <cmath>
 #include "param.h"
 using namespace std;
 
@@ -53,14 +52,3 @@ string decode(string secret) {
     delete[] temp;
     return message;
 }
-
-// int main() {
-//     string raw = "";
-//     cout << "Raw:     ";
-//     cin >> raw; // 01001111011000000101100101111101
-//     string secret = encode(raw);
-//     string message = decode(secret);
-//     cout << "Secret:  " << secret << endl;
-//     cout << "Message: " << message << endl;
-//     return 0;
-// }
