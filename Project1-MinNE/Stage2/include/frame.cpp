@@ -55,8 +55,8 @@ class Frame {
           unsigned short dstPort);
     ~Frame();
 
-    void setSrcPort(unsigned short port);
-    void setDstPort(unsigned short port);
+    unsigned short getSrcPort();
+    unsigned short getDstPort();
 
     void setSeq(unsigned short seq);
     unsigned short getSeq();
@@ -65,7 +65,7 @@ class Frame {
     string getData();
 
     void setChecksum(unsigned short checksum);
-    bool verifyChecksum();
+    bool isVerified();
 
     string stringify();
 
@@ -92,7 +92,6 @@ Frame::Frame(string raw) {
     // 提取序号。
     this->seq = binToDec(message.substr(0, SEQ_LEN));
     message = message.substr(SEQ_LEN);
-    cout << "\rFrame[" << this->seq << "] ";
     // 提取checksum。
     this->checksum = binToDec(message.substr(message.length() - CHECKSUM_LEN));
     message = message.substr(0, message.length() - CHECKSUM_LEN);
@@ -101,7 +100,6 @@ Frame::Frame(string raw) {
     message = message.substr(0, message.length() - PORT_LEN);
     // 提取消息。
     this->data = message;
-    cout << message << endl;
 }
 
 Frame::Frame(unsigned short srcPort, unsigned short seq, string data,
@@ -121,9 +119,9 @@ Frame::~Frame() {
     this->checksum = 0;
 }
 
-void Frame::setSrcPort(unsigned short port) { this->srcPort = port; }
+unsigned short Frame::getSrcPort() { return this->srcPort; }
 
-void Frame::setDstPort(unsigned short port) { this->dstPort = port; }
+unsigned short Frame::getDstPort() { return this->dstPort; }
 
 void Frame::setSeq(unsigned short seq) { this->seq = seq; }
 
@@ -142,7 +140,7 @@ void Frame::setChecksum(unsigned short checksum) {
     this->checksum = this->generateChecksum(message);
 }
 
-bool Frame::verifyChecksum() {
+bool Frame::isVerified() {
     string message = "";
     message += decToBin(this->srcPort, PORT_LEN);
     message += decToBin(this->seq, SEQ_LEN);
