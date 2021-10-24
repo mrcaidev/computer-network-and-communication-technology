@@ -22,4 +22,3 @@
 
 #define ACK "!"
 #define NAK "?"
-#define FIN "$"
