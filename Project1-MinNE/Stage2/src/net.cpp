@@ -66,10 +66,11 @@ int main(int argc, char *argv[]) {
                 // 解封。
                 memset(buffer, 0, sizeof(buffer));
                 sock.recvFromLowerAsBits(buffer);
+                // TODO: 如果超时没收到消息，要回复NAK。
                 Frame recvFrame(buffer);
                 seq = recvFrame.getSeq();
                 cout << "[Frame " << seq << "] ";
-                // 验证并响应。
+                // 验证并回复。
                 if (recvFrame.isVerified()) {
                     // 拼接消息，回复ACK。
                     cout << "Verified. (" << decode(recvFrame.getData()) << ")"
@@ -133,9 +134,10 @@ int main(int argc, char *argv[]) {
                 sock.sendToLowerAsBits(selfMessage);
                 cout << "[Frame " << packages[frame].getSeq() << "] Sent."
                      << endl;
-                // 处理对方的响应。
+                // 处理对方的回复。
                 memset(buffer, 0, sizeof(buffer));
                 sock.recvFromLowerAsBits(buffer);
+                // TODO: 如果没收到回复，也要重传。
                 Frame response(buffer);
                 string responseMessage = decode(response.getData());
                 if (responseMessage == NAK) {
