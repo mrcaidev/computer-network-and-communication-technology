@@ -165,7 +165,7 @@ string Frame::stringify() {
 string Frame::extractMessage(string raw) {
     string message = "";
     string remainedMessage = raw.substr(kmp(raw, LOCATOR) + LOCATOR_LEN);
-    int suspiciousPos = kmp(remainedMessage, "11111");
+    int suspiciousPos = kmp(remainedMessage, TRANSFORM_TARGET);
     while (suspiciousPos != -1) {
         if (remainedMessage[suspiciousPos + 5] == '1') {
             // 到达帧尾。
@@ -175,7 +175,7 @@ string Frame::extractMessage(string raw) {
             // 删除这个0。
             message += remainedMessage.substr(0, suspiciousPos + 5);
             remainedMessage = remainedMessage.substr(suspiciousPos + 6);
-            suspiciousPos = kmp(remainedMessage, "11111");
+            suspiciousPos = kmp(remainedMessage, TRANSFORM_TARGET);
         }
     }
     return message;
@@ -183,12 +183,12 @@ string Frame::extractMessage(string raw) {
 
 string Frame::transform(string message) {
     string transMessage = "";
-    int suspiciousPos = kmp(message, "11111");
+    int suspiciousPos = kmp(message, TRANSFORM_TARGET);
     while (suspiciousPos != -1) {
         transMessage += message.substr(0, suspiciousPos + 5);
         transMessage += "0";
         message = message.substr(suspiciousPos + 5);
-        suspiciousPos = kmp(message, "11111");
+        suspiciousPos = kmp(message, TRANSFORM_TARGET);
     }
     transMessage += message;
     return transMessage;

@@ -68,8 +68,7 @@ int main(int argc, char *argv[]) {
             // 通知下层退出。
             sock.sendToLower(to_string(mode));
             quit();
-            /* ------------------其他选项会提示错误。----------------------
-             */
+            /* ------------------其他选项会提示错误。---------------------- */
         } else {
             cout << "Invalid mode [" << mode << "]." << endl;
         }
