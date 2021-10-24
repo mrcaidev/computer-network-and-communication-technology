@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
                 Frame response(buffer);
                 string responseMessage = decode(response.getData());
                 if (responseMessage == NAK) {
-                    // 如果是NAK，就报错并重传。
+                    // 如果是NAK，就报错并立即重传。
                     cout << "Frame[" << packages[frame].getSeq() << "] NAK."
                          << endl;
                     isFirstSend = false;
@@ -154,6 +154,8 @@ int main(int argc, char *argv[]) {
                     cout << "Frame[" << packages[frame].getSeq() << "] ACK."
                          << endl;
                     isFirstSend = true;
+                    // 流量控制，等待一小段时间再发送下一帧。
+                    Sleep(FLOW_INTERVAL);
                 } else {
                     // 如果是其他信息，说明响应在传的时候也出错了。
                     // TODO: 要让对面重传一次响应吗？会不会变成套娃？
@@ -161,6 +163,8 @@ int main(int argc, char *argv[]) {
                     cout << "Frame[" << packages[frame].getSeq()
                          << "] Unknown response." << endl;
                     isFirstSend = true;
+                    // 流量控制，等待一小段时间再发送下一帧。
+                    Sleep(FLOW_INTERVAL);
                 }
             }
             // 全部发完，封装的帧可以丢弃。
