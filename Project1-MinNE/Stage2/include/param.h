@@ -5,10 +5,10 @@
 #define SEND_TIMEOUT 600000
 #define RECV_TIMEOUT 600000
 
-#define QUIT 0
 #define RECV_MODE 1
 #define SEND_MODE 2
 #define BROADCAST_MODE 3
+#define QUIT 4
 
 #define LOCATOR "01111110"
 #define MAX_CHAR_NUM 50
@@ -22,3 +22,4 @@
 
 #define ACK "!"
 #define NAK "?"
+#define FIN "$"

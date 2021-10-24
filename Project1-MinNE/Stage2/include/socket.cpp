@@ -144,7 +144,6 @@ int CNTSocket::sendToLowerAsBits(string message) {
 
 int CNTSocket::recvFromUpper(char *buffer) {
     int size = sizeof(SOCKADDR);
-
     int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
                              (SOCKADDR *)&this->upperAddr, &size);
 
