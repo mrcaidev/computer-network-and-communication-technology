@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
                          << endl;
                 } else {
                     // 如果是其他信息，说明响应在传的时候也出错了。
-                    // TODO: 要让对面重传一次响应吗？会不会变成套娃？
+                    // TODO: 还是重传这一帧，但接收方需要额外判断序号是否重复。
                     // 暂且认为无效响应均为ACK。
                     cout << "[Frame " << packages[frame].getSeq()
                          << "] Unknown response." << endl;
