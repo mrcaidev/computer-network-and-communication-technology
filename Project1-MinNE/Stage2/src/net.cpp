@@ -24,6 +24,7 @@ int main(int argc, char *argv[]) {
     cout << "PHY Port: ";
     cin >> phyPort;
     // 初始化变量。
+    unsigned short srcPort = 0;
     unsigned short dstPort = 0;
     int mode = 0;
     unsigned short seq = 0;
@@ -34,35 +35,43 @@ int main(int argc, char *argv[]) {
     string lastData = "";
     int sendTotal = 0;
     int recvTotal = 0;
+    int recvBytes = 0;
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
     CNTSocket sock(SOCK_DGRAM);
     sock.bindUpperPort(appPort);
     sock.bindSelfPort(netPort);
     sock.bindLowerPort(phyPort);
-    sock.setSendTimeout(SEND_TIMEOUT);
-    sock.setRecvTimeout(RECV_TIMEOUT);
+    sock.setSendTimeout(USER_TIMEOUT);
+    sock.setRecvTimeout(USER_TIMEOUT);
 
     cout << "---------Initialized---------" << endl;
 
     while (true) {
         /* ----------------------上层通知当前模式。----------------------- */
-        sock.recvFromUpper(buffer);
+        sock.recvFromUpper(buffer, USER_TIMEOUT);
         mode = atoi(buffer);
         /* --------------------进入与应用层相同的模式。-------------------- */
         if (mode == RECV_MODE) {
             // 从对面那里得知要收多少帧。
-            sock.recvFromLowerAsBits(buffer);
+            sock.recvFromLowerAsBits(buffer, USER_TIMEOUT);
             Frame request(buffer);
             recvTotal = binToDec(request.getData());
+            srcPort = request.getSrcPort();
             cout << "[Frame " << request.getSeq() << "] Receiving " << recvTotal
                  << " frames in total." << endl;
             // 逐帧接收。
-            selfMessage.clear();
             for (int frame = 0; frame < recvTotal; frame++) {
                 // 接收一帧。
-                sock.recvFromLowerAsBits(buffer);
-                // TODO: 如果超时没收到消息，要回复NAK。
+                recvBytes = sock.recvFromLowerAsBits(buffer, RECV_TIMEOUT);
+                // 如果超时没收到消息，回复NAK。
+                if (recvBytes == 0) {
+                    cout << "[Frame " << seq + 1 << "] Timeout." << endl;
+                    Frame nak(appPort, seq + 1, encode(NAK), srcPort);
+                    sock.sendToLowerAsBits(nak.stringify());
+                    --frame;
+                    continue;
+                }
                 // 解封。
                 Frame recvFrame(buffer);
                 // 如果发来的帧序号和数据都重复了，说明这帧是接收端收到了不明回复后重传的。
@@ -74,8 +83,7 @@ int main(int argc, char *argv[]) {
                 if (seq == recvFrame.getSeq() &&
                     lastData == recvFrame.getData()) {
                     cout << "[Frame " << seq << "] Repeated." << endl;
-                    Frame ack(appPort, seq, encode(ACK),
-                              recvFrame.getSrcPort());
+                    Frame ack(appPort, seq, encode(ACK), srcPort);
                     sock.sendToLowerAsBits(ack.stringify());
                     --frame;
                     continue;
@@ -90,15 +98,13 @@ int main(int argc, char *argv[]) {
                          << endl;
                     selfMessage += recvFrame.getData();
                     lastData = recvFrame.getData();
-                    Frame ack(appPort, seq, encode(ACK),
-                              recvFrame.getSrcPort());
+                    Frame ack(appPort, seq, encode(ACK), srcPort);
                     sock.sendToLowerAsBits(ack.stringify());
                 } else {
                     // 回复NAK。
                     cout << "Invalid. (" << decode(recvFrame.getData()) << ")"
                          << endl;
-                    Frame nak(appPort, seq, encode(NAK),
-                              recvFrame.getSrcPort());
+                    Frame nak(appPort, seq, encode(NAK), srcPort);
                     sock.sendToLowerAsBits(nak.stringify());
                     --frame;
                 }
@@ -110,11 +116,11 @@ int main(int argc, char *argv[]) {
 
         } else if (mode == SEND_MODE) {
             // 目标端口。
-            sock.recvFromUpper(buffer);
+            sock.recvFromUpper(buffer, USER_TIMEOUT);
             dstPort = atoi(buffer);
             cout << "Sending to port " << dstPort << "." << endl;
             // 要发的消息的所有位。
-            sock.recvFromUpper(buffer);
+            sock.recvFromUpper(buffer, USER_TIMEOUT);
             allMessage = buffer;
             // 计算并通知对方要发多少帧。
             seq = (seq + 1) % 256;
@@ -147,8 +153,14 @@ int main(int argc, char *argv[]) {
                 cout << "[Frame " << packages[frame].getSeq() << "] Sent."
                      << endl;
                 // 接收对方的回复。
-                sock.recvFromLowerAsBits(buffer);
-                // TODO: 如果没收到回复，也要重传。
+                recvBytes = sock.recvFromLowerAsBits(buffer, RECV_TIMEOUT);
+                // 如果没收到回复，重传。
+                if (recvBytes == 0) {
+                    cout << "[Frame " << packages[frame].getSeq()
+                         << "] Timeout." << endl;
+                    --frame;
+                    continue;
+                }
                 // 解封。
                 Frame response(buffer);
                 string responseMessage = decode(response.getData());

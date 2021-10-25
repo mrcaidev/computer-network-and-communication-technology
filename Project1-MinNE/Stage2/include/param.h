@@ -4,8 +4,8 @@
 #define MAX_BUFFER_SIZE 1024
 #define MAX_CHAR_NUM 50
 #define FLOW_INTERVAL 500
-#define SEND_TIMEOUT 600000
-#define RECV_TIMEOUT 600000
+#define USER_TIMEOUT 180000
+#define RECV_TIMEOUT 5000
 
 /* ----------网元模式---------- */
 #define RECV_MODE 1

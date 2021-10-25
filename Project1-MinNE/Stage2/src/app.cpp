@@ -30,8 +30,8 @@ int main(int argc, char *argv[]) {
     CNTSocket sock(SOCK_DGRAM);
     sock.bindSelfPort(appPort);
     sock.bindLowerPort(netPort);
-    sock.setSendTimeout(SEND_TIMEOUT);
-    sock.setRecvTimeout(RECV_TIMEOUT);
+    sock.setSendTimeout(USER_TIMEOUT);
+    sock.setRecvTimeout(USER_TIMEOUT);
 
     while (true) {
         cout << "-----------------------------" << endl;
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
             cout << "Waiting...";
             sock.sendToLower(to_string(mode));
             // 接收消息。
-            sock.recvFromLower(buffer);
+            sock.recvFromLower(buffer, USER_TIMEOUT);
             cout << "\rReceived: " << decode(buffer) << endl;
             /* ------------------按`2`进入发送模式。--------------------- */
         } else if (mode == SEND_MODE) {

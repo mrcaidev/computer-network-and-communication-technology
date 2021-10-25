@@ -54,9 +54,9 @@ class CNTSocket {
     int sendToUpper(string message);
     int sendToLower(string message);
     int sendToLowerAsBits(string message);
-    int recvFromUpper(char *buffer);
-    int recvFromLower(char *buffer);
-    int recvFromLowerAsBits(char *buffer);
+    int recvFromUpper(char *buffer, int timeout);
+    int recvFromLower(char *buffer, int timeout);
+    int recvFromLowerAsBits(char *buffer, int timeout);
 };
 
 /**
@@ -185,9 +185,10 @@ int CNTSocket::sendToLowerAsBits(string message) {
  *  @brief  从上层收消息。
  *  @param  buffer  存放消息的缓存区。
  */
-int CNTSocket::recvFromUpper(char *buffer) {
+int CNTSocket::recvFromUpper(char *buffer, int timeout) {
     memset(buffer, 0, sizeof(buffer));
     int size = sizeof(SOCKADDR);
+    this->setRecvTimeout(timeout);
     int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
                              (SOCKADDR *)&this->upperAddr, &size);
     if (recvBytes != 0) {
@@ -200,9 +201,10 @@ int CNTSocket::recvFromUpper(char *buffer) {
  *  @brief  从下层收消息。
  *  @param  buffer  存放消息的缓存区。
  */
-int CNTSocket::recvFromLower(char *buffer) {
+int CNTSocket::recvFromLower(char *buffer, int timeout) {
     memset(buffer, 0, sizeof(buffer));
     int size = sizeof(SOCKADDR);
+    this->setRecvTimeout(timeout);
     int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
                              (SOCKADDR *)&this->lowerAddr, &size);
     if (recvBytes != 0) {
@@ -215,10 +217,11 @@ int CNTSocket::recvFromLower(char *buffer) {
  *  @brief  从下层以bits数组形式收消息。
  *  @param  buffer  存放消息的缓存区。
  */
-int CNTSocket::recvFromLowerAsBits(char *buffer) {
+int CNTSocket::recvFromLowerAsBits(char *buffer, int timeout) {
     memset(buffer, 0, sizeof(buffer));
     // 接收01序列。
     int size = sizeof(SOCKADDR);
+    this->setRecvTimeout(timeout);
     int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
                              (SOCKADDR *)&this->lowerAddr, &size);
     if (recvBytes != 0) {
