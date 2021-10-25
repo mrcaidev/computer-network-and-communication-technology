@@ -11,7 +11,7 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-    cout << "------------------APP------------------" << endl;
+    cout << "-------------APP-------------" << endl;
     // 确定端口。
     unsigned short appPort = 0;
     cout << "APP Port: ";
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
     sock.setRecvTimeout(RECV_TIMEOUT);
 
     while (true) {
-        cout << "---------------------------------------" << endl;
+        cout << "-----------------------------" << endl;
         /* ------------------------选择当前模式。----------------------- */
         cout << "Select mode: (1::Recv, 2::Send, 3::Broadcast, 4::Quit)" << endl
              << ">>> ";
