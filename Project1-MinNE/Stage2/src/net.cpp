@@ -1,6 +1,6 @@
 /**
  * @name: net.cpp
- * @author: MrCai
+ * @author: 蔡与望
  * @description: 网元网络层。
  */
 #include <iostream>
@@ -104,8 +104,8 @@ int main(int argc, char *argv[]) {
                     } else {
                         // 如果不是起始帧，拼接消息。
                         selfMessage += recvFrame.getData();
-                        cout << "Verified. (" << decode(selfMessage) << ")"
-                             << endl;
+                        cout << "Verified. (" << decode(recvFrame.getData())
+                             << ")" << endl;
                     }
                     // 不管是不是第0帧，都要回复ACK。
                     lastData = recvFrame.getData();

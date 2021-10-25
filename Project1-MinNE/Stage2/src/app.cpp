@@ -1,6 +1,6 @@
 /**
  * @name: app.cpp
- * @author: MrCai
+ * @author: 蔡与望
  * @description: 网元应用层。
  */
 #include <iostream>
