@@ -47,13 +47,11 @@ int main(int argc, char *argv[]) {
 
     while (true) {
         /* ----------------------上层通知当前模式。----------------------- */
-        memset(buffer, 0, sizeof(buffer));
         sock.recvFromUpper(buffer);
         mode = atoi(buffer);
         /* --------------------进入与应用层相同的模式。-------------------- */
         if (mode == RECV_MODE) {
             // 从对面那里得知要收多少帧。
-            memset(buffer, 0, sizeof(buffer));
             sock.recvFromLowerAsBits(buffer);
             Frame request(buffer);
             recvTotal = binToDec(request.getData());
@@ -64,7 +62,6 @@ int main(int argc, char *argv[]) {
             reRecvNum = 0;
             for (int frame = 0; frame < recvTotal + reRecvNum; ++frame) {
                 // 解封。
-                memset(buffer, 0, sizeof(buffer));
                 sock.recvFromLowerAsBits(buffer);
                 // TODO: 如果超时没收到消息，要回复NAK。
                 Frame recvFrame(buffer);
@@ -96,12 +93,10 @@ int main(int argc, char *argv[]) {
 
         } else if (mode == SEND_MODE) {
             // 目标端口。
-            memset(buffer, 0, sizeof(buffer));
             sock.recvFromUpper(buffer);
             dstPort = atoi(buffer);
             cout << "Sending to port " << dstPort << "." << endl;
             // 要发的消息的所有位。
-            memset(buffer, 0, sizeof(buffer));
             sock.recvFromUpper(buffer);
             allMessage = buffer;
             // 计算并通知对方要发多少帧。
@@ -135,7 +130,6 @@ int main(int argc, char *argv[]) {
                 cout << "[Frame " << packages[frame].getSeq() << "] Sent."
                      << endl;
                 // 处理对方的回复。
-                memset(buffer, 0, sizeof(buffer));
                 sock.recvFromLowerAsBits(buffer);
                 // TODO: 如果没收到回复，也要重传。
                 Frame response(buffer);

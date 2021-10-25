@@ -186,6 +186,7 @@ int CNTSocket::sendToLowerAsBits(string message) {
  *  @param  buffer  存放消息的缓存区。
  */
 int CNTSocket::recvFromUpper(char *buffer) {
+    memset(buffer, 0, sizeof(buffer));
     int size = sizeof(SOCKADDR);
     int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
                              (SOCKADDR *)&this->upperAddr, &size);
@@ -200,6 +201,7 @@ int CNTSocket::recvFromUpper(char *buffer) {
  *  @param  buffer  存放消息的缓存区。
  */
 int CNTSocket::recvFromLower(char *buffer) {
+    memset(buffer, 0, sizeof(buffer));
     int size = sizeof(SOCKADDR);
     int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
                              (SOCKADDR *)&this->lowerAddr, &size);
@@ -214,6 +216,7 @@ int CNTSocket::recvFromLower(char *buffer) {
  *  @param  buffer  存放消息的缓存区。
  */
 int CNTSocket::recvFromLowerAsBits(char *buffer) {
+    memset(buffer, 0, sizeof(buffer));
     // 接收01序列。
     int size = sizeof(SOCKADDR);
     int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,

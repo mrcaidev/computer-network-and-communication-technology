@@ -45,7 +45,6 @@ int main(int argc, char *argv[]) {
             cout << "Waiting...";
             sock.sendToLower(to_string(mode));
             // 接收消息。
-            memset(buffer, 0, sizeof(buffer));
             sock.recvFromLower(buffer);
             cout << "\rReceived: " << decode(buffer) << endl;
             /* ------------------按`2`进入发送模式。--------------------- */
