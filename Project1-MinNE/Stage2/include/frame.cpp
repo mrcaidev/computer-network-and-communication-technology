@@ -56,13 +56,9 @@ class Frame {
     ~Frame();
 
     unsigned short getSrcPort();
-    unsigned short getDstPort();
-
-    void setSeq(unsigned short seq);
     unsigned short getSeq();
-
-    void setData(string data);
     string getData();
+    unsigned short getDstPort();
 
     void setChecksum(unsigned short checksum);
     bool isVerified();
@@ -123,11 +119,7 @@ unsigned short Frame::getSrcPort() { return this->srcPort; }
 
 unsigned short Frame::getDstPort() { return this->dstPort; }
 
-void Frame::setSeq(unsigned short seq) { this->seq = seq; }
-
 unsigned short Frame::getSeq() { return this->seq; }
-
-void Frame::setData(string data) { this->data = data; }
 
 string Frame::getData() { return this->data; }
 

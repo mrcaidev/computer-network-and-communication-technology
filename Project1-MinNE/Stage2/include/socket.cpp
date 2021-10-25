@@ -103,22 +103,12 @@ void CNTSocket::bindLowerPort(unsigned short port) {
 int CNTSocket::sendToUpper(string message) {
     int sentBytes = sendto(this->sock, message.c_str(), message.length(), 0,
                            (SOCKADDR *)&this->upperAddr, sizeof(SOCKADDR));
-
-    if (sentBytes == 0) {
-        cout << "0 bytes of message is sent. (" << WSAGetLastError() << ")"
-             << endl;
-    }
     return sentBytes;
 }
 
 int CNTSocket::sendToLower(string message) {
     int sentBytes = sendto(this->sock, message.c_str(), message.length(), 0,
                            (SOCKADDR *)&this->lowerAddr, sizeof(SOCKADDR));
-
-    if (sentBytes == 0) {
-        cout << "0 bytes of message is sent. (" << WSAGetLastError() << ")"
-             << endl;
-    }
     return sentBytes;
 }
 
@@ -133,13 +123,9 @@ int CNTSocket::sendToLowerAsBits(string message) {
     }
 
     Sleep(FLOW_INTERVAL);
+
     int sentBytes = sendto(this->sock, bitsArr, message.length(), 0,
                            (SOCKADDR *)&this->lowerAddr, sizeof(SOCKADDR));
-
-    if (sentBytes == 0) {
-        cout << "0 bytes of message is sent. (" << WSAGetLastError() << ")"
-             << endl;
-    }
     return sentBytes;
 }
 
@@ -147,11 +133,7 @@ int CNTSocket::recvFromUpper(char *buffer) {
     int size = sizeof(SOCKADDR);
     int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
                              (SOCKADDR *)&this->upperAddr, &size);
-
-    if (recvBytes == 0) {
-        cout << "0 bytes of message is received. (" << WSAGetLastError() << ")"
-             << endl;
-    } else {
+    if (recvBytes != 0) {
         buffer[recvBytes] = '\0';
     }
     return recvBytes;
@@ -159,14 +141,9 @@ int CNTSocket::recvFromUpper(char *buffer) {
 
 int CNTSocket::recvFromLower(char *buffer) {
     int size = sizeof(SOCKADDR);
-
     int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
                              (SOCKADDR *)&this->lowerAddr, &size);
-
-    if (recvBytes == 0) {
-        cout << "0 bytes of message is received. (" << WSAGetLastError() << ")"
-             << endl;
-    } else {
+    if (recvBytes != 0) {
         buffer[recvBytes] = '\0';
     }
     return recvBytes;
@@ -174,14 +151,9 @@ int CNTSocket::recvFromLower(char *buffer) {
 
 int CNTSocket::recvFromLowerAsBits(char *buffer) {
     int size = sizeof(SOCKADDR);
-
     int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
                              (SOCKADDR *)&this->lowerAddr, &size);
-
-    if (recvBytes == 0) {
-        cout << "0 bytes of message is received. (" << WSAGetLastError() << ")"
-             << endl;
-    } else {
+    if (recvBytes != 0) {
         buffer[recvBytes] = '\0';
     }
 

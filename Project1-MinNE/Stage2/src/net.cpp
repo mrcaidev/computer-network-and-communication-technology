@@ -12,7 +12,7 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-    cout << "------------------NET------------------" << endl;
+    cout << "-------------NET-------------" << endl;
     // 确定端口。
     unsigned short appPort = 0;
     cout << "APP Port: ";
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     sock.setSendTimeout(SEND_TIMEOUT);
     sock.setRecvTimeout(RECV_TIMEOUT);
 
-    cout << "---------------------------------------" << endl;
+    cout << "---------Initialized---------" << endl;
 
     while (true) {
         /* ----------------------上层通知当前模式。----------------------- */
@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
             // 通知上层接收完毕。
             sock.sendToUpper(selfMessage);
 
-            cout << "---------------------------------------" << endl;
+            cout << "-------Recv completed--------" << endl;
 
         } else if (mode == SEND_MODE) {
             // 目标端口。
@@ -160,12 +160,12 @@ int main(int argc, char *argv[]) {
             // 全部发完，封装的帧可以丢弃。
             delete[] packages;
 
-            cout << "---------------------------------------" << endl;
+            cout << "-------Send completed-------" << endl;
 
         } else if (mode == BROADCAST_MODE) {
             // TODO: 广播模式。
 
-            cout << "---------------------------------------" << endl;
+            cout << "-----Broadcast completed-----" << endl;
 
         } else if (mode == QUIT) {
             quit();
