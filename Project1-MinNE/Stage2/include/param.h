@@ -18,6 +18,9 @@
 #define TRANSFORM_TARGET "11111"
 #define ACK "A"
 #define NAK ">"
+#define EMPTY_FRAME                                                            \
+    "000000000000000000000000000000000000000000000000000000000000000000000000" \
+    "0000000000000000"
 
 /* ------------常数------------ */
 #define BITS_PER_CHAR 16

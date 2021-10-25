@@ -79,7 +79,5 @@ string decode(string secret) {
     WideCharToMultiByte(CP_ACP, 0, (LPCWCH)decArr, -1, temp, len, nullptr,
                         FALSE);
 
-    string message = temp;
-    delete[] temp;
-    return message;
+    return temp;
 }
