@@ -31,9 +31,9 @@ int main(int argc, char *argv[]) {
     string allMessage = "";
     string selfMessage = "";
     string thisMessage = "";
+    string lastData = "";
     int sendTotal = 0;
     int recvTotal = 0;
-    int reRecvNum = 0;
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
     CNTSocket sock(SOCK_DGRAM);
@@ -59,12 +59,28 @@ int main(int argc, char *argv[]) {
                  << " frames in total." << endl;
             // 逐帧接收。
             selfMessage.clear();
-            reRecvNum = 0;
-            for (int frame = 0; frame < recvTotal + reRecvNum; ++frame) {
-                // 解封。
+            for (int frame = 0; frame < recvTotal; frame++) {
+                // 接收一帧。
                 sock.recvFromLowerAsBits(buffer);
                 // TODO: 如果超时没收到消息，要回复NAK。
+                // 解封。
                 Frame recvFrame(buffer);
+                // 如果发来的帧序号和数据都重复了，说明这帧是接收端收到了不明回复后重传的。
+                // 回复ACK，但不接收这帧。
+                // ! 这里有一个潜在的漏洞：
+                // 如果这帧是对面重传的误帧，而且刚好数据错在同样的位置上，那么这里就会丢弃这一帧。
+                // 造成的结果是，双端都以为这帧传对了，但其实接收端少收了这一帧。
+                // 但出现这种情况的可能性很小，在此忽略不计。
+                if (seq == recvFrame.getSeq() &&
+                    lastData == recvFrame.getData()) {
+                    cout << "[Frame " << seq << "] Repeated." << endl;
+                    Frame ack(appPort, seq, encode(ACK),
+                              recvFrame.getSrcPort());
+                    sock.sendToLowerAsBits(ack.stringify());
+                    --frame;
+                    continue;
+                }
+                // 如果没重复，那就更新序号。
                 seq = recvFrame.getSeq();
                 cout << "[Frame " << seq << "] ";
                 // 验证并回复。
@@ -73,6 +89,7 @@ int main(int argc, char *argv[]) {
                     cout << "Verified. (" << decode(recvFrame.getData()) << ")"
                          << endl;
                     selfMessage += recvFrame.getData();
+                    lastData = recvFrame.getData();
                     Frame ack(appPort, seq, encode(ACK),
                               recvFrame.getSrcPort());
                     sock.sendToLowerAsBits(ack.stringify());
@@ -80,10 +97,10 @@ int main(int argc, char *argv[]) {
                     // 回复NAK。
                     cout << "Invalid. (" << decode(recvFrame.getData()) << ")"
                          << endl;
-                    reRecvNum++;
                     Frame nak(appPort, seq, encode(NAK),
                               recvFrame.getSrcPort());
                     sock.sendToLowerAsBits(nak.stringify());
+                    --frame;
                 }
             }
             // 通知上层接收完毕。
@@ -129,26 +146,26 @@ int main(int argc, char *argv[]) {
                 sock.sendToLowerAsBits(selfMessage);
                 cout << "[Frame " << packages[frame].getSeq() << "] Sent."
                      << endl;
-                // 处理对方的回复。
+                // 接收对方的回复。
                 sock.recvFromLowerAsBits(buffer);
                 // TODO: 如果没收到回复，也要重传。
+                // 解封。
                 Frame response(buffer);
                 string responseMessage = decode(response.getData());
-                if (responseMessage == NAK) {
+                if (responseMessage == ACK) {
+                    // 如果是ACK，就打印成功信息。
+                    cout << "[Frame " << packages[frame].getSeq() << "] ACK."
+                         << endl;
+                } else if (responseMessage == NAK) {
                     // 如果是NAK，就报错并重传。
                     cout << "[Frame " << packages[frame].getSeq() << "] NAK."
                          << endl;
                     --frame;
-                } else if (responseMessage == ACK) {
-                    // 如果是ACK，就打印成功信息。
-                    cout << "[Frame " << packages[frame].getSeq() << "] ACK."
-                         << endl;
                 } else {
-                    // 如果是其他信息，说明响应在传的时候也出错了。
-                    // TODO: 还是重传这一帧，但接收方需要额外判断序号是否重复。
-                    // 暂且认为无效响应均为ACK。
+                    // 如果是其他信息，说明对面的回复在传的时候也出错了，还是要重传这一帧。
                     cout << "[Frame " << packages[frame].getSeq()
                          << "] Unknown response." << endl;
+                    --frame;
                 }
             }
             // 全部发完，封装的帧可以丢弃。
