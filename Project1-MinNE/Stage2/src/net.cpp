@@ -52,18 +52,18 @@ int main(int argc, char *argv[]) {
         sock.recvFromUpper(buffer, USER_TIMEOUT);
         mode = atoi(buffer);
         /* --------------------进入与应用层相同的模式。-------------------- */
+        selfMessage.clear();
         if (mode == RECV_MODE) {
-            // 从对面那里得知要收多少帧。
-            sock.recvFromLowerAsBits(buffer, USER_TIMEOUT);
-            Frame request(buffer);
-            recvTotal = binToDec(request.getData());
-            srcPort = request.getSrcPort();
-            cout << "[Frame " << request.getSeq() << "] Receiving " << recvTotal
-                 << " frames in total." << endl;
             // 逐帧接收。
-            for (int frame = 0; frame < recvTotal; frame++) {
+            for (int frame = 0; frame <= recvTotal; frame++) {
                 // 接收一帧。
-                recvBytes = sock.recvFromLowerAsBits(buffer, RECV_TIMEOUT);
+                if (frame == 0) {
+                    // 第0帧由于需要等发送端用户输入，所以可以等得久一点。
+                    recvBytes = sock.recvFromLowerAsBits(buffer, USER_TIMEOUT);
+                } else {
+                    // 其它帧不能等太久。
+                    recvBytes = sock.recvFromLowerAsBits(buffer, RECV_TIMEOUT);
+                }
                 // 如果超时没收到消息，回复NAK。
                 if (recvBytes == 0) {
                     cout << "[Frame " << seq + 1 << "] Timeout." << endl;
@@ -93,15 +93,26 @@ int main(int argc, char *argv[]) {
                 cout << "[Frame " << seq << "] ";
                 // 验证并回复。
                 if (recvFrame.isVerified()) {
-                    // 拼接消息，回复ACK。
-                    cout << "Verified. (" << decode(recvFrame.getData()) << ")"
-                         << endl;
-                    selfMessage += recvFrame.getData();
+                    // 如果验证通过，接下来判断是不是第0帧。
+                    // 在接收前的第0帧，发送端会通知要发多少帧。
+                    if (frame == 0) {
+                        // 据此更新循环次数。
+                        recvTotal = binToDec(recvFrame.getData());
+                        srcPort = recvFrame.getSrcPort();
+                        cout << "Receiving " << recvTotal << " frames in total."
+                             << endl;
+                    } else {
+                        // 如果不是起始帧，拼接消息。
+                        selfMessage += recvFrame.getData();
+                        cout << "Verified. (" << decode(selfMessage) << ")"
+                             << endl;
+                    }
+                    // 不管是不是第0帧，都要回复ACK。
                     lastData = recvFrame.getData();
                     Frame ack(appPort, seq, encode(ACK), srcPort);
                     sock.sendToLowerAsBits(ack.stringify());
                 } else {
-                    // 回复NAK。
+                    // 如果验证不通过，回复NAK。
                     cout << "Invalid. (" << decode(recvFrame.getData()) << ")"
                          << endl;
                     Frame nak(appPort, seq, encode(NAK), srcPort);
@@ -122,18 +133,17 @@ int main(int argc, char *argv[]) {
             // 要发的消息的所有位。
             sock.recvFromUpper(buffer, USER_TIMEOUT);
             allMessage = buffer;
-            // 计算并通知对方要发多少帧。
+            // 计算要发多少帧。
             seq = (seq + 1) % 256;
             sendTotal = Frame::calcTotal(allMessage.length());
-            Frame request(appPort, seq, decToBin(sendTotal, SEQ_LEN), dstPort);
-            sock.sendToLowerAsBits(request.stringify());
-            cout << "[Frame " << seq << "] Sending " << sendTotal
-                 << " frames in total." << endl;
             // 逐帧封装。
-            Frame *packages = new Frame[sendTotal];
-            for (int frame = 0; frame < sendTotal; ++frame) {
+            Frame *packages = new Frame[sendTotal + 1];
+            // 第0帧是特殊帧，用于通知对方要发多少帧。
+            Frame request(appPort, seq, decToBin(sendTotal, DATA_LEN), dstPort);
+            packages[0] = request;
+            for (int frame = 1; frame <= sendTotal; frame++) {
                 seq = (seq + 1) % 256;
-                if (frame == sendTotal - 1) {
+                if (frame == sendTotal) {
                     // 最后一帧，直接取走所有剩余消息。
                     thisMessage = allMessage;
                 } else {
@@ -146,12 +156,17 @@ int main(int argc, char *argv[]) {
                 packages[frame] = readyFrame;
             }
             // 所有消息封装完成，逐帧发送。
-            for (int frame = 0; frame < sendTotal; ++frame) {
+            for (int frame = 0; frame <= sendTotal; ++frame) {
                 selfMessage = packages[frame].stringify();
                 // 发给对面。
                 sock.sendToLowerAsBits(selfMessage);
-                cout << "[Frame " << packages[frame].getSeq() << "] Sent."
-                     << endl;
+                if (frame == 0) {
+                    cout << "[Frame " << request.getSeq() << "] Sending "
+                         << sendTotal << " frames in total." << endl;
+                } else {
+                    cout << "[Frame " << packages[frame].getSeq() << "] Sent."
+                         << endl;
+                }
                 // 接收对方的回复。
                 recvBytes = sock.recvFromLowerAsBits(buffer, RECV_TIMEOUT);
                 // 如果没收到回复，重传。
