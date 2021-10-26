@@ -32,7 +32,6 @@ int main(int argc, char *argv[]) {
     string allMessage = "";
     string selfMessage = "";
     string thisMessage = "";
-    string lastData = "";
     int sendTotal = 0;
     int recvTotal = 0;
     int recvBytes = 0;
@@ -52,9 +51,9 @@ int main(int argc, char *argv[]) {
         sock.recvFromUpper(buffer, USER_TIMEOUT);
         mode = atoi(buffer);
         /* --------------------进入与应用层相同的模式。-------------------- */
-        selfMessage.clear();
         if (mode == RECV_MODE) {
             // 逐帧接收。
+            selfMessage.clear();
             for (int frame = 0; frame <= recvTotal; frame++) {
                 // 接收一帧。
                 if (frame == 0) {
@@ -74,47 +73,39 @@ int main(int argc, char *argv[]) {
                 }
                 // 解封。
                 Frame recvFrame(buffer);
-                // 如果发来的帧序号和数据都重复了，说明这帧是接收端收到了不明回复后重传的。
+                // 如果发来的帧序号重复了，说明这帧是接收端收到了不明回复后重传的。
                 // 回复ACK，但不接收这帧。
-                // ! 这里有一个潜在的漏洞：
-                // 如果这帧是对面重传的误帧，而且刚好数据错在同样的位置上，那么这里就会丢弃这一帧。
-                // 造成的结果是，双端都以为这帧传对了，但其实接收端少收了这一帧。
-                // 但出现这种情况的可能性很小，在此忽略不计。
-                if (seq == recvFrame.getSeq() &&
-                    lastData == recvFrame.getData()) {
+                if (seq == recvFrame.getSeq()) {
                     cout << "[Frame " << seq << "] Repeated." << endl;
                     Frame ack(appPort, seq, encode(ACK), srcPort);
                     sock.sendToLowerAsBits(ack.stringify());
                     --frame;
                     continue;
                 }
-                // 如果没重复，那就更新序号。
-                seq = recvFrame.getSeq();
-                cout << "[Frame " << seq << "] ";
                 // 验证并回复。
                 if (recvFrame.isVerified()) {
-                    // 如果验证通过，接下来判断是不是第0帧。
+                    // 如果验证通过，就接收并更新序号。
+                    seq = recvFrame.getSeq();
                     // 在接收前的第0帧，发送端会通知要发多少帧。
                     if (frame == 0) {
                         // 据此更新循环次数。
                         recvTotal = binToDec(recvFrame.getData());
                         srcPort = recvFrame.getSrcPort();
-                        cout << "Receiving " << recvTotal << " frames in total."
-                             << endl;
+                        cout << "[Frame " << seq << "] Receiving " << recvTotal
+                             << " frames." << endl;
                     } else {
                         // 如果不是起始帧，拼接消息。
                         selfMessage += recvFrame.getData();
-                        cout << "Verified. (" << decode(recvFrame.getData())
-                             << ")" << endl;
+                        cout << "[Frame " << seq << "] Verified. ("
+                             << decode(recvFrame.getData()) << ")" << endl;
                     }
                     // 不管是不是第0帧，都要回复ACK。
-                    lastData = recvFrame.getData();
                     Frame ack(appPort, seq, encode(ACK), srcPort);
                     sock.sendToLowerAsBits(ack.stringify());
                 } else {
                     // 如果验证不通过，回复NAK。
-                    cout << "Invalid. (" << decode(recvFrame.getData()) << ")"
-                         << endl;
+                    cout << "[Frame " << seq + 1 << "] Invalid. ("
+                         << decode(recvFrame.getData()) << ")" << endl;
                     Frame nak(appPort, seq, encode(NAK), srcPort);
                     sock.sendToLowerAsBits(nak.stringify());
                     --frame;
@@ -162,7 +153,7 @@ int main(int argc, char *argv[]) {
                 sock.sendToLowerAsBits(selfMessage);
                 if (frame == 0) {
                     cout << "[Frame " << request.getSeq() << "] Sending "
-                         << sendTotal << " frames in total." << endl;
+                         << sendTotal << " frames." << endl;
                 } else {
                     cout << "[Frame " << packages[frame].getSeq() << "] Sent."
                          << endl;
@@ -190,6 +181,9 @@ int main(int argc, char *argv[]) {
                     --frame;
                 } else {
                     // 如果是其他信息，说明对面的回复在传的时候也出错了，还是要重传这一帧。
+                    // ! 这里有一个潜在的漏洞：
+                    // 如果接收端对最后一帧的ACK传错了，那么接收端已经停止接收，但发送端仍会继续重传。
+                    // 这会导致发送端无法终止。考虑引入keepalive机制。
                     cout << "[Frame " << packages[frame].getSeq()
                          << "] Unknown response." << endl;
                     --frame;
