@@ -1,7 +1,7 @@
 /**
- * @name: net.cpp
- * @author: 蔡与望
- * @description: 网元网络层。
+ * @file    net.cpp
+ * @author  蔡与望
+ * @brief   主机网络层。
  */
 #include <iostream>
 #include <winsock2.h>

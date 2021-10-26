@@ -1,7 +1,7 @@
 /**
- * @name: app.cpp
- * @author: 蔡与望
- * @description: 网元应用层。
+ * @file    app.cpp
+ * @author  蔡与望
+ * @brief   主机应用层。
  */
 #include <iostream>
 #include <winsock2.h>
