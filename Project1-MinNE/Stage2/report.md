@@ -47,6 +47,7 @@
     - [3.9 阶段二调试](#39-阶段二调试)
       - [3.9.1 Unicode字符的I/O](#391-unicode字符的io)
       - [3.9.2 差错的检测与重传](#392-差错的检测与重传)
+      - [3.9.3 反思、改进与体会](#393-反思改进与体会)
   - [四、交换共享技术](#四交换共享技术)
 
 ## 一、整体架构
@@ -373,6 +374,7 @@ for (int frame = 0; frame < recvTotal; ++frame) {
     // 解封、验证。
     if (isRepeat) {
         // 如果重复了，丢弃并回复ACK。
+        --frame;
         continue;
     }
     if (isVerified) {
@@ -420,6 +422,13 @@ class Frame {
     string data;
     unsigned short dstPort;
     unsigned short checksum;
+    bool verified;
+    string checkTarget;
+
+    string extractMessage(string raw);
+    static string transform(string message);
+    static unsigned short generateChecksum(string message);
+    static string addLocator(string message);
 
   public:
     Frame();
@@ -432,16 +441,9 @@ class Frame {
     unsigned short getSeq();
     string getData();
     unsigned short getDstPort();
-
-    void setChecksum(unsigned short checksum);
     bool isVerified();
 
     string stringify();
-
-    static string transform(string message);
-    static unsigned short generateChecksum(string message);
-    static string addLocator(string message);
-    static string extractMessage(string raw);
     static int calcTotal(int messageLen);
 };
 ```
@@ -463,7 +465,6 @@ int main(int argc, char *argv[]) {
     while (true) {
         // 上层通知当前模式。
         if (mode == RECV_MODE) {
-            // 从对面那里得知要收多少帧。
             for (int frame = 0; frame < recvFrameNum; ++frame) {
                 // 接收一帧。
                 if (recvBytes == 0) {
@@ -474,6 +475,7 @@ int main(int argc, char *argv[]) {
                 // 解封、验证。
                 if (isRepeat) {
                     // 如果重复了，丢弃并回复ACK。
+                    --frame;
                     continue;
                 }
                 if (isVerified) {
@@ -486,9 +488,9 @@ int main(int argc, char *argv[]) {
         } else if (mode == SEND_MODE) {
             // 获取目标端口。
             // 获取要发的消息。
-            // 计算并通知对方要发多少帧。
+            // 计算要发多少帧。
             // 逐帧封装。
-            // 所有消息封装完成，逐帧发送。
+            // 逐帧发送。
             for (int frame = 0; frame < sendFrameNum; ++frame) {
                 // 给对面发一帧。
                 // 接收对方的回复。
@@ -523,24 +525,24 @@ int main(int argc, char *argv[]) {
 
 #### 3.9.1 Unicode字符的I/O
 
-![阶段二调试1](report/2021-10-25-09-21-12.png)
+![阶段二调试1](report/2021-10-26-00-01-51.png)
 
-在本测试中，用户发送的字符串“你好，test.”中同时包含了中文、英文、全半角符号。可以看到，双方可以完成正常的信息收发，应用层能够正确编解码，网络层也能够逐帧发送与确认。
+在本测试中，用户发送的字符串“你好中文，hello.”中同时包含了中文、英文、全半角符号。可以看到，双方可以完成正常的信息收发，应用层能够正确编解码，网络层也能够逐帧发送与确认。
 
 #### 3.9.2 差错的检测与重传
 
-![阶段二调试2](report/2021-10-25-09-41-10.png)
+![阶段二调试2](report/2021-10-26-00-05-08.png)
 
-在本测试中，第4帧“是蔡”在传输过程中出现误码，变成了“是蒽”。接收端校验失误后，成功发送了NAK，让发送端重传了第4帧，最终在接收端呈现出了正确的信息。
+在本测试中，我们设置物理层误码率为十万分之1000，即1%。这样的信道环境已经比较严苛，但我们的程序通过网络层多次的检验、回复、重传，应用层最终仍能够呈现出正确、完整的字符。并且误码率还能够进一步增大。
 
-同时，网络层程序仍然存在一些不足，我们在代码中已使用`TODO`标记标出，简述如下：
+#### 3.9.3 反思、改进与体会
 
-1. `substr()`方法有时会意外地出现下标溢出问题，我们尚未定位到出错点；
-2. 发送端有时会误认接收端的`ACK`为`NAK`，导致帧间乱序；
-3. 接收端如果超时未收到消息，要求重传；
-4. 发送端如果超时未收到回复，要求重传。
+首先，我们的网络层程序仍然存在着不足，我们已经在代码中使用带"!"注释标记。在此简述如下：
 
-其中，问题2是我们亟需解决的，问题3、4重要但并不紧急，问题1也仍需要进一步的研究。
+1. `substr()`方法偶尔会抛出意外的错误，我们尚未定位到出错点。考虑将来通过断点调试进行修复；
+2. 如果接收端对最后一帧的`ACK`传错了，那么接收端已经停止接收，不再做出任何回应；但发送端认为是Unknown response，仍会继续重传，这会导致发送端无法终止。考虑将来引入`keepalive`机制。
+
+通过本程序的编写，我们小组对网络层的各项功能有了深入的了解，对帧的封装与序列化进行了实际的体验，也对”有确认无连接“的通信时序有了基本的掌握。
 
 ## 四、交换共享技术
 
