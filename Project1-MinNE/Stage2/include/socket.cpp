@@ -111,6 +111,8 @@ class SwitchSocket : public CNTSocket {
     void bindPhys(unsigned short routePhyPort, unsigned short *hostPhyPorts);
     int sendToPhy(string message, unsigned short port);
     int recvFromPhy(char *buffer, unsigned short port, int timeout);
+
+    void printMap();
 };
 
 /**
@@ -413,19 +415,14 @@ SwitchSocket::~SwitchSocket() { this->phySocks.clear(); }
  */
 void SwitchSocket::bindPhys(unsigned short routePhyPort,
                             unsigned short *hostPhyPorts) {
-    // 检测传入的端口数是否匹配。
-    int hostNum = sizeof(hostPhyPorts) / sizeof(unsigned short);
-    if (hostNum != HOST_PER_SWITCHER) {
-        cout << "Error: Wrong ports number." << endl;
-        exit(-1);
-    }
+    CNTSocket *sockArr = new CNTSocket[HOST_PER_SWITCHER + 1];
     // 先存储对接路由器的物理层套接字。
-    CNTSocket routePhySock(routePhyPort);
-    this->phySocks[routePhyPort] = routePhySock;
+    sockArr[0].bindSelf(routePhyPort);
+    this->phySocks[routePhyPort] = sockArr[0];
     // 再存储对接主机的物理层地址。
-    for (int i = 0; i < HOST_PER_SWITCHER; i++) {
-        CNTSocket hostPhySock(hostPhyPorts[i]);
-        this->phySocks[hostPhyPorts[i]] = hostPhySock;
+    for (int i = 1; i <= HOST_PER_SWITCHER; i++) {
+        sockArr[i].bindSelf(hostPhyPorts[i - 1]);
+        this->phySocks[hostPhyPorts[i - 1]] = sockArr[i];
     }
 }
 
@@ -475,4 +472,12 @@ int SwitchSocket::recvFromPhy(char *buffer, unsigned short port, int timeout) {
         buffer[i] += '0';
     }
     return recvBytes;
+}
+
+void SwitchSocket::printMap() {
+    map<unsigned short, CNTSocket>::iterator iter;
+    for (iter = this->phySocks.begin(); iter != this->phySocks.end(); iter++) {
+        cout << iter->first << " : " << CNTSocket::getPort(iter->second)
+             << endl;
+    }
 }
