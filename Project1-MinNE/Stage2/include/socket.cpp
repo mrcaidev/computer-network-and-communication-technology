@@ -5,7 +5,6 @@
  */
 #pragma once
 #include <iostream>
-#include <map>
 #include <winsock2.h>
 #include "param.h"
 using namespace std;
@@ -94,25 +93,6 @@ class NetSocket : public CNTSocket {
     void bindPhy(unsigned short port);
     int sendToPhy(string message);
     int recvFromPhy(char *buffer, int timeout);
-};
-
-/**
- *  @brief  交换机网络层套接字。
- */
-class SwitchSocket : public CNTSocket {
-  protected:
-    map<unsigned short, CNTSocket> phySocks;
-
-  public:
-    SwitchSocket();
-    SwitchSocket(unsigned short port);
-    ~SwitchSocket();
-
-    void bindPhys(unsigned short routePhyPort, unsigned short *hostPhyPorts);
-    int sendToPhy(string message, unsigned short port);
-    int recvFromPhy(char *buffer, unsigned short port, int timeout);
-
-    void printMap();
 };
 
 /**
@@ -392,92 +372,4 @@ int NetSocket::recvFromPhy(char *buffer, int timeout) {
         buffer[i] += '0';
     }
     return recvBytes;
-}
-
-/**
- *  @brief  创建交换机网络层套接字。
- */
-SwitchSocket::SwitchSocket() : CNTSocket() {}
-
-/**
- *  @brief  创建交换机网络层套接字，同时绑定其端口。
- */
-SwitchSocket::SwitchSocket(unsigned short port) : CNTSocket(port) {}
-
-/**
- *  @brief  销毁交换机网络层套接字。
- */
-SwitchSocket::~SwitchSocket() { this->phySocks.clear(); }
-
-/**
- *  @brief  绑定本层套接字与各个物理层端口。
- *  @param  ports   各个物理层的端口号。
- */
-void SwitchSocket::bindPhys(unsigned short routePhyPort,
-                            unsigned short *hostPhyPorts) {
-    CNTSocket *sockArr = new CNTSocket[HOST_PER_SWITCHER + 1];
-    // 先存储对接路由器的物理层套接字。
-    sockArr[0].bindSelf(routePhyPort);
-    this->phySocks[routePhyPort] = sockArr[0];
-    // 再存储对接主机的物理层地址。
-    for (int i = 1; i <= HOST_PER_SWITCHER; i++) {
-        sockArr[i].bindSelf(hostPhyPorts[i - 1]);
-        this->phySocks[hostPhyPorts[i - 1]] = sockArr[i];
-    }
-}
-
-/**
- *  @brief  向指定物理层发消息。
- *  @param  message 要发的消息。
- *  @param  port    指定物理层的端口号。
- *  @retval 发送的字节数。
- */
-int SwitchSocket::sendToPhy(string message, unsigned short port) {
-    // 将01字符串转化为01序列。
-    char *bitsArr = new char[message.length()];
-    for (int i = 0; i < message.length(); i++) {
-        bitsArr[i] = message[i] - '0';
-    }
-    // 流量控制。
-    Sleep(FLOW_INTERVAL);
-    // 发送01序列。
-    SOCKADDR_IN addr = CNTSocket::getAddress(this->phySocks[port]);
-    int sentBytes = sendto(this->sock, bitsArr, message.length(), 0,
-                           (SOCKADDR *)&addr, sizeof(SOCKADDR));
-    // 释放01序列空间。
-    delete[] bitsArr;
-    return sentBytes;
-}
-
-/**
- *  @brief  从指定物理层接收消息。
- *  @param  buffer  接收消息的缓存区。
- *  @param  port    指定物理层的端口号。
- *  @param  timeout 接收超时时间。
- *  @retval 收到的字节数。
- */
-int SwitchSocket::recvFromPhy(char *buffer, unsigned short port, int timeout) {
-    memset(buffer, 0, sizeof(buffer));
-    // 接收01序列。
-    int size = sizeof(SOCKADDR);
-    SOCKADDR_IN addr = CNTSocket::getAddress(this->phySocks[port]);
-    this->setRecvTimeout(timeout);
-    int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
-                             (SOCKADDR *)&addr, &size);
-    if (recvBytes != 0) {
-        buffer[recvBytes] = '\0';
-    }
-    // 将01序列转换为01字符串。
-    for (int i = 0; i < recvBytes; i++) {
-        buffer[i] += '0';
-    }
-    return recvBytes;
-}
-
-void SwitchSocket::printMap() {
-    map<unsigned short, CNTSocket>::iterator iter;
-    for (iter = this->phySocks.begin(); iter != this->phySocks.end(); iter++) {
-        cout << iter->first << " : " << CNTSocket::getPort(iter->second)
-             << endl;
-    }
 }
