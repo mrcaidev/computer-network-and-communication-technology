@@ -37,10 +37,10 @@ int main(int argc, char *argv[]) {
     int recvBytes = 0;
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
-    CNTSocket sock;
-    sock.bindUpperPort(appPort);
-    sock.bindSelfPort(netPort);
-    sock.bindLowerPort(phyPort);
+    NetSocket sock;
+    sock.bindApp(appPort);
+    sock.bindSelf(netPort);
+    sock.bindPhy(phyPort);
     sock.setSendTimeout(USER_TIMEOUT);
     sock.setRecvTimeout(USER_TIMEOUT);
 
@@ -48,9 +48,12 @@ int main(int argc, char *argv[]) {
 
     while (true) {
         /* ----------------------上层通知当前模式。----------------------- */
-        sock.recvFromUpper(buffer, USER_TIMEOUT);
+
+        sock.recvFromApp(buffer, USER_TIMEOUT);
         mode = atoi(buffer);
-        /* --------------------进入与应用层相同的模式。-------------------- */
+
+        /* --------------------------发送模式。-------------------------- */
+
         if (mode == RECV_MODE) {
             // 逐帧接收。
             selfMessage.clear();
@@ -58,16 +61,16 @@ int main(int argc, char *argv[]) {
                 // 接收一帧。
                 if (frame == 0) {
                     // 第0帧由于需要等发送端用户输入，所以可以等得久一点。
-                    recvBytes = sock.recvFromLowerAsBits(buffer, USER_TIMEOUT);
+                    recvBytes = sock.recvFromPhy(buffer, USER_TIMEOUT);
                 } else {
                     // 其它帧不能等太久。
-                    recvBytes = sock.recvFromLowerAsBits(buffer, RECV_TIMEOUT);
+                    recvBytes = sock.recvFromPhy(buffer, RECV_TIMEOUT);
                 }
                 // 如果超时没收到消息，回复NAK。
                 if (recvBytes == 0) {
                     cout << "[Frame " << seq + 1 << "] Timeout." << endl;
                     Frame nak(appPort, seq + 1, encode(NAK), srcPort);
-                    sock.sendToLowerAsBits(nak.stringify());
+                    sock.sendToPhy(nak.stringify());
                     --frame;
                     continue;
                 }
@@ -78,7 +81,7 @@ int main(int argc, char *argv[]) {
                 if (seq == recvFrame.getSeq()) {
                     cout << "[Frame " << seq << "] Repeated." << endl;
                     Frame ack(appPort, seq, encode(ACK), srcPort);
-                    sock.sendToLowerAsBits(ack.stringify());
+                    sock.sendToPhy(ack.stringify());
                     --frame;
                     continue;
                 }
@@ -101,28 +104,29 @@ int main(int argc, char *argv[]) {
                     }
                     // 不管是不是第0帧，都要回复ACK。
                     Frame ack(appPort, seq, encode(ACK), srcPort);
-                    sock.sendToLowerAsBits(ack.stringify());
+                    sock.sendToPhy(ack.stringify());
                 } else {
                     // 如果验证不通过，回复NAK。
                     cout << "[Frame " << seq + 1 << "] Invalid. ("
                          << decode(recvFrame.getData()) << ")" << endl;
                     Frame nak(appPort, seq, encode(NAK), srcPort);
-                    sock.sendToLowerAsBits(nak.stringify());
+                    sock.sendToPhy(nak.stringify());
                     --frame;
                 }
             }
             // 通知上层接收完毕。
-            sock.sendToUpper(selfMessage);
-
+            sock.sendToApp(selfMessage);
             cout << "-------Recv completed--------" << endl;
+
+            /* ------------------------接收模式。------------------------ */
 
         } else if (mode == SEND_MODE) {
             // 目标端口。
-            sock.recvFromUpper(buffer, USER_TIMEOUT);
+            sock.recvFromApp(buffer, USER_TIMEOUT);
             dstPort = atoi(buffer);
             cout << "Sending to port " << dstPort << "." << endl;
             // 要发的消息的所有位。
-            sock.recvFromUpper(buffer, USER_TIMEOUT);
+            sock.recvFromApp(buffer, USER_TIMEOUT);
             allMessage = buffer;
             // 计算要发多少帧。
             seq = (seq + 1) % 256;
@@ -150,7 +154,7 @@ int main(int argc, char *argv[]) {
             for (int frame = 0; frame <= sendTotal; ++frame) {
                 selfMessage = packages[frame].stringify();
                 // 发给对面。
-                sock.sendToLowerAsBits(selfMessage);
+                sock.sendToPhy(selfMessage);
                 if (frame == 0) {
                     cout << "[Frame " << request.getSeq() << "] Sending "
                          << sendTotal << " frames." << endl;
@@ -159,7 +163,7 @@ int main(int argc, char *argv[]) {
                          << endl;
                 }
                 // 接收对方的回复。
-                recvBytes = sock.recvFromLowerAsBits(buffer, RECV_TIMEOUT);
+                recvBytes = sock.recvFromPhy(buffer, RECV_TIMEOUT);
                 // 如果没收到回复，重传。
                 if (recvBytes == 0) {
                     cout << "[Frame " << packages[frame].getSeq()
@@ -191,13 +195,16 @@ int main(int argc, char *argv[]) {
             }
             // 全部发完，封装的帧可以丢弃。
             delete[] packages;
-
             cout << "-------Send completed-------" << endl;
+
+            /* ------------------------广播模式。------------------------ */
 
         } else if (mode == BROADCAST_MODE) {
             // TODO: 广播模式。
 
             cout << "-----Broadcast completed-----" << endl;
+
+            /* ------------------------退出程序。------------------------ */
 
         } else if (mode == QUIT) {
             quit();
