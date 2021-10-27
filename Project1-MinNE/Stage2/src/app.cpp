@@ -24,7 +24,6 @@ int main(int argc, char *argv[]) {
     int mode = 0;
     char buffer[MAX_BUFFER_SIZE];
     string selfMessage = "";
-    int recvTotal = 0;
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
     AppSocket sock(appPort);
