@@ -44,15 +44,17 @@ class CNTSocket {
 
   public:
     CNTSocket();
+    CNTSocket(unsigned short port);
     ~CNTSocket();
+    SOCKET getSocket();
 
     void setSendTimeout(int millisecond);
     void setRecvTimeout(int millisecond);
 
     void bindSelf(unsigned short port);
 
-    static SOCKADDR_IN getAddressOfSocket(SOCKET sock);
-    static unsigned short getPortOfSocket(SOCKET sock);
+    static SOCKADDR_IN getAddress(CNTSocket sock);
+    static unsigned short getPort(CNTSocket sock);
 };
 
 /**
@@ -64,6 +66,7 @@ class AppSocket : public CNTSocket {
 
   public:
     AppSocket();
+    AppSocket(unsigned short port);
     ~AppSocket();
 
     void bindNet(unsigned short port);
@@ -81,6 +84,7 @@ class NetSocket : public CNTSocket {
 
   public:
     NetSocket();
+    NetSocket(unsigned short port);
     ~NetSocket();
 
     void bindApp(unsigned short port);
@@ -97,13 +101,14 @@ class NetSocket : public CNTSocket {
  */
 class SwitchSocket : public CNTSocket {
   protected:
-    map<unsigned short, SOCKADDR_IN> phyAddrs;
+    map<unsigned short, CNTSocket> phySocks;
 
   public:
     SwitchSocket();
+    SwitchSocket(unsigned short port);
     ~SwitchSocket();
 
-    void bindPhys(unsigned short *ports);
+    void bindPhys(unsigned short routePhyPort, unsigned short *hostPhyPorts);
     int sendToPhy(string message, unsigned short port);
     int recvFromPhy(char *buffer, unsigned short port, int timeout);
 };
@@ -118,12 +123,33 @@ CNTSocket::CNTSocket() {
         exit(-1);
     }
     memset(&this->addr, 0, sizeof(SOCKADDR_IN));
+    this->setSendTimeout(USER_TIMEOUT);
+    this->setRecvTimeout(USER_TIMEOUT);
+}
+
+/**
+ *  @brief  创建无连接IPv4套接字，同时绑定其端口。
+ */
+CNTSocket::CNTSocket(unsigned short port) {
+    this->sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (this->sock == INVALID_SOCKET) {
+        cout << "Error: socket() failed. (" << WSAGetLastError() << ")" << endl;
+        exit(-1);
+    }
+    this->bindSelf(port);
+    this->setSendTimeout(USER_TIMEOUT);
+    this->setRecvTimeout(USER_TIMEOUT);
 }
 
 /**
  *  @brief  销毁套接字。
  */
 CNTSocket::~CNTSocket() { closesocket(this->sock); }
+
+/**
+ *  @brief  获取套接字。
+ */
+SOCKET CNTSocket::getSocket() { return this->sock; }
 
 /**
  *  @brief  设置发送超时。
@@ -173,10 +199,10 @@ void CNTSocket::bindSelf(unsigned short port) {
  *  @param  sock    要查询的套接字。
  *  @retval 该套接字的地址。
  */
-SOCKADDR_IN CNTSocket::getAddressOfSocket(SOCKET sock) {
+SOCKADDR_IN CNTSocket::getAddress(CNTSocket sock) {
     SOCKADDR_IN addr;
     int size = sizeof(SOCKADDR);
-    getsockname(sock, (SOCKADDR *)&addr, &size);
+    getsockname(sock.getSocket(), (SOCKADDR *)&addr, &size);
     return addr;
 }
 
@@ -185,8 +211,8 @@ SOCKADDR_IN CNTSocket::getAddressOfSocket(SOCKET sock) {
  *  @param  sock    要查询的套接字。
  *  @retval 该套接字的端口号。
  */
-unsigned short CNTSocket::getPortOfSocket(SOCKET sock) {
-    SOCKADDR_IN addr = CNTSocket::getAddressOfSocket(sock);
+unsigned short CNTSocket::getPort(CNTSocket sock) {
+    SOCKADDR_IN addr = CNTSocket::getAddress(sock);
     unsigned short port = ntohs(addr.sin_port);
     return port;
 }
@@ -195,6 +221,13 @@ unsigned short CNTSocket::getPortOfSocket(SOCKET sock) {
  *  @brief  创建应用层套接字。
  */
 AppSocket::AppSocket() : CNTSocket() {
+    memset(&this->netAddr, 0, sizeof(SOCKADDR_IN));
+}
+
+/**
+ *  @brief  创建应用层套接字，同时绑定其端口。
+ */
+AppSocket::AppSocket(unsigned short port) : CNTSocket(port) {
     memset(&this->netAddr, 0, sizeof(SOCKADDR_IN));
 }
 
@@ -247,6 +280,14 @@ int AppSocket::recvFromNet(char *buffer, int timeout) {
  *  @brief  创建网络层套接字。
  */
 NetSocket::NetSocket() : CNTSocket() {
+    memset(&this->appAddr, 0, sizeof(SOCKADDR_IN));
+    memset(&this->phyAddr, 0, sizeof(SOCKADDR_IN));
+}
+
+/**
+ *  @brief  创建网络层套接字，同时绑定其端口。
+ */
+NetSocket::NetSocket(unsigned short port) : CNTSocket(port) {
     memset(&this->appAddr, 0, sizeof(SOCKADDR_IN));
     memset(&this->phyAddr, 0, sizeof(SOCKADDR_IN));
 }
@@ -357,29 +398,34 @@ int NetSocket::recvFromPhy(char *buffer, int timeout) {
 SwitchSocket::SwitchSocket() : CNTSocket() {}
 
 /**
+ *  @brief  创建交换机网络层套接字，同时绑定其端口。
+ */
+SwitchSocket::SwitchSocket(unsigned short port) : CNTSocket(port) {}
+
+/**
  *  @brief  销毁交换机网络层套接字。
  */
-SwitchSocket::~SwitchSocket() { this->phyAddrs.clear(); }
+SwitchSocket::~SwitchSocket() { this->phySocks.clear(); }
 
 /**
  *  @brief  绑定本层套接字与各个物理层端口。
  *  @param  ports   各个物理层的端口号。
  */
-void SwitchSocket::bindPhys(unsigned short *ports) {
-    // 检测传入的端口数是否匹配。多加的1是给与路由器对接的物理层。
-    int len = sizeof(ports) / sizeof(unsigned short);
-    if (len != HOST_PER_SWITCHER + 1) {
+void SwitchSocket::bindPhys(unsigned short routePhyPort,
+                            unsigned short *hostPhyPorts) {
+    // 检测传入的端口数是否匹配。
+    int hostNum = sizeof(hostPhyPorts) / sizeof(unsigned short);
+    if (hostNum != HOST_PER_SWITCHER) {
         cout << "Error: Wrong ports number." << endl;
         exit(-1);
     }
-    for (int i = 0; i < len; i++) {
-        // 创建端口对应的地址。
-        SOCKADDR_IN tempAddr;
-        tempAddr.sin_family = AF_INET;
-        tempAddr.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
-        tempAddr.sin_port = htons(ports[i]);
-        // 存储至类内。
-        this->phyAddrs[ports[i]] = tempAddr;
+    // 先存储对接路由器的物理层套接字。
+    CNTSocket routePhySock(routePhyPort);
+    this->phySocks[routePhyPort] = routePhySock;
+    // 再存储对接主机的物理层地址。
+    for (int i = 0; i < HOST_PER_SWITCHER; i++) {
+        CNTSocket hostPhySock(hostPhyPorts[i]);
+        this->phySocks[hostPhyPorts[i]] = hostPhySock;
     }
 }
 
@@ -398,8 +444,9 @@ int SwitchSocket::sendToPhy(string message, unsigned short port) {
     // 流量控制。
     Sleep(FLOW_INTERVAL);
     // 发送01序列。
+    SOCKADDR_IN addr = CNTSocket::getAddress(this->phySocks[port]);
     int sentBytes = sendto(this->sock, bitsArr, message.length(), 0,
-                           (SOCKADDR *)&this->phyAddrs[port], sizeof(SOCKADDR));
+                           (SOCKADDR *)&addr, sizeof(SOCKADDR));
     // 释放01序列空间。
     delete[] bitsArr;
     return sentBytes;
@@ -416,9 +463,10 @@ int SwitchSocket::recvFromPhy(char *buffer, unsigned short port, int timeout) {
     memset(buffer, 0, sizeof(buffer));
     // 接收01序列。
     int size = sizeof(SOCKADDR);
+    SOCKADDR_IN addr = CNTSocket::getAddress(this->phySocks[port]);
     this->setRecvTimeout(timeout);
     int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
-                             (SOCKADDR *)&this->phyAddrs[port], &size);
+                             (SOCKADDR *)&addr, &size);
     if (recvBytes != 0) {
         buffer[recvBytes] = '\0';
     }

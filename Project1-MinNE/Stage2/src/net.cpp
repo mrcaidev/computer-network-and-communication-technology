@@ -37,12 +37,9 @@ int main(int argc, char *argv[]) {
     int recvBytes = 0;
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
-    NetSocket sock;
+    NetSocket sock(netPort);
     sock.bindApp(appPort);
-    sock.bindSelf(netPort);
     sock.bindPhy(phyPort);
-    sock.setSendTimeout(USER_TIMEOUT);
-    sock.setRecvTimeout(USER_TIMEOUT);
 
     cout << "---------Initialized---------" << endl;
 
