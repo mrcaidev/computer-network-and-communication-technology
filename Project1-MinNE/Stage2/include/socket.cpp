@@ -43,7 +43,7 @@ class CNTSocket {
     SOCKADDR_IN lowerAddr;
 
   public:
-    CNTSocket(int type);
+    CNTSocket();
     ~CNTSocket();
     SOCKET getSocket();
     void setSendTimeout(int millisecond);
@@ -60,12 +60,10 @@ class CNTSocket {
 };
 
 /**
- *  @brief  创建某一类型的套接字，类型为IPv4。
- *  @param  type    套接字类型
- *          （面向连接选SOCK_STREAM，面向无连接选SOCK_DGRAM）
+ *  @brief  创建无连接的套接字，类型为IPv4。
  */
-CNTSocket::CNTSocket(int type) {
-    this->sock = socket(AF_INET, type, 0);
+CNTSocket::CNTSocket() {
+    this->sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (this->sock == INVALID_SOCKET) {
         cout << "Error: socket() failed. (" << WSAGetLastError() << ")" << endl;
         exit(-1);

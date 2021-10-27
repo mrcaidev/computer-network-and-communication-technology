@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
     int recvTotal = 0;
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
-    CNTSocket sock(SOCK_DGRAM);
+    CNTSocket sock;
     sock.bindSelfPort(appPort);
     sock.bindLowerPort(netPort);
     sock.setSendTimeout(USER_TIMEOUT);
