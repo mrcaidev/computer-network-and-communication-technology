@@ -91,6 +91,11 @@ int main(int argc, char *argv[]) {
                     --frame;
                     continue;
                 }
+                // 如果发来的帧不是给自己的，既不回复也不接收。
+                if (appPort != recvFrame.getDstPort()) {
+                    --frame;
+                    continue;
+                }
                 // 验证并回复。
                 if (recvFrame.isVerified()) {
                     // 如果验证通过，就接收并更新序号。
@@ -201,7 +206,7 @@ int main(int argc, char *argv[]) {
             }
             // 全部发完，封装的帧可以丢弃。
             delete[] packages;
-            cout << "-------Send completed-------" << endl;
+            cout << "-------Send completed--------" << endl;
 
             /* ------------------------广播模式。------------------------ */
 

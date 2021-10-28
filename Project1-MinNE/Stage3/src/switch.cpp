@@ -62,13 +62,11 @@ int main(int argc, char const *argv[]) {
         inPort = phyPorts[i];
         // 如果这个没有，就检查下一个。
         if (!sock.isReady(inPort)) {
-            cout << "No message from port " << inPort << "." << endl;
             continue;
         }
         // 如果有，就读取消息。
-        cout << "Port " << inPort << " has a message." << endl;
         recvBytes = sock.recvFromPhy(buffer, inPort, 1000);
-        // ! 这是个莫名的bug：
+        // ! 这是个莫名其妙的bug：
         // 照理，程序走到了这里，说明这个端口是有东西读的；
         // 但是有时会什么都读不到。
         if (recvBytes <= 0) {
@@ -92,18 +90,20 @@ int main(int argc, char const *argv[]) {
         // 判断单播还是广播。
         if (dstPort == BROADCAST_PORT || outPort == 0) {
             // 如果发送端要求广播，或者地址表找不到这个远程端口，就向其他所有端口发送这条信息。
+            cout << "Broadcasting to port";
             for (int i = 0; i < HOST_PER_SWITCHER + 1; i++) {
                 if (phyPorts[i] == inPort) {
                     continue;
                 } else {
                     sock.sendToPhy(buffer, phyPorts[i]);
-                    cout << "Send to port " << phyPorts[i] << "." << endl;
+                    cout << " " << phyPorts[i];
                 }
             }
+            cout << "." << endl;
         } else {
             // 单播就直接发送。
             sock.sendToPhy(buffer, outPort);
-            cout << "send" << endl;
+            cout << "Unicasting to port " << outPort << "." << endl;
         }
     }
     quit();
