@@ -3,10 +3,10 @@
 /* ----------限制条件---------- */
 #define MAX_BUFFER_SIZE 1024
 #define MAX_CHAR_NUM 50
-#define FLOW_INTERVAL 500
+#define FLOW_INTERVAL 100
 #define USER_TIMEOUT 180000
 #define RECV_TIMEOUT 5000
-#define SELECT_TIMEOUT 3
+#define SELECT_TIMEOUT 1
 
 /* ----------网元模式---------- */
 #define RECV_MODE 1
@@ -22,6 +22,7 @@
 #define EMPTY_FRAME                                                            \
     "000000000000000000000000000000000000000000000000000000000000000000000000" \
     "0000000000000000"
+#define BROADCAST_PORT 65535
 
 /* ------------常数------------ */
 #define BITS_PER_CHAR 16

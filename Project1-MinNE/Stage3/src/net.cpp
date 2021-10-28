@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
             // 逐帧封装。
             Frame *packages = new Frame[sendTotal + 1];
             // 第0帧是特殊帧，用于通知对方要发多少帧。
-            Frame request(appPort, seq, decToBin(sendTotal, DATA_LEN), dstPort);
+            Frame request(appPort, seq, decToBin(sendTotal, SEQ_LEN), dstPort);
             packages[0] = request;
             for (int frame = 1; frame <= sendTotal; frame++) {
                 seq = (seq + 1) % 256;
@@ -150,8 +150,6 @@ int main(int argc, char *argv[]) {
             // 所有消息封装完成，逐帧发送。
             for (int frame = 0; frame <= sendTotal; ++frame) {
                 selfMessage = packages[frame].stringify();
-                // 发给对面。
-                sock.sendToPhy(selfMessage);
                 if (frame == 0) {
                     cout << "[Frame " << request.getSeq() << "] Sending "
                          << sendTotal << " frames." << endl;
@@ -159,6 +157,8 @@ int main(int argc, char *argv[]) {
                     cout << "[Frame " << packages[frame].getSeq() << "] Sent."
                          << endl;
                 }
+                // 发给对面。
+                sock.sendToPhy(selfMessage);
                 // 接收对方的回复。
                 recvBytes = sock.recvFromPhy(buffer, RECV_TIMEOUT);
                 // 如果没收到回复，重传。

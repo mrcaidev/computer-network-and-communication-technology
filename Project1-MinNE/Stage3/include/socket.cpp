@@ -103,6 +103,7 @@ class SwitchSocket : public CNTSocket {
   protected:
     map<unsigned short, CNTSocket> phySocks;
     map<unsigned short, unsigned short> addrTable;
+    FD_SET rfds;
 
   public:
     SwitchSocket();
@@ -114,7 +115,9 @@ class SwitchSocket : public CNTSocket {
     int recvFromPhy(char *buffer, unsigned short port, int timeout);
 
     unsigned short selectReadyPort();
-    void printPhySocks();
+    unsigned short searchLocal(unsigned short remote);
+    unsigned short searchRemote(unsigned short local);
+    void updateAddrTable(unsigned short local, unsigned short remote);
     void printAddrTable();
 };
 
@@ -481,47 +484,76 @@ int SwitchSocket::recvFromPhy(char *buffer, unsigned short port, int timeout) {
     return recvBytes;
 }
 
+/**
+ *  @brief  检查哪个端口有可读消息。
+ *  @retval 有可读消息的端口号。
+ */
 unsigned short SwitchSocket::selectReadyPort() {
-    FD_SET rfds;
-    FD_ZERO(&rfds);
-    // 把交换机所有物理层端口都加入rfds。
+    // 向检查集合逐个添加物理层端口。
+    FD_ZERO(&this->rfds);
     map<unsigned short, CNTSocket>::iterator iter;
     for (iter = this->phySocks.begin(); iter != this->phySocks.end(); iter++) {
-        FD_SET(iter->second.getSocket(), &rfds);
+        FD_SET(iter->second.getSocket(), &this->rfds);
     }
-    // 在时限内检查是否有套接字可读。
+    // 开始检查。
     TIMEVAL timeout = {SELECT_TIMEOUT, 0};
-    int readyNum = select(0, &rfds, nullptr, nullptr, &timeout);
+    int readyNum = select(iter->second.getSocket(), &this->rfds, nullptr,
+                          nullptr, &timeout);
     if (readyNum == 0) {
-        // 如果没有套接字可读，就返回0。
+        // 如果不可读，就返回0。
         return 0;
     } else {
-        // 如果有套接字可读，就找到它并返回它的端口号。
+        // 如果可读，就返回它的端口号。
         for (iter = this->phySocks.begin(); iter != this->phySocks.end();
              iter++) {
-            if (FD_ISSET(iter->second.getSocket(), &rfds)) {
+            if (FD_ISSET(iter->second.getSocket(), &this->rfds)) {
                 return iter->first;
             }
         }
-        // 程序照理不会走到这里，但还是加一层保险。
+    }
+    // 程序照理不会走到这里，但还是加一层保险。
+    return 0;
+}
+
+unsigned short SwitchSocket::searchLocal(unsigned short remote) {
+    map<unsigned short, unsigned short>::iterator iter;
+    for (iter = this->addrTable.begin(); iter != this->addrTable.end();
+         iter++) {
+        if (iter->second == remote) {
+            // 如果这一对的远程端口号就是想要的，就返回本地端口号。
+            return iter->first;
+        }
+    }
+    // 如果没找到，就返回0。
+    return 0;
+}
+
+unsigned short SwitchSocket::searchRemote(unsigned short local) {
+    map<unsigned short, unsigned short>::iterator iter;
+    iter = this->addrTable.find(local);
+    if (iter != this->addrTable.end()) {
+        // 如果找到了，就返回远程端口号。
+        return iter->second;
+    } else {
+        // 如果没找到，就返回0。
         return 0;
     }
 }
 
-void SwitchSocket::printPhySocks() {
-    map<unsigned short, CNTSocket>::iterator iter;
-    for (iter = this->phySocks.begin(); iter != this->phySocks.end(); iter++) {
-        cout << iter->first << " : " << CNTSocket::getPort(iter->second)
-             << endl;
-    }
+void SwitchSocket::updateAddrTable(unsigned short local,
+                                   unsigned short remote) {
+    this->addrTable[local] = remote;
 }
 
+/**
+ *  @brief  打印端口地址表。
+ */
 void SwitchSocket::printAddrTable() {
     cout << "| Local | Remote |" << endl;
     cout << "|-------|--------|" << endl;
     map<unsigned short, unsigned short>::iterator iter;
     for (iter = this->addrTable.begin(); iter != this->addrTable.end();
          iter++) {
-        cout << "| " << iter->first << " | " << iter->second << " |" << endl;
+        printf("| %-5u | %-5u  |\n", iter->first, iter->second);
     }
 }
