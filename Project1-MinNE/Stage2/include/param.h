@@ -8,7 +8,7 @@
 #define RECV_TIMEOUT 5000
 
 /* ----------网元模式---------- */
-#define RECV_MODE 1
+#define RECV 1
 #define SEND_MODE 2
 #define BROADCAST_MODE 3
 #define QUIT 4

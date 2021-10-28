@@ -124,11 +124,11 @@ int mode = 0;
 while (true) {
     // 用户选择当前模式。
     cin >> mode;
-    if (mode == RECV_MODE) {
+    if (mode == RECV) {
         // 网元成为接收端。
     } else if (mode == SEND_MODE) {
         // 网元成为发送端。
-    } else if (mode == BROADCAST_MODE) {
+    } else if (mode == BROADCAST) {
         // 网元成为广播的发送端。
     } else if (mode == QUIT) {
         // 退出程序。
@@ -168,14 +168,14 @@ int main(int argc, char *argv[]) {
     while (true) {
         // 用户输入当前模式。
         cin >> mode;
-        if (mode == RECV_MODE) {
+        if (mode == RECV) {
             // 通知网络层正在接收。
             // 接收消息。
         } else if (mode == SEND_MODE) {
             // 通知网络层正在发送。
             // 告诉网络层目标端口。
             // 告诉网络层要发的消息。
-        } else if (mode == BROADCAST_MODE) {
+        } else if (mode == BROADCAST) {
             // 通知网络层正在广播。
             // 告诉网络层目标端口。
             // 告诉网络层要发的消息。
@@ -464,7 +464,7 @@ int main(int argc, char *argv[]) {
     // 变量、网络库与套接字的初始化。
     while (true) {
         // 上层通知当前模式。
-        if (mode == RECV_MODE) {
+        if (mode == RECV) {
             for (int frame = 0; frame < recvFrameNum; ++frame) {
                 // 接收一帧。
                 if (recvBytes == 0) {
@@ -510,7 +510,7 @@ int main(int argc, char *argv[]) {
                 }
             }
             // 全部发完，封装的帧可以丢弃。
-        } else if (mode == BROADCAST_MODE) {
+        } else if (mode == BROADCAST) {
             // 广播模式。
         } else if (mode == QUIT) {
             // 本层清理退出。
