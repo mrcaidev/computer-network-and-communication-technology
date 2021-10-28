@@ -197,8 +197,6 @@ int main(int argc, char *argv[]) {
             /* ------------------------广播模式。------------------------ */
 
         } else if (mode == BROADCAST_MODE) {
-            // TODO: 广播模式。
-
             cout << "-----Broadcast completed-----" << endl;
 
             /* ------------------------退出程序。------------------------ */
