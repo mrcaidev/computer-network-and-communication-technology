@@ -14,15 +14,24 @@ using namespace std;
 int main(int argc, char *argv[]) {
     cout << "-------------NET-------------" << endl;
     // 确定端口。
-    unsigned short appPort = 0;
-    cout << "APP Port: ";
-    cin >> appPort;
-    unsigned short netPort = 0;
-    cout << "NET Port: ";
-    cin >> netPort;
-    unsigned short phyPort = 0;
-    cout << "PHY Port: ";
-    cin >> phyPort;
+    unsigned short appPort = 0, netPort = 0, phyPort = 0;
+    if (argc == 4) {
+        // 命令行传参。
+        appPort = atoi(argv[1]);
+        cout << "APP Port: " << appPort << endl;
+        netPort = atoi(argv[2]);
+        cout << "NET Port: " << netPort << endl;
+        phyPort = atoi(argv[3]);
+        cout << "PHY Port: " << phyPort << endl;
+    } else {
+        // 手动传参。
+        cout << "APP Port: ";
+        cin >> appPort;
+        cout << "NET Port: ";
+        cin >> netPort;
+        cout << "PHY Port: ";
+        cin >> phyPort;
+    }
     // 初始化变量。
     unsigned short srcPort = 0;
     unsigned short dstPort = 0;
@@ -64,7 +73,7 @@ int main(int argc, char *argv[]) {
                     recvBytes = sock.recvFromPhy(buffer, RECV_TIMEOUT);
                 }
                 // 如果超时没收到消息，回复NAK。
-                if (recvBytes == 0) {
+                if (recvBytes <= 0) {
                     cout << "[Frame " << seq + 1 << "] Timeout." << endl;
                     Frame nak(appPort, seq + 1, encode(NAK), srcPort);
                     sock.sendToPhy(nak.stringify());
@@ -89,7 +98,7 @@ int main(int argc, char *argv[]) {
                     // 在接收前的第0帧，发送端会通知要发多少帧。
                     if (frame == 0) {
                         // 据此更新循环次数。
-                        recvTotal = binToDec(recvFrame.getData());
+                        recvTotal = atoi(decode(recvFrame.getData()).c_str());
                         srcPort = recvFrame.getSrcPort();
                         cout << "[Frame " << seq << "] Receiving " << recvTotal
                              << " frames." << endl;
@@ -131,7 +140,7 @@ int main(int argc, char *argv[]) {
             // 逐帧封装。
             Frame *packages = new Frame[sendTotal + 1];
             // 第0帧是特殊帧，用于通知对方要发多少帧。
-            Frame request(appPort, seq, decToBin(sendTotal, SEQ_LEN), dstPort);
+            Frame request(appPort, seq, encode(to_string(sendTotal)), dstPort);
             packages[0] = request;
             for (int frame = 1; frame <= sendTotal; frame++) {
                 seq = (seq + 1) % 256;
@@ -150,6 +159,8 @@ int main(int argc, char *argv[]) {
             // 所有消息封装完成，逐帧发送。
             for (int frame = 0; frame <= sendTotal; ++frame) {
                 selfMessage = packages[frame].stringify();
+                // 发给对面。
+                sock.sendToPhy(selfMessage);
                 if (frame == 0) {
                     cout << "[Frame " << request.getSeq() << "] Sending "
                          << sendTotal << " frames." << endl;
@@ -157,12 +168,10 @@ int main(int argc, char *argv[]) {
                     cout << "[Frame " << packages[frame].getSeq() << "] Sent."
                          << endl;
                 }
-                // 发给对面。
-                sock.sendToPhy(selfMessage);
                 // 接收对方的回复。
                 recvBytes = sock.recvFromPhy(buffer, RECV_TIMEOUT);
                 // 如果没收到回复，重传。
-                if (recvBytes == 0) {
+                if (recvBytes <= 0) {
                     cout << "[Frame " << packages[frame].getSeq()
                          << "] Timeout." << endl;
                     --frame;

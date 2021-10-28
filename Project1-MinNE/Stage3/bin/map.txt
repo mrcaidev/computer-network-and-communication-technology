@@ -1,0 +1,3 @@
+APP = app.exe
+NET = net.exe
+PHY = phy.exe

@@ -13,12 +13,20 @@ using namespace std;
 int main(int argc, char *argv[]) {
     cout << "-------------APP-------------" << endl;
     // 确定端口。
-    unsigned short appPort = 0;
-    cout << "APP Port: ";
-    cin >> appPort;
-    unsigned short netPort = 0;
-    cout << "NET Port: ";
-    cin >> netPort;
+    unsigned short appPort = 0, netPort = 0;
+    if (argc == 3) {
+        // 命令行传参。
+        appPort = atoi(argv[1]);
+        cout << "APP Port: " << appPort << endl;
+        netPort = atoi(argv[2]);
+        cout << "NET Port: " << netPort << endl;
+    } else {
+        // 手动传参。
+        cout << "APP Port: ";
+        cin >> appPort;
+        cout << "NET Port: ";
+        cin >> netPort;
+    }
     // 初始化变量。
     unsigned short dstPort = 0;
     int mode = 0;

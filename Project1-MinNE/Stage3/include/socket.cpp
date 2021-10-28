@@ -47,14 +47,13 @@ class CNTSocket {
     CNTSocket(unsigned short port);
     ~CNTSocket();
     SOCKET getSocket();
+    SOCKADDR_IN getAddress();
+    unsigned short getPort();
 
     void setSendTimeout(int millisecond);
     void setRecvTimeout(int millisecond);
 
     void bindSelf(unsigned short port);
-
-    static SOCKADDR_IN getAddress(CNTSocket sock);
-    static unsigned short getPort(CNTSocket sock);
 };
 
 /**
@@ -102,7 +101,7 @@ class NetSocket : public CNTSocket {
 class SwitchSocket : public CNTSocket {
   protected:
     map<unsigned short, CNTSocket> phySocks;
-    map<unsigned short, unsigned short> addrTable;
+    map<unsigned short, unsigned short> table;
     FD_SET rfds;
 
   public:
@@ -110,15 +109,16 @@ class SwitchSocket : public CNTSocket {
     SwitchSocket(unsigned short port);
     ~SwitchSocket();
 
-    void bindPhys(unsigned short routePhyPort, unsigned short *hostPhyPorts);
+    void bindPhys(unsigned short *ports);
     int sendToPhy(string message, unsigned short port);
     int recvFromPhy(char *buffer, unsigned short port, int timeout);
 
-    unsigned short selectReadyPort();
+    bool isReady(unsigned short port);
+
     unsigned short searchLocal(unsigned short remote);
     unsigned short searchRemote(unsigned short local);
-    void updateAddrTable(unsigned short local, unsigned short remote);
-    void printAddrTable();
+    void updateTable(unsigned short local, unsigned short remote);
+    void printTable();
 };
 
 /**
@@ -203,27 +203,14 @@ void CNTSocket::bindSelf(unsigned short port) {
 }
 
 /**
- *  @brief  查询某套接字的地址。
- *  @param  sock    要查询的套接字。
- *  @retval 该套接字的地址。
+ *  @brief  获取套接字的地址。
  */
-SOCKADDR_IN CNTSocket::getAddress(CNTSocket sock) {
-    SOCKADDR_IN addr;
-    int size = sizeof(SOCKADDR);
-    getsockname(sock.getSocket(), (SOCKADDR *)&addr, &size);
-    return addr;
-}
+SOCKADDR_IN CNTSocket::getAddress() { return this->addr; }
 
 /**
- *  @brief  查询某套接字的端口号。
- *  @param  sock    要查询的套接字。
- *  @retval 该套接字的端口号。
+ *  @brief  获取套接字的端口号。
  */
-unsigned short CNTSocket::getPort(CNTSocket sock) {
-    SOCKADDR_IN addr = CNTSocket::getAddress(sock);
-    unsigned short port = ntohs(addr.sin_port);
-    return port;
-}
+unsigned short CNTSocket::getPort() { return ntohs(this->addr.sin_port); }
 
 /**
  *  @brief  创建应用层套接字。
@@ -403,36 +390,34 @@ int NetSocket::recvFromPhy(char *buffer, int timeout) {
 /**
  *  @brief  创建交换机网络层套接字。
  */
-SwitchSocket::SwitchSocket() : CNTSocket() {}
+SwitchSocket::SwitchSocket() : CNTSocket() { FD_ZERO(&this->rfds); }
 
 /**
  *  @brief  创建交换机网络层套接字，同时绑定其端口。
  */
-SwitchSocket::SwitchSocket(unsigned short port) : CNTSocket(port) {}
+SwitchSocket::SwitchSocket(unsigned short port) : CNTSocket(port) {
+    FD_ZERO(&this->rfds);
+}
 
 /**
  *  @brief  销毁交换机网络层套接字。
  */
 SwitchSocket::~SwitchSocket() {
     this->phySocks.clear();
-    this->addrTable.clear();
+    this->table.clear();
+    FD_ZERO(&this->rfds);
 }
 
 /**
  *  @brief  绑定本层套接字与各个物理层端口。
- *  @param  routePhyPort    对接路由器的物理层的端口号。
- *  @param  hostPhyPorts    对接主机的物理层的端口号。
+ *  @param  ports    各个物理层的端口号。
  */
-void SwitchSocket::bindPhys(unsigned short routePhyPort,
-                            unsigned short *hostPhyPorts) {
-    CNTSocket *socks = new CNTSocket[HOST_PER_SWITCHER + 1];
-    // 先存储对接路由器的物理层的套接字。
-    socks[0].bindSelf(routePhyPort);
-    this->phySocks[routePhyPort] = socks[0];
-    // 再存储对接主机的物理层地址。
-    for (int i = 1; i <= HOST_PER_SWITCHER; i++) {
-        socks[i].bindSelf(hostPhyPorts[i - 1]);
-        this->phySocks[hostPhyPorts[i - 1]] = socks[i];
+void SwitchSocket::bindPhys(unsigned short *ports) {
+    int len = HOST_PER_SWITCHER + 1;
+    CNTSocket *socks = new CNTSocket[len];
+    for (int i = 0; i < len; i++) {
+        socks[i].bindSelf(ports[i]);
+        this->phySocks.insert({ports[i], socks[i]});
     }
 }
 
@@ -451,9 +436,9 @@ int SwitchSocket::sendToPhy(string message, unsigned short port) {
     // 流量控制。
     Sleep(FLOW_INTERVAL);
     // 发送01序列。
-    SOCKADDR_IN addr = CNTSocket::getAddress(this->phySocks[port]);
+    SOCKADDR_IN tempAddr = this->phySocks[port].getAddress();
     int sentBytes = sendto(this->sock, bitsArr, message.length(), 0,
-                           (SOCKADDR *)&addr, sizeof(SOCKADDR));
+                           (SOCKADDR *)&tempAddr, sizeof(SOCKADDR));
     // 释放01序列空间。
     delete[] bitsArr;
     return sentBytes;
@@ -470,10 +455,10 @@ int SwitchSocket::recvFromPhy(char *buffer, unsigned short port, int timeout) {
     memset(buffer, 0, sizeof(buffer));
     // 接收01序列。
     int size = sizeof(SOCKADDR);
-    SOCKADDR_IN addr = CNTSocket::getAddress(this->phySocks[port]);
     this->setRecvTimeout(timeout);
+    SOCKADDR_IN tempAddr = this->phySocks[port].getAddress();
     int recvBytes = recvfrom(this->sock, buffer, MAX_BUFFER_SIZE, 0,
-                             (SOCKADDR *)&addr, &size);
+                             (SOCKADDR *)&tempAddr, &size);
     if (recvBytes != 0) {
         buffer[recvBytes] = '\0';
     }
@@ -485,40 +470,25 @@ int SwitchSocket::recvFromPhy(char *buffer, unsigned short port, int timeout) {
 }
 
 /**
- *  @brief  检查哪个端口有可读消息。
- *  @retval 有可读消息的端口号。
+ *  @brief  检查端口是否可读。
+ *  @param  port    要检查的端口号。
+ *  @retval 可读为true，不可读为false。
  */
-unsigned short SwitchSocket::selectReadyPort() {
-    // 向检查集合逐个添加物理层端口。
+bool SwitchSocket::isReady(unsigned short port) {
     FD_ZERO(&this->rfds);
-    map<unsigned short, CNTSocket>::iterator iter;
-    for (iter = this->phySocks.begin(); iter != this->phySocks.end(); iter++) {
-        FD_SET(iter->second.getSocket(), &this->rfds);
-    }
-    // 开始检查。
-    TIMEVAL timeout = {SELECT_TIMEOUT, 0};
-    int readyNum = select(iter->second.getSocket(), &this->rfds, nullptr,
-                          nullptr, &timeout);
-    if (readyNum == 0) {
-        // 如果不可读，就返回0。
-        return 0;
-    } else {
-        // 如果可读，就返回它的端口号。
-        for (iter = this->phySocks.begin(); iter != this->phySocks.end();
-             iter++) {
-            if (FD_ISSET(iter->second.getSocket(), &this->rfds)) {
-                return iter->first;
-            }
-        }
-    }
-    // 程序照理不会走到这里，但还是加一层保险。
-    return 0;
+    FD_SET(this->phySocks[port].getSocket(), &rfds);
+    TIMEVAL timeout = {0, 500 * 1000};
+    return select(0, &this->rfds, nullptr, nullptr, &timeout);
 }
 
+/**
+ *  @brief  在端口地址表中查找本地端口对应的远程端口。
+ *  @param  local   本地端口号。
+ *  @retval 对应的远程端口号。
+ */
 unsigned short SwitchSocket::searchLocal(unsigned short remote) {
     map<unsigned short, unsigned short>::iterator iter;
-    for (iter = this->addrTable.begin(); iter != this->addrTable.end();
-         iter++) {
+    for (iter = this->table.begin(); iter != this->table.end(); iter++) {
         if (iter->second == remote) {
             // 如果这一对的远程端口号就是想要的，就返回本地端口号。
             return iter->first;
@@ -528,10 +498,15 @@ unsigned short SwitchSocket::searchLocal(unsigned short remote) {
     return 0;
 }
 
+/**
+ *  @brief  在端口地址表中查找本地端口对应的远程端口。
+ *  @param  local   本地端口号。
+ *  @retval 对应的远程端口号。
+ */
 unsigned short SwitchSocket::searchRemote(unsigned short local) {
     map<unsigned short, unsigned short>::iterator iter;
-    iter = this->addrTable.find(local);
-    if (iter != this->addrTable.end()) {
+    iter = this->table.find(local);
+    if (iter != this->table.end()) {
         // 如果找到了，就返回远程端口号。
         return iter->second;
     } else {
@@ -540,20 +515,25 @@ unsigned short SwitchSocket::searchRemote(unsigned short local) {
     }
 }
 
-void SwitchSocket::updateAddrTable(unsigned short local,
-                                   unsigned short remote) {
-    this->addrTable[local] = remote;
+/**
+ *  @brief  更新端口地址表。
+ *  @param  local   本地端口号。
+ *  @param  remote  远程端口号。
+ */
+void SwitchSocket::updateTable(unsigned short local, unsigned short remote) {
+    this->table[local] = remote;
 }
 
 /**
  *  @brief  打印端口地址表。
  */
-void SwitchSocket::printAddrTable() {
+void SwitchSocket::printTable() {
+    cout << "------------------" << endl;
     cout << "| Local | Remote |" << endl;
     cout << "|-------|--------|" << endl;
     map<unsigned short, unsigned short>::iterator iter;
-    for (iter = this->addrTable.begin(); iter != this->addrTable.end();
-         iter++) {
+    for (iter = this->table.begin(); iter != this->table.end(); iter++) {
         printf("| %-5u | %-5u  |\n", iter->first, iter->second);
     }
+    cout << "------------------" << endl;
 }

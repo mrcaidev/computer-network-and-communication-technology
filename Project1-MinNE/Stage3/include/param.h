@@ -6,7 +6,6 @@
 #define FLOW_INTERVAL 100
 #define USER_TIMEOUT 180000
 #define RECV_TIMEOUT 5000
-#define SELECT_TIMEOUT 1
 
 /* ----------网元模式---------- */
 #define RECV_MODE 1
@@ -17,8 +16,8 @@
 /* ----------特殊标识---------- */
 #define LOCATOR "01111110"
 #define TRANSFORM_TARGET "11111"
-#define ACK "A"
-#define NAK ">"
+#define ACK "Y"
+#define NAK "N"
 #define EMPTY_FRAME                                                            \
     "000000000000000000000000000000000000000000000000000000000000000000000000" \
     "0000000000000000"
@@ -26,7 +25,7 @@
 
 /* ------------常数------------ */
 #define BITS_PER_CHAR 16
-#define HOST_PER_SWITCHER 2
+#define HOST_PER_SWITCHER 1
 #define LOCATOR_LEN 8
 #define PORT_LEN 16
 #define SEQ_LEN 8
