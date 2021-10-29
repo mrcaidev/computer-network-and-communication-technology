@@ -478,7 +478,9 @@ bool SwitchSocket::isReady(unsigned short port) {
     FD_ZERO(&this->rfds);
     FD_SET(this->phySocks[port].getSocket(), &rfds);
     TIMEVAL timeout = {0, 500 * 1000};
-    return select(0, &this->rfds, nullptr, nullptr, &timeout);
+    int ret = select(0, &this->rfds, nullptr, nullptr, &timeout);
+    FD_ZERO(&this->rfds);
+    return ret;
 }
 
 /**
