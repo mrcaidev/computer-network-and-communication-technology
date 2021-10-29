@@ -413,7 +413,7 @@ SwitchSocket::~SwitchSocket() {
  *  @param  ports    各个物理层的端口号。
  */
 void SwitchSocket::bindPhys(unsigned short *ports) {
-    int len = HOST_PER_SWITCHER + 1;
+    int len = HOST_PER_SWITCHER;
     CNTSocket *socks = new CNTSocket[len];
     for (int i = 0; i < len; i++) {
         socks[i].bindSelf(ports[i]);

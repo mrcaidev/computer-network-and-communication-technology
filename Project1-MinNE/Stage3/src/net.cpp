@@ -23,7 +23,6 @@ int main(int argc, char *argv[]) {
              << "NET Port: " << netPort << endl
              << "PHY Port: " << phyPort << endl;
     } else {
-        // 手动传参。
         cout << "APP Port: ";
         cin >> appPort;
         cout << "NET Port: ";
@@ -37,7 +36,7 @@ int main(int argc, char *argv[]) {
     char buffer[MAX_BUFFER_SIZE];
     string message = "";
     string recvMessage = "";
-    string tempMessage = "";
+    string sendMessage = "";
     int sendTotal = 0;
     int recvTotal = 0;
     int recvBytes = 0;
@@ -75,10 +74,31 @@ int main(int argc, char *argv[]) {
                 // 如果收到了，就先解封。
                 Frame recvFrame(buffer);
                 // 先检查目标端口：
-                // 如果发来的帧不是给自己的，既不回复也不接收。
-                if (appPort != recvFrame.getDstPort()) {
+                dstPort = recvFrame.getDstPort();
+                // 如果是广播，那就只管接收，因为序号不可能重复。错就错了。
+                if (dstPort == BROADCAST_PORT) {
+                    cout << "Broadcast message." << endl;
+                    // 更新序号。
+                    seq = recvFrame.getSeq();
+                    if (frame == 0) {
+                        // 如果是起始帧，就据此更新循环次数。
+                        recvTotal = atoi(decode(recvFrame.getData()).c_str());
+                        cout << "[Frame " << seq << "] Receiving " << recvTotal
+                             << " frames." << endl;
+                    } else {
+                        // 如果不是起始帧，就拼接消息。
+                        recvMessage += recvFrame.getData();
+                        cout << "[Frame " << seq << "] Received." << endl;
+                    }
+                    // 可以接收下一帧了。
+                    ++frame;
                     continue;
                 }
+                // 如果不是广播，发来的帧也不是给自己的，就既不回复也不接收。
+                if (dstPort != appPort) {
+                    continue;
+                }
+                // 程序走到这里，说明这帧是单播给自己的。
                 // 再检查序号：
                 // 如果发来的帧序号重复了，回复ACK，但不接收这帧。
                 // 这种情况说明，这帧是发送端收到了不明回复后重传的。其实接收端已经ACK过这帧了。
@@ -144,19 +164,21 @@ int main(int argc, char *argv[]) {
             for (int frame = 1; frame <= sendTotal; frame++) {
                 if (frame == sendTotal) {
                     // 如果是最后一帧，就直接取走所有剩余消息。
-                    tempMessage = message;
+                    sendMessage = message;
                 } else {
                     // 如果不是最后一帧，就只取走剩余消息的一部分。
-                    tempMessage = message.substr(0, DATA_LEN);
+                    sendMessage = message.substr(0, DATA_LEN);
                     message = message.substr(DATA_LEN);
                 }
                 // 把取出来的消息封装进帧。
                 seq = (seq + 1) % 256;
-                Frame readyFrame(appPort, seq, tempMessage, dstPort);
+                Frame readyFrame(appPort, seq, sendMessage, dstPort);
                 packages[frame] = readyFrame;
             }
-            // 逐帧发送。只有收到了ACK，循环才有步进。
+            // 逐帧发送。
             for (int frame = 0; frame <= sendTotal;) {
+                // 发送给对方。
+                sock.sendToPhy(packages[frame].stringify());
                 if (frame == 0) {
                     // 如果是起始帧，就显示发送总帧数。
                     cout << "[Frame " << packages[frame].getSeq()
@@ -166,9 +188,12 @@ int main(int argc, char *argv[]) {
                     cout << "[Frame " << packages[frame].getSeq() << "] Sent."
                          << endl;
                 }
-                // 发送给对方。
-                sock.sendToPhy(packages[frame].stringify());
-                // 接收对方的回复。
+                // 如果是广播，就直接发下一帧。
+                if (mode == BROADCAST) {
+                    ++frame;
+                    continue;
+                }
+                // 如果是单播，还要接收对方的回复。
                 recvBytes = sock.recvFromPhy(buffer, RECV_TIMEOUT);
                 // 如果没收到回复，重传。
                 if (recvBytes <= 0) {

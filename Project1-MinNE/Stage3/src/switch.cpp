@@ -13,32 +13,22 @@ using namespace std;
 
 int main(int argc, char const *argv[]) {
     cout << "-----------SWITCH------------" << endl;
-    // 确定端口。
+    // 确定端口，推荐通过命令行传参。
     unsigned short switchPort = 0;
-    unsigned short phyPorts[HOST_PER_SWITCHER + 1] = {0};
-    if (argc == HOST_PER_SWITCHER + 3) {
-        // 命令行传参。
+    unsigned short phyPorts[HOST_PER_SWITCHER] = {0};
+    if (argc == HOST_PER_SWITCHER + 2) {
         switchPort = atoi(argv[1]);
         cout << "SWITCH Port: " << switchPort << endl;
-        for (int i = 0; i < HOST_PER_SWITCHER + 1; i++) {
+        for (int i = 0; i < HOST_PER_SWITCHER; i++) {
             phyPorts[i] = atoi(argv[i + 2]);
-            if (i == 0) {
-                // 第一个给路由器。
-                cout << "PHY Port to router: " << phyPorts[i] << endl;
-            } else {
-                // 剩下的给主机。
-                cout << "PHY Port to host " << i << " : " << phyPorts[i]
-                     << endl;
-            }
+            cout << "PHY Port to host " << i + 1 << " : " << phyPorts[i]
+                 << endl;
         }
     } else {
-        // 手动传参。
         cout << "SWITCH Port: ";
         cin >> switchPort;
-        cout << "PHY Port to router: ";
-        cin >> phyPorts[0];
-        for (int i = 1; i <= HOST_PER_SWITCHER; i++) {
-            cout << "PHY Port to host " << i << ": ";
+        for (int i = 0; i < HOST_PER_SWITCHER; i++) {
+            cout << "PHY Port to host " << i + 1 << ": ";
             cin >> phyPorts[i];
         }
     }
@@ -76,8 +66,6 @@ int main(int argc, char const *argv[]) {
         Frame recvFrame(buffer);
         srcPort = recvFrame.getSrcPort();
         dstPort = recvFrame.getDstPort();
-        cout << srcPort << " -> " << dstPort << " : "
-             << decode(recvFrame.getData()) << endl;
         // 对输入端口的反向学习。
         srcPortInTable = sock.searchRemote(inPort);
         if (srcPortInTable != srcPort) {
@@ -87,11 +75,13 @@ int main(int argc, char const *argv[]) {
         }
         // 检索应该发到哪个本地端口。
         outPort = sock.searchLocal(dstPort);
+        cout << srcPort << " -> " << inPort << " -> " << outPort << " -> "
+             << dstPort << " : " << decode(recvFrame.getData()) << endl;
         // 判断单播还是广播。
         if (dstPort == BROADCAST_PORT || outPort == 0) {
             // 如果发送端要求广播，或者地址表找不到这个远程端口，就向其他所有端口发送这条信息。
             cout << "Broadcasting to port";
-            for (int i = 0; i < HOST_PER_SWITCHER + 1; i++) {
+            for (int i = 0; i < HOST_PER_SWITCHER; i++) {
                 if (phyPorts[i] == inPort) {
                     continue;
                 } else {
