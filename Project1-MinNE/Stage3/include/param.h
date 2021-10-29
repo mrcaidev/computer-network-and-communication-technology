@@ -26,6 +26,7 @@
 /* ------------常数------------ */
 #define BITS_PER_CHAR 16
 #define HOST_PER_SWITCHER 2
+#define BROADCAST_RECVER_NUM 1
 #define LOCATOR_LEN 8
 #define PORT_LEN 16
 #define SEQ_LEN 8

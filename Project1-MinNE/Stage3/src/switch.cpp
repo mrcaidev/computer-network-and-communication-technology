@@ -44,6 +44,8 @@ int main(int argc, char const *argv[]) {
     WSADATA wsaData = initWSA();
     SwitchSocket sock(switchPort);
     sock.bindPhys(phyPorts);
+    sock.updateTable(13100, 11100);
+    sock.updateTable(13101, 12100);
 
     cout << "---------Initialized---------" << endl;
 
@@ -67,12 +69,12 @@ int main(int argc, char const *argv[]) {
         srcPort = recvFrame.getSrcPort();
         dstPort = recvFrame.getDstPort();
         // 对输入端口的反向学习。
-        srcPortInTable = sock.searchRemote(inPort);
-        if (srcPortInTable != srcPort) {
-            sock.updateTable(inPort, srcPort);
-            cout << "Address table updated:" << endl;
-            sock.printTable();
-        }
+        // srcPortInTable = sock.searchRemote(inPort);
+        // if (srcPortInTable != srcPort) {
+        //     sock.updateTable(inPort, srcPort);
+        //     cout << "Address table updated:" << endl;
+        //     sock.printTable();
+        // }
         // 检索应该发到哪个本地端口。
         outPort = sock.searchLocal(dstPort);
         cout << srcPort << " -> " << inPort << " -> " << outPort << " -> "
