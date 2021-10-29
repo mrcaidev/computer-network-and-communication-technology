@@ -91,8 +91,8 @@ int main(int argc, char *argv[]) {
                     sock.sendToPhy(nak.stringify());
                     continue;
                 }
-                // 此时的帧同时满足：1. 是发给自己的；2. 是新的一帧；3.
-                // 信息没传错。
+                // 此时的帧同时满足：
+                // 1. 是发给自己的；2. 是新的一帧；3. 信息没传错。
                 seq = recvFrame.getSeq();
                 if (frame == 0) {
                     // 如果是起始帧，就据此更新循环次数。
@@ -181,23 +181,20 @@ int main(int argc, char *argv[]) {
                     if (responseMessage == ACK) {
                         // 如果是ACK，说明某个接收端ACK了，继续等其他接收端回复。
                         cout << "[Frame " << packages[frame].getSeq()
-                             << "] ACK from " << response.getSrcPort() << "."
-                             << endl;
+                             << "] ACK." << endl;
                         ++ackTimes;
                         continue;
                     } else if (responseMessage == NAK) {
                         // 如果是NAK，就报错并重传。
                         cout << "[Frame " << packages[frame].getSeq()
-                             << "] NAK from " << response.getSrcPort() << "."
-                             << endl;
+                             << "] NAK." << endl;
                     } else {
                         // 如果是其他信息，说明对面的回复在传的时候也出错了，还是要重传这一帧。
                         // ! 这里有一个潜在的漏洞：
                         // 如果接收端对最后一帧的ACK传错了，那么接收端已经停止接收，但发送端仍会继续重传。
                         // 这会导致发送端无法终止。考虑引入keepalive机制。
                         cout << "[Frame " << packages[frame].getSeq()
-                             << "] Unknown response from "
-                             << response.getSrcPort() << "." << endl;
+                             << "] Unknown response." << endl;
                     }
                 }
                 // 如果每个接收端都ACK了，就可以发下一帧。

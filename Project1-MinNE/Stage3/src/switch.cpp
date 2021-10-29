@@ -13,9 +13,12 @@ using namespace std;
 
 int main(int argc, char const *argv[]) {
     cout << "-----------SWITCH------------" << endl;
-    // 确定端口，推荐通过命令行传参。
-    unsigned short switchPort = 0;
+    // 提前声明本层会用到的变量。
+    unsigned short switchPort, inPort, outPort, srcPort, dstPort;
     unsigned short phyPorts[HOST_PER_SWITCHER] = {0};
+    int recvBytes;
+    char buffer[MAX_BUFFER_SIZE];
+    // 确定端口，推荐通过命令行传参。
     if (argc == HOST_PER_SWITCHER + 2) {
         switchPort = atoi(argv[1]);
         cout << "SWITCH Port: " << switchPort << endl;
@@ -32,20 +35,10 @@ int main(int argc, char const *argv[]) {
             cin >> phyPorts[i];
         }
     }
-    // 初始化变量。
-    char buffer[MAX_BUFFER_SIZE];
-    int recvBytes = 0;
-    unsigned short inPort = 0;
-    unsigned short outPort = 0;
-    unsigned short srcPort = 0;
-    unsigned short srcPortInTable = 0;
-    unsigned short dstPort = 0;
     // 初始化网络库与套接字。
     WSADATA wsaData = initWSA();
     SwitchSocket sock(switchPort);
     sock.bindPhys(phyPorts);
-    sock.printTable();
-
     cout << "---------Initialized---------" << endl;
 
     // 轮流检查本地几个物理层端口有无消息。
@@ -68,8 +61,7 @@ int main(int argc, char const *argv[]) {
         srcPort = recvFrame.getSrcPort();
         dstPort = recvFrame.getDstPort();
         // 对输入端口的反向学习。
-        srcPortInTable = sock.searchRemote(inPort);
-        if (srcPortInTable != srcPort) {
+        if (sock.searchRemote(inPort) != srcPort) {
             sock.updateTable(inPort, srcPort);
             cout << "Address table updated:" << endl;
             sock.printTable();
