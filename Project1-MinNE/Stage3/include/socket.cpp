@@ -483,9 +483,9 @@ bool SwitchSocket::isReady(unsigned short port) {
 }
 
 /**
- *  @brief  在端口地址表中查找本地端口对应的远程端口。
- *  @param  local   本地端口号。
- *  @retval 对应的远程端口号。
+ *  @brief  在端口地址表中查找远程端口对应的本地端口。
+ *  @param  remote  远程端口号。
+ *  @retval 对应的本地端口号。
  */
 unsigned short SwitchSocket::searchLocal(unsigned short remote) {
     map<unsigned short, unsigned short>::iterator iter;
