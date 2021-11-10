@@ -6,6 +6,7 @@
 #pragma once
 #include <iostream>
 #include <map>
+#include <vector>
 #include <winsock2.h>
 #include "param.h"
 using namespace std;
@@ -116,8 +117,9 @@ class SwitchSocket : public CNTSocket {
     bool isReady(unsigned short port);
 
     unsigned short searchLocal(unsigned short remote);
-    unsigned short searchRemote(unsigned short local);
-    void updateTable(unsigned short local, unsigned short remote);
+    vector<unsigned short> searchRemotes(unsigned short local);
+    bool hasRelation(unsigned short remote, unsigned short local);
+    void updateTable(unsigned short remote, unsigned short local);
     void printTable();
 };
 
@@ -488,26 +490,9 @@ bool SwitchSocket::isReady(unsigned short port) {
  */
 unsigned short SwitchSocket::searchLocal(unsigned short remote) {
     map<unsigned short, unsigned short>::iterator iter;
-    for (iter = this->table.begin(); iter != this->table.end(); iter++) {
-        if (iter->second == remote) {
-            // 如果这一对的远程端口号就是想要的，就返回本地端口号。
-            return iter->first;
-        }
-    }
-    // 如果没找到，就返回0。
-    return 0;
-}
-
-/**
- *  @brief  在端口地址表中查找本地端口对应的远程端口。
- *  @param  local   本地端口号。
- *  @retval 对应的远程端口号。
- */
-unsigned short SwitchSocket::searchRemote(unsigned short local) {
-    map<unsigned short, unsigned short>::iterator iter;
-    iter = this->table.find(local);
+    iter = this->table.find(remote);
     if (iter != this->table.end()) {
-        // 如果找到了，就返回远程端口号。
+        // 如果找到了，就返回本地端口号。
         return iter->second;
     } else {
         // 如果没找到，就返回0。
@@ -516,12 +501,46 @@ unsigned short SwitchSocket::searchRemote(unsigned short local) {
 }
 
 /**
- *  @brief  更新端口地址表。
+ *  @brief  在端口地址表中查找本地端口对应的远程端口。
  *  @param  local   本地端口号。
- *  @param  remote  远程端口号。
+ *  @retval 对应的远程端口号向量。
  */
-void SwitchSocket::updateTable(unsigned short local, unsigned short remote) {
-    this->table[local] = remote;
+vector<unsigned short> SwitchSocket::searchRemotes(unsigned short local) {
+    vector<unsigned short> ret = {};
+    map<unsigned short, unsigned short>::iterator iter;
+    for (iter = this->table.begin(); iter != this->table.end(); iter++) {
+        if (iter->second == local) {
+            // 如果这一对的本地端口号就是想要的，就记录远程端口号。
+            ret.push_back(iter->first);
+        }
+    }
+    return ret;
+}
+
+/**
+ *  @brief  在端口地址表中检查是否有某一对应关系的记录。
+ *  @param  remote  远程端口号。
+ *  @param  local   本地端口号。
+ *  @return 有记录为true，无记录为false。
+ */
+bool SwitchSocket::hasRelation(unsigned short remote, unsigned short local) {
+    map<unsigned short, unsigned short>::iterator iter;
+    for (iter = this->table.begin(); iter != this->table.end(); iter++) {
+        if (iter->first == remote && iter->second == local) {
+            // 如果这一对端口号符合要求，则返回true。
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ *  @brief  更新端口地址表。
+ *  @param  remote  远程端口号。
+ *  @param  local   本地端口号。
+ */
+void SwitchSocket::updateTable(unsigned short remote, unsigned short local) {
+    this->table[remote] = local;
 }
 
 /**
@@ -529,11 +548,11 @@ void SwitchSocket::updateTable(unsigned short local, unsigned short remote) {
  */
 void SwitchSocket::printTable() {
     cout << "------------------" << endl
-         << "| Local | Remote |" << endl
-         << "|:-----:|:------:|" << endl;
+         << "| Remote | Local |" << endl
+         << "|--------|-------|" << endl;
     map<unsigned short, unsigned short>::iterator iter;
     for (iter = this->table.begin(); iter != this->table.end(); iter++) {
-        printf("| %-5u | %-5u  |\n", iter->first, iter->second);
+        printf("| %-5u  | %-5u |\n", iter->first, iter->second);
     }
     cout << "------------------" << endl;
 }

@@ -3,19 +3,14 @@
  * @author  蔡与望
  * @brief   主机网络层。
  */
-#include <iostream>
-#include <winsock2.h>
-#include "../include/param.h"
-#include "../include/coding.cpp"
-#include "../include/frame.cpp"
-#include "../include/socket.cpp"
+#include "../include/cnt.h"
 using namespace std;
 
 int main(int argc, char *argv[]) {
     cout << "-------------NET-------------" << endl;
     // 提前声明本层会用到的变量。
-    unsigned short appPort, netPort, phyPort, srcPort, dstPort, seq;
-    int mode, sendTotal, recvTotal, recvBytes, recverNum;
+    unsigned short appPort, netPort, phyPort, srcPort, dstPort, seq = 0;
+    int mode, sendTotal, recvTotal, recvBytes, targetNum;
     char buffer[MAX_BUFFER_SIZE];
     string message, recvMessage, sendMessage;
     // 确定端口，推荐通过命令行传参。
@@ -71,12 +66,15 @@ int main(int argc, char *argv[]) {
                 // 如果发来的帧不是给自己的，就既不回复也不接收。
                 dstPort = recvFrame.getDstPort();
                 if (dstPort != appPort && dstPort != BROADCAST_PORT) {
+                    cout << "I'm " << appPort << ", not " << dstPort << "."
+                         << endl;
                     continue;
                 }
                 // 如果发来的帧是给自己的，再检查序号：
                 // 如果发来的帧序号重复了，回复ACK，但不接收这帧。
                 // 这种情况说明，这帧是发送端收到了不明回复后重传的。其实接收端已经ACK过这帧了。
                 // 再传一次ACK，让发送端放心。
+                srcPort = recvFrame.getSrcPort();
                 if (seq == recvFrame.getSeq()) {
                     cout << "[Frame " << seq << "] Repeated." << endl;
                     Frame ack(appPort, seq, encode(ACK), srcPort);
@@ -97,7 +95,6 @@ int main(int argc, char *argv[]) {
                 if (frame == 0) {
                     // 如果是起始帧，就据此更新循环次数。
                     recvTotal = atoi(decode(recvFrame.getData()).c_str());
-                    srcPort = recvFrame.getSrcPort();
                     cout << "[Frame " << seq << "] Receiving " << recvTotal
                          << " frames." << endl;
                 } else {
@@ -120,9 +117,10 @@ int main(int argc, char *argv[]) {
             if (mode == UNICAST) {
                 sock.recvFromApp(buffer, USER_TIMEOUT);
                 dstPort = atoi(buffer);
-                cout << "Unicasting to port " << dstPort << "." << endl;
+                cout << "Unicasting to port " << dstPort << "..." << endl;
             } else {
                 dstPort = BROADCAST_PORT;
+                cout << "Broadcasting..." << endl;
             }
             // 确定要发的消息。
             sock.recvFromApp(buffer, USER_TIMEOUT);
@@ -163,10 +161,10 @@ int main(int argc, char *argv[]) {
                          << endl;
                 }
                 // 确定要接收几次回复。
-                recverNum = (mode == UNICAST) ? 1 : BROADCAST_RECVER_NUM;
+                targetNum = mode == UNICAST ? 1 : BROADCAST_RECVER_NUM;
                 int ackTimes = 0;
                 // 每个接收端的回复都要接收，即使已经知道要重传了。
-                for (int i = 0; i < recverNum; i++) {
+                for (int i = 0; i < targetNum; i++) {
                     // 接收对方的回复。
                     recvBytes = sock.recvFromPhy(buffer, RECV_TIMEOUT);
                     // 如果超时没收到回复，说明之后也不会有回复了，不用再等了。
@@ -183,7 +181,6 @@ int main(int argc, char *argv[]) {
                         cout << "[Frame " << packages[frame].getSeq()
                              << "] ACK." << endl;
                         ++ackTimes;
-                        continue;
                     } else if (responseMessage == NAK) {
                         // 如果是NAK，就报错并重传。
                         cout << "[Frame " << packages[frame].getSeq()
@@ -198,7 +195,7 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 // 如果每个接收端都ACK了，就可以发下一帧。
-                if (ackTimes == recverNum) {
+                if (ackTimes == targetNum) {
                     ++frame;
                 }
             }

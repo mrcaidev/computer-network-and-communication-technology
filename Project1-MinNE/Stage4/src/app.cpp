@@ -3,11 +3,7 @@
  * @author  蔡与望
  * @brief   主机应用层。
  */
-#include <iostream>
-#include <winsock2.h>
-#include "../include/param.h"
-#include "../include/coding.cpp"
-#include "../include/socket.cpp"
+#include "../include/cnt.h"
 using namespace std;
 
 int main(int argc, char *argv[]) {

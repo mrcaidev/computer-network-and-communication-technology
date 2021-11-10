@@ -10,8 +10,8 @@ start "Switcher 1 Phy to host 2" "./phy" 3 PHY 2
 start "Switcher 2 Phy to router" "./phy" 6 PHY 0
 start "Switcher 2 Phy to host 3" "./phy" 6 PHY 1
 start "Switcher 2 Phy to host 4" "./phy" 6 PHY 2
-start "Router Phy to switcher 4" "./phy" 7 PHY 0
-start "Router Phy to switcher 4" "./phy" 7 PHY 1
+start "Router Phy to switcher 1" "./phy" 7 PHY 0
+start "Router Phy to switcher 2" "./phy" 7 PHY 1
 @REM --------------------------------------------------
 start "Host 1 Net" "./net" 11300 11200 11100
 start "Host 2 Net" "./net" 12300 12200 12100

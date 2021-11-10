@@ -3,9 +3,9 @@
 /* ----------限制条件---------- */
 #define MAX_BUFFER_SIZE 1024
 #define MAX_CHAR_NUM 50
-#define FLOW_INTERVAL 100
+#define FLOW_INTERVAL 10000
 #define USER_TIMEOUT 180000
-#define RECV_TIMEOUT 5000
+#define RECV_TIMEOUT 50000
 
 /* ----------网元模式---------- */
 #define RECV 1
@@ -27,7 +27,7 @@
 #define BITS_PER_CHAR 16
 #define HOST_PER_SWITCHER 2
 #define SWITCHER_PER_ROUTER 2
-#define BROADCAST_RECVER_NUM 1
+#define BROADCAST_RECVER_NUM 3
 #define LOCATOR_LEN 8
 #define PORT_LEN 16
 #define SEQ_LEN 8
