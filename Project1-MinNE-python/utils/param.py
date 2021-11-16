@@ -1,7 +1,9 @@
 class Constant:
+    """程序会用到的各种常数。"""
+
     MAX_BUFFER_SIZE = 1024
     MAX_CHAR_NUM = 50
-    FLOW_INTERVAL = 10000
+    FLOW_INTERVAL = 0.5
     USER_TIMEOUT = 60
     RECV_TIMEOUT = 5
     SELECT_TIMEOUT = 0.5
