@@ -16,11 +16,7 @@ class Frame:
         self.__binary = ""
 
     def __str__(self) -> str:
-        """打印帧信息。
-
-        Returns:
-            帧信息字符串。
-        """
+        """打印帧信息。"""
         return f"[Frame {self.__seq}] ({self.__src}→{self.__dst}, {self.__verified}) {self.__data}"
 
     @property
