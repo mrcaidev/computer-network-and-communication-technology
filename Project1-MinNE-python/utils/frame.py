@@ -7,10 +7,10 @@ class Frame:
 
     def __init__(self) -> None:
         """初始化帧属性为默认值。"""
-        self.__src = 0
+        self.__src = ""
         self.__seq = 0
         self.__data = ""
-        self.__dst = 0
+        self.__dst = ""
         self.__checksum = 0
         self.__verified = True
         self.__binary = ""
@@ -24,7 +24,7 @@ class Frame:
         return f"[Frame {self.__seq}] ({self.__src}→{self.__dst}, {self.__verified}) {self.__data}"
 
     @property
-    def src(self) -> int:
+    def src(self) -> str:
         """将源地址设为只读。"""
         return self.__src
 
@@ -39,7 +39,7 @@ class Frame:
         return self.__data
 
     @property
-    def dst(self) -> int:
+    def dst(self) -> str:
         """将目的地址设为只读。"""
         return self.__dst
 
@@ -53,7 +53,7 @@ class Frame:
         """将帧对应的01序列设为只读。"""
         return self.__binary
 
-    def write(self, src: int, seq: int, data: str, dst: int) -> None:
+    def write(self, src: str, seq: int, data: str, dst: str) -> None:
         """
         将信息写入帧。
 
@@ -68,7 +68,7 @@ class Frame:
         self.__data = data
         self.__dst = dst
 
-        checksum_target = f"{dec_to_bin(src, const.PORT_LEN)}{dec_to_bin(seq, const.SEQ_LEN)}{data}{dec_to_bin(dst, const.PORT_LEN)}"
+        checksum_target = f"{dec_to_bin(int(src), const.PORT_LEN)}{dec_to_bin(seq, const.SEQ_LEN)}{data}{dec_to_bin(int(dst), const.PORT_LEN)}"
         self.__checksum = Frame.__generate_checksum(checksum_target)
         self.__verified = True
 
@@ -85,15 +85,17 @@ class Frame:
         """
         message, extracted = Frame.__extract_message(binary)
 
-        self.__src = bin_to_dec(message[: const.PORT_LEN])
+        self.__src = str(bin_to_dec(message[: const.PORT_LEN]))
         self.__seq = bin_to_dec(
             message[const.PORT_LEN : const.PORT_LEN + const.SEQ_LEN]
         )
         self.__data = message[
             const.PORT_LEN + const.SEQ_LEN : -const.CHECKSUM_LEN - const.PORT_LEN
         ]
-        self.__dst = bin_to_dec(
-            message[-const.CHECKSUM_LEN - const.PORT_LEN : -const.CHECKSUM_LEN]
+        self.__dst = str(
+            bin_to_dec(
+                message[-const.CHECKSUM_LEN - const.PORT_LEN : -const.CHECKSUM_LEN]
+            )
         )
         self.__checksum = bin_to_dec(message[-const.CHECKSUM_LEN :])
         self.__verified = extracted and self.__checksum == Frame.__generate_checksum(
@@ -168,7 +170,7 @@ class Frame:
             [bin_to_dec(binary[i * 8 : i * 8 + 8]) for i in range(len(binary) // 8)]
         )
 
-    def calcFrameNum(message: str) -> int:
+    def calc_frame_num(message: str) -> int:
         """
         计算消息需要分几帧发送。
 

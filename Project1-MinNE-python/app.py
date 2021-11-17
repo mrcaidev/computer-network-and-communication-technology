@@ -54,4 +54,5 @@ if __name__ == "__main__":
             app.send(input("Destination port: "))
 
         # 如果要单播或广播，就发送。
-        app.send(input("Message: "))
+        message = input("Message: ")
+        app.send(encode(message))

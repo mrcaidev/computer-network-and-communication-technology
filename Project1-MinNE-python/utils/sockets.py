@@ -1,7 +1,6 @@
 import socket
 from select import select
 
-from utils.coding import decode, encode
 from utils.param import Constant as const
 
 
@@ -34,7 +33,7 @@ class AppLayer(AbstractLayer):
         初始化应用层。
 
         Args:
-            port: 应用层所在端口。
+            port: 应用层端口号。
         """
         super().__init__(port)
 
@@ -57,7 +56,7 @@ class AppLayer(AbstractLayer):
         Returns:
             总共发送的字节数。
         """
-        return self._socket.sendto(bytes(encode(message), encoding="utf-8"), self._net)
+        return self._socket.sendto(bytes(message, encoding="utf-8"), self._net)
 
     def receive(self, timeout: int = const.RECV_TIMEOUT) -> str:
         """
@@ -67,23 +66,9 @@ class AppLayer(AbstractLayer):
             timeout: 可选，接收的超时时间，默认为`utils.param.Constant.RECV_TIMEOUT`。
 
         Returns:
-            解码后的消息。
+            接收到的消息。
         """
         self._socket.settimeout(timeout)
-        secret, _ = self._socket.recvfrom(const.MAX_BUFFER_SIZE)
+        binary, _ = self._socket.recvfrom(const.MAX_BUFFER_SIZE)
         self._socket.settimeout(const.USER_TIMEOUT)
-        return decode(str(secret)[2:])
-
-
-def select_readable(sockets: list[socket.socket]) -> list[socket.socket]:
-    """
-    从列表中挑选可读的套接字。
-
-    Args:
-        sockets: 要检验的套接字列表。
-
-    Returns:
-        当前可读的套接字列表。
-    """
-    ready_sockets, _, _ = select(sockets, [], [], const.SELECT_TIMEOUT)
-    return ready_sockets
+        return str(binary)[2:]
