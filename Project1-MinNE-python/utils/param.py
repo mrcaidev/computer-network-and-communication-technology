@@ -9,7 +9,7 @@ class Constant:
     SELECT_TIMEOUT = 0.5
 
     LOCATOR = "01111110"
-    TRANSFORM_TARGET = "11111"
+    SUSPICIOUS = "11111"
     ACK = "Y"
     NAK = "N"
     EMPTY_FRAME = "0" * 88
@@ -20,10 +20,11 @@ class Constant:
     SWITCHER_PER_ROUTER = 2
     BROADCAST_RECVER_NUM = 3
     LOCATOR_LEN = 8
-    PORT_LEN = 8
+    SUSPICIOUS_LEN = 5
+    PORT_LEN = 16
     SEQ_LEN = 8
-    CHECKSUM_LEN = 8
-    DATA_LEN = 8
+    CHECKSUM_LEN = 16
+    DATA_LEN = 32
 
     RECV = 1
     UNICAST = 2
