@@ -16,115 +16,169 @@ class Frame:
         self.__binary = ""
 
     def __str__(self) -> str:
+        """打印帧信息。
+
+        Returns:
+            帧信息字符串。
+        """
         return f"[Frame {self.__seq}] ({self.__src}→{self.__dst}, {self.__verified}) {self.__data}"
 
     @property
-    def src(self):
+    def src(self) -> int:
+        """将源地址设为只读。"""
         return self.__src
 
     @property
-    def seq(self):
+    def seq(self) -> int:
+        """将序号设为只读。"""
         return self.__seq
 
     @property
-    def data(self):
+    def data(self) -> str:
+        """将封装数据设为只读。"""
         return self.__data
 
     @property
-    def dst(self):
+    def dst(self) -> int:
+        """将目的地址设为只读。"""
         return self.__dst
 
     @property
-    def binary(self):
-        return self.__binary
-
-    @property
-    def verified(self):
+    def verified(self) -> bool:
+        """将检验结果设为只读。"""
         return self.__verified
 
-    def read(self, raw: str) -> None:
+    @property
+    def binary(self) -> str:
+        """将帧对应的01序列设为只读。"""
+        return self.__binary
+
+    def write(self, src: int, seq: int, data: str, dst: int) -> None:
+        """
+        将信息写入帧。
+
+        Args:
+            src: 帧的源端口。
+            seq: 帧的序号。
+            data: 要封装的消息。
+            dst: 帧的目的端口。
+        """
+        self.__src = src
+        self.__seq = seq
+        self.__data = data
+        self.__dst = dst
+
+        checksum_target = f"{dec_to_bin(src, const.PORT_LEN)}{dec_to_bin(seq, const.SEQ_LEN)}{data}{dec_to_bin(dst, const.PORT_LEN)}"
+        self.__checksum = Frame.generate_checksum(checksum_target)
         self.__verified = True
-        self.__binary = raw
-        message = self.extract_message(raw)
+
+        self.__binary = Frame.add_locator(
+            f"{checksum_target}{dec_to_bin(self.__checksum, const.CHECKSUM_LEN)}"
+        )
+
+    def read(self, binary: str) -> None:
+        """
+        读入01序列，解析为帧。
+
+        Args:
+            binary: 物理层中传输的01序列字符串。
+        """
+        message, extracted = Frame.extract_message(binary)
 
         self.__src = bin_to_dec(message[: const.PORT_LEN])
         self.__seq = bin_to_dec(
             message[const.PORT_LEN : const.PORT_LEN + const.SEQ_LEN]
         )
-        self.__checksum = bin_to_dec(message[-const.CHECKSUM_LEN :])
-        self.__dst = bin_to_dec(
-            message[-const.CHECKSUM_LEN - const.PORT_LEN : -const.CHECKSUM_LEN]
-        )
         self.__data = message[
             const.PORT_LEN + const.SEQ_LEN : -const.CHECKSUM_LEN - const.PORT_LEN
         ]
-        # 如果extract_message()就出错，那结果必为错；
-        # 如果extract_message()没出错，那就进一步检验校验和。
-        self.__verified = (
-            self.__verified
-            and self.__checksum
-            == Frame.generate_checksum(message[: -const.CHECKSUM_LEN])
+        self.__dst = bin_to_dec(
+            message[-const.CHECKSUM_LEN - const.PORT_LEN : -const.CHECKSUM_LEN]
         )
-
-    def write(self, src: int, seq: int, data: str, dst: int) -> None:
-        self.__src = src
-        self.__seq = seq
-        self.__data = data
-        self.__dst = dst
-        target = f"{dec_to_bin(src, const.PORT_LEN)}{dec_to_bin(seq, const.SEQ_LEN)}{data}{dec_to_bin(dst, const.PORT_LEN)}"
-        self.__checksum = Frame.generate_checksum(target)
-        self.__verified = True
-        self.__binary = Frame.add_locator(
-            f"{target}{dec_to_bin(self.__checksum, const.CHECKSUM_LEN)}"
+        self.__checksum = bin_to_dec(message[-const.CHECKSUM_LEN :])
+        self.__verified = extracted and self.__checksum == Frame.generate_checksum(
+            message[: -const.CHECKSUM_LEN]
         )
+        self.__binary = binary
 
-    def extract_message(self, raw: str) -> str:
+    def extract_message(binary: str) -> tuple[str, bool]:
+        """
+        从有干扰的01序列中提取帧序列。
+
+        Args:
+            binary: 物理层中传输的01序列字符串。
+
+        Returns:
+            一个二元元组。
+            - [0] 提取的帧序列。
+            - [1] 是否提取成功，成功为True，失败为False。
+        """
         message = ""
-
-        # 寻找帧头。
-        start = raw.find(const.LOCATOR)
-        # 异常一：帧头帧尾同时出错，程序找不到定位串，就提前返回空消息。
+        start = binary.find(const.LOCATOR)
+        # 如果没找到定位串，就返回空帧。
         if start == -1:
-            self.__verified = False
-            return const.EMPTY_FRAME
+            return const.EMPTY_FRAME, False
 
-        # 反变换。
+        # 向后反变换。
         start += const.LOCATOR_LEN
-        next = raw.find(const.SUSPICIOUS, start)
-        while next != -1:
-            if raw[next + const.SUSPICIOUS_LEN] == "1":
-                # 到达帧尾。
-                message += raw[start : next - 1]
-                return message
+        susp = binary.find(const.SUSPICIOUS, start)
+        while susp != -1:
+            # 如果到达帧尾，就返回提取出的信息。
+            if binary[susp + const.SUSPICIOUS_LEN] == "1":
+                message += binary[start : susp - 1]
+                return message, True
+            # 如果只是连续5个1，就删除后面的0，然后继续寻找。
             else:
-                # 删除后面的0，然后继续寻找。
-                message += raw[start : next + const.SUSPICIOUS_LEN]
-                start = next + const.SUSPICIOUS_LEN + 1
-                next = raw.find(const.SUSPICIOUS, start)
+                message += binary[start : susp + const.SUSPICIOUS_LEN]
+                start = susp + const.SUSPICIOUS_LEN + 1
+                susp = binary.find(const.SUSPICIOUS, start)
 
-        # 程序会走到这里，说明只找到了一个定位串。提前设verify=False。
-        self.__verified = False
-        # 异常二：帧头出错，帧尾没错，程序会误认为帧尾是帧头。此时message为空。
-        # 异常三：帧头没错，帧尾出错。此时message不为空，但有可能已经写入了帧外乱码，不能相信。
-        # 无论如何都应该返回空帧。
-        return const.EMPTY_FRAME
+        # 如果只找到了1个定位串，也返回空帧。
+        return const.EMPTY_FRAME, False
 
-    def transform(message: str) -> str:
-        cur = message.find(const.SUSPICIOUS)
+    def add_locator(binary: str) -> str:
+        """
+        变换01序列，并加上定位串。
+
+        Args:
+            binary: 待操作的01序列，包含帧内的所有信息。
+
+        Returns:
+            加上定位串后的01序列。
+        """
+        # 变换，在连续的5个`1`之后添加1个`0`。
+        cur = binary.find(const.SUSPICIOUS)
         while cur != -1:
-            message = f"{message[: cur + const.SUSPICIOUS_LEN]}0{message[cur + const.SUSPICIOUS_LEN :]}"
-            cur = message.find(const.SUSPICIOUS, cur + 6)
-        return message
+            binary = f"{binary[: cur + const.SUSPICIOUS_LEN]}0{binary[cur + const.SUSPICIOUS_LEN :]}"
+            cur = binary.find(const.SUSPICIOUS, cur + 6)
 
-    def add_locator(message: str) -> str:
-        return f"{const.LOCATOR}{Frame.transform(message)}{const.LOCATOR}"
+        return f"{const.LOCATOR}{binary}{const.LOCATOR}"
 
-    def generate_checksum(target: str) -> int:
+    def generate_checksum(binary: str) -> int:
+        """
+        生成校验和。
+
+        Args:
+            binary: 要对其生成校验和的01序列。
+
+        Returns:
+            16位校验和。
+        """
         return sum(
-            [bin_to_dec(target[i * 8 : i * 8 + 8]) for i in range(len(target) // 8)]
+            [bin_to_dec(binary[i * 8 : i * 8 + 8]) for i in range(len(binary) // 8)]
         )
 
-    def calcTotal(length: int) -> int:
+    def calcFrameNum(message: str) -> int:
+        """
+        计算消息需要分几帧发送。
+
+        Args:
+            message: 当前要发送的消息。
+
+        Returns:
+            计算所得的帧数。
+        """
+        length = len(message)
         return (
             length // const.DATA_LEN
             if length % const.DATA_LEN == 0
