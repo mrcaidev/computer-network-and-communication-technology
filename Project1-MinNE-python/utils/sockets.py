@@ -1,5 +1,6 @@
 import socket
 from select import select
+from time import sleep
 
 from utils.param import Constant as const
 
@@ -134,6 +135,7 @@ class NetLayer(AbstractLayer):
             总共发送的字节数。
         """
         binary = "".join(list(map(lambda char: chr(ord(char) - ord("0")), binary)))
+        sleep(const.FLOW_INTERVAL)
         return self._socket.sendto(bytes(binary, encoding="utf-8"), self._phy)
 
     def receive_from_phy(self, timeout: int = const.RECV_TIMEOUT) -> tuple[str, bool]:
