@@ -1,5 +1,0 @@
-APP = app.exe
-NET = net.exe
-PHY = phy.exe
-SWITCH = switcher.exe
-ROUTE = router.exe
