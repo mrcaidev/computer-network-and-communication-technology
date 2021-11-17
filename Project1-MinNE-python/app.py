@@ -45,7 +45,7 @@ if __name__ == "__main__":
         # 如果要接收消息，就读取。
         elif mode == const.RECV:
             print("Waiting...")
-            message = app.receive(const.USER_TIMEOUT)
+            message = app.receive()
             print(f"\rReceived: {decode(message)}")
             continue
 
