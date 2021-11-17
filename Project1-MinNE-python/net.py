@@ -23,72 +23,81 @@ if __name__ == "__main__":
     net.bind_app(app_port)
     net.bind_phy(phy_port)
 
-    # 变量提前声明。
+    # 序号为全局变量。
     seq = 0
+    ack = Frame()
+    nak = Frame()
 
     while True:
+        # 得知模式。
         mode = net.receive_from_app()
 
+        # 退出程序。
         if mode == const.QUIT:
             break
 
+        # 接收模式。
         elif mode == const.RECV:
-            i, recv_total, src, message = 0, 0, const.BROADCAST_PORT, ""
+            cur_frame_num, recv_total, src, message = 0, 0, const.BROADCAST_PORT, ""
             while True:
-                if i == 0:
+                # 从物理层接收消息，第一帧可以等得久一些。
+                if cur_frame_num == 0:
                     new_message, success = net.receive_from_phy(const.USER_TIMEOUT)
                 else:
                     new_message, success = net.receive_from_phy()
 
+                # 如果超时，就什么都不做，重新开始等待。
                 if not success:
                     print(f"[Frame {seq + 1}] Timeout.")
-                    nak = Frame()
-                    nak.write(app_port, seq + 1, encode(const.NAK), src)
-                    net.send_to_phy(nak.binary)
                     continue
 
+                # 解析接收到的帧。
                 recv_frame = Frame()
                 recv_frame.read(new_message)
-                print(f"new_message:{new_message}")
-                print(f"recv_frame.binary:{recv_frame.binary}")
 
+                # 如果帧不是给自己的，就什么都不做，重新开始等待。
                 if recv_frame.dst not in (app_port, const.BROADCAST_PORT):
                     print(f"I'm not {recv_frame.dst}.")
                     continue
 
+                # 如果序号重复，就丢弃这帧，再发一遍ACK。
                 if seq == recv_frame.seq:
                     print(f"[Frame {seq}] Repeated.")
-                    ack = Frame()
                     ack.write(app_port, seq, encode(const.ACK), src)
                     net.send_to_phy(ack.binary)
                     continue
 
+                # 如果校验未通过，就丢弃这帧，发送NAK。
                 if not recv_frame.verified:
                     print(f"[Frame {seq + 1}] Invalid.")
-                    nak = Frame()
                     nak.write(app_port, seq + 1, encode(const.NAK), src)
                     net.send_to_phy(nak.binary)
                     continue
 
+                # 如果帧信息正确，就接收这帧，发送ACK。
                 seq = recv_frame.seq
-                if i == 0:
+                if cur_frame_num == 0:
                     recv_total = int(decode(recv_frame.data))
                     print(f"[Frame {seq}] Receiving {recv_total} frames.")
                 else:
                     message += recv_frame.data
                     print(f"[Frame {seq}] Verified.")
-
-                ack = Frame()
                 ack.write(app_port, seq, encode(const.ACK), src)
                 net.send_to_phy(ack.binary)
-                i += 1
 
-                if i == recv_total + 1:
+                # 如果这是最后一帧，就退出循环。
+                if cur_frame_num == recv_total:
                     break
 
+                # 可以开始接收下一帧了。
+                cur_frame_num += 1
+
+            # 将消息传给应用层。
             net.send_to_app(message)
 
+        # 发送模式。
         else:
+            # 确定目的端口。
             if mode == const.UNICAST:
                 dst = net.receive_from_app()
                 print(f"Unicasting to port {dst}.")
@@ -96,56 +105,70 @@ if __name__ == "__main__":
                 dst = const.BROADCAST_PORT
                 print("Broadcasting...")
 
+            # 确定消息。
             message = net.receive_from_app()
             send_total = Frame.calc_frame_num(message)
 
+            # 第一帧是请求帧，告知对方总共发多少帧。
             seq = (seq + 1) % 256
             request = Frame()
             request.write(app_port, seq, encode(str(send_total)), dst)
             packages = [request]
 
-            for i in range(send_total):
-                send_message = message[i * const.DATA_LEN : (i + 1) * const.DATA_LEN]
+            # 逐帧封装。
+            for cur_frame_num in range(send_total):
+                send_message = message[
+                    cur_frame_num
+                    * const.DATA_LEN : (cur_frame_num + 1)
+                    * const.DATA_LEN
+                ]
                 seq = (seq + 1) % 256
                 ready = Frame()
                 ready.write(app_port, seq, send_message, dst)
                 packages.append(ready)
 
-            frame = 0
+            # 逐帧发送。
+            cur_frame_num = 0
             while True:
-                print(f"send binary:{packages[frame].binary}")
-                net.send_to_phy(packages[frame].binary)
-                if frame == 0:
+                # 向物理层发送消息。
+                net.send_to_phy(packages[cur_frame_num].binary)
+                if cur_frame_num == 0:
                     print(
-                        f"[Frame {packages[frame].seq}] Sending {send_total} frame(s)."
+                        f"[Frame {packages[cur_frame_num].seq}] Sending {send_total} frame(s)."
                     )
                 else:
-                    print(f"[Frame {packages[frame].seq}] Sent.")
+                    print(f"[Frame {packages[cur_frame_num].seq}] Sent.")
 
-                target_num = 1 if mode == const.UNICAST else const.BROADCAST_RECVER_NUM
-                ackTimes = 0
-                for target in range(target_num):
+                # 接收来自每个接收端的回复。
+                dst_num = 1 if mode == const.UNICAST else const.BROADCAST_RECVER_NUM
+                ack_times = 0
+                for _ in range(dst_num):
                     resp_binary, success = net.receive_from_phy()
                     if not success:
-                        print(f"[Frame {packages[frame].seq}] Timeout.")
+                        print(f"[Frame {packages[cur_frame_num].seq}] Timeout.")
                         break
 
-                    response = Frame()
-                    response.read(resp_binary)
-                    resp_message = decode(response.data)
+                    resp_frame = Frame()
+                    resp_frame.read(resp_binary)
+                    resp_message = decode(resp_frame.data)
                     if resp_message == const.ACK:
-                        print(f"[Frame {response.seq}] ACK.")
-                        ackTimes += 1
+                        print(f"[Frame {resp_frame.seq}] ACK.")
+                        ack_times += 1
                     elif resp_message == const.NAK:
-                        print(f"[Frame {response.seq}] NAK.")
+                        print(f"[Frame {resp_frame.seq}] NAK.")
                     else:
-                        print(f"[Frame {response.seq}] Unknown response.")
+                        print(f"[Frame {resp_frame.seq}] Unknown response.")
 
-                if ackTimes == target_num:
-                    frame += 1
-                if frame > send_total:
+                # 如果每个接收端都ACK了，就可以发下一帧。
+                if ack_times == dst_num:
+                    cur_frame_num += 1
+
+                # 如果这是发送的最后一帧，就跳出循环。
+                if cur_frame_num > send_total:
                     break
 
+            # 释放这些帧的空间。
             del packages
 
+        # 分割线。
         print("-" * 50)
