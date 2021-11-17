@@ -26,7 +26,7 @@ class Constant:
     CHECKSUM_LEN = 16
     DATA_LEN = 32
 
-    RECV = 1
-    UNICAST = 2
-    BROADCAST = 3
-    QUIT = 4
+    RECV = "1"
+    UNICAST = "2"
+    BROADCAST = "3"
+    QUIT = "4"

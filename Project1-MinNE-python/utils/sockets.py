@@ -8,14 +8,14 @@ from utils.param import Constant as const
 class AbstractLayer:
     """各网元层的抽象父类。"""
 
-    def __init__(self, port: int) -> None:
+    def __init__(self, port: str) -> None:
         """
         初始化本层。
 
         Args:
             port: 本层所在端口。
         """
-        self._addr = ("127.0.0.1", port)
+        self._addr = ("127.0.0.1", int(port))
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._socket.bind(self._addr)
         self._socket.settimeout(const.USER_TIMEOUT)
@@ -29,7 +29,7 @@ class AbstractLayer:
 class AppLayer(AbstractLayer):
     """应用层。"""
 
-    def __init__(self, port: int) -> None:
+    def __init__(self, port: str) -> None:
         """
         初始化应用层。
 
@@ -38,14 +38,14 @@ class AppLayer(AbstractLayer):
         """
         super().__init__(port)
 
-    def bind_net(self, port: int) -> None:
+    def bind_net(self, port: str) -> None:
         """
         绑定网络层地址。
 
         Args:
             port: 网络层端口号。
         """
-        self._net = ("127.0.0.1", port)
+        self._net = ("127.0.0.1", int(port))
 
     def send(self, message: str) -> int:
         """
