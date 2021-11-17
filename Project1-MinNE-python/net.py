@@ -129,6 +129,7 @@ if __name__ == "__main__":
 
             # 逐帧发送。
             cur_frame_num = 0
+            timeout_cnt = 0
             while True:
                 # 向物理层发送消息。
                 net.send_to_phy(packages[cur_frame_num].binary)
@@ -141,26 +142,36 @@ if __name__ == "__main__":
 
                 # 接收来自每个接收端的回复。
                 dst_num = 1 if mode == const.UNICAST else const.BROADCAST_RECVER_NUM
-                ack_times = 0
+                ack_cnt = 0
                 for _ in range(dst_num):
                     resp_binary, success = net.receive_from_phy()
+                    # 如果超时了，说明之后没有信息会发来了，直接跳出循环，同时超时次数+1。
                     if not success:
                         print(f"[Frame {packages[cur_frame_num].seq}] Timeout.")
+                        timeout_cnt += 1
                         break
 
+                    # 一旦有回复，就重置超时次数。
+                    timeout_cnt = 0
+
+                    # 解包读取回复，如果是ACK就记录下来。
                     resp_frame = Frame()
                     resp_frame.read(resp_binary)
                     resp_message = decode(resp_frame.data)
                     if resp_message == const.ACK:
                         print(f"[Frame {resp_frame.seq}] ACK.")
-                        ack_times += 1
+                        ack_cnt += 1
                     elif resp_message == const.NAK:
                         print(f"[Frame {resp_frame.seq}] NAK.")
                     else:
                         print(f"[Frame {resp_frame.seq}] Unknown response.")
 
+                # 如果连续多次超时，就停止重传。
+                if timeout_cnt == const.KEEPALIVE_CNT:
+                    break
+
                 # 如果每个接收端都ACK了，就可以发下一帧。
-                if ack_times == dst_num:
+                if ack_cnt == dst_num:
                     cur_frame_num += 1
 
                 # 如果这是发送的最后一帧，就跳出循环。
