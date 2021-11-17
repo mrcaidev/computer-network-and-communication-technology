@@ -69,10 +69,10 @@ class Frame:
         self.__dst = dst
 
         checksum_target = f"{dec_to_bin(src, const.PORT_LEN)}{dec_to_bin(seq, const.SEQ_LEN)}{data}{dec_to_bin(dst, const.PORT_LEN)}"
-        self.__checksum = Frame.generate_checksum(checksum_target)
+        self.__checksum = Frame.__generate_checksum(checksum_target)
         self.__verified = True
 
-        self.__binary = Frame.add_locator(
+        self.__binary = Frame.__add_locator(
             f"{checksum_target}{dec_to_bin(self.__checksum, const.CHECKSUM_LEN)}"
         )
 
@@ -83,7 +83,7 @@ class Frame:
         Args:
             binary: 物理层中传输的01序列字符串。
         """
-        message, extracted = Frame.extract_message(binary)
+        message, extracted = Frame.__extract_message(binary)
 
         self.__src = bin_to_dec(message[: const.PORT_LEN])
         self.__seq = bin_to_dec(
@@ -96,12 +96,12 @@ class Frame:
             message[-const.CHECKSUM_LEN - const.PORT_LEN : -const.CHECKSUM_LEN]
         )
         self.__checksum = bin_to_dec(message[-const.CHECKSUM_LEN :])
-        self.__verified = extracted and self.__checksum == Frame.generate_checksum(
+        self.__verified = extracted and self.__checksum == Frame.__generate_checksum(
             message[: -const.CHECKSUM_LEN]
         )
         self.__binary = binary
 
-    def extract_message(binary: str) -> tuple[str, bool]:
+    def __extract_message(binary: str) -> tuple[str, bool]:
         """
         从有干扰的01序列中提取帧序列。
 
@@ -136,7 +136,7 @@ class Frame:
         # 如果只找到了1个定位串，也返回空帧。
         return const.EMPTY_FRAME, False
 
-    def add_locator(binary: str) -> str:
+    def __add_locator(binary: str) -> str:
         """
         变换01序列，并加上定位串。
 
@@ -154,7 +154,7 @@ class Frame:
 
         return f"{const.LOCATOR}{binary}{const.LOCATOR}"
 
-    def generate_checksum(binary: str) -> int:
+    def __generate_checksum(binary: str) -> int:
         """
         生成校验和。
 
