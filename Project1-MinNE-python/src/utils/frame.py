@@ -165,7 +165,10 @@ class Frame:
             16位CRC校验码，以十进制整型形式返回。
         """
         poly = 0xFFFF
-        bytes_array = bytearray.fromhex(hex(int(binary, 2))[2:])
+        try:
+            bytes_array = bytearray.fromhex(hex(int(binary, 2))[2:])
+        except Exception:
+            return -1
         for byte in bytes_array:
             poly ^= byte
             for _ in range(8):
