@@ -3,7 +3,7 @@ import sys
 from utils import *
 
 if __name__ == "__main__":
-    print("App".center(50, "-"))
+    print("App".center(30, "-"))
 
     # 确定端口。
     if len(sys.argv) == 3:
