@@ -25,7 +25,7 @@ class Constant:
     PORT_LEN = 16
     SEQ_LEN = 8
     DATA_LEN = 32
-    CHECKSUM_LEN = 16
+    CRC_LEN = 16
 
     RECV = "1"
     UNICAST = "2"

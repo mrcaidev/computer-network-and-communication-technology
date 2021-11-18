@@ -11,7 +11,7 @@ class Frame:
         self.__seq = 0
         self.__data = ""
         self.__dst = ""
-        self.__checksum = 0
+        self.__crc = 0
         self.__verified = True
         self.__binary = ""
 
@@ -66,14 +66,14 @@ class Frame:
         self.__data = info["data"]
         self.__dst = info["dst"]
 
-        # 生成校验和。
-        checksum_target = f"{dec_to_bin(int(self.__src), const.PORT_LEN)}{dec_to_bin(self.__seq, const.SEQ_LEN)}{self.__data}{dec_to_bin(int(self.__dst), const.PORT_LEN)}"
-        self.__checksum = Frame.__generate_checksum(checksum_target)
+        # 生成CRC码。
+        crc_target = f"{dec_to_bin(int(self.__src), const.PORT_LEN)}{dec_to_bin(self.__seq, const.SEQ_LEN)}{self.__data}{dec_to_bin(int(self.__dst), const.PORT_LEN)}"
+        self.__crc = Frame.__generate_crc(crc_target)
         self.__verified = True
 
         # 生成01序列。
         self.__binary = Frame.__add_locator(
-            f"{checksum_target}{dec_to_bin(self.__checksum, const.CHECKSUM_LEN)}"
+            f"{crc_target}{dec_to_bin(self.__crc, const.CRC_LEN)}"
         )
 
     def read(self, binary: str) -> None:
@@ -90,16 +90,14 @@ class Frame:
             message[const.PORT_LEN : const.PORT_LEN + const.SEQ_LEN]
         )
         self.__data = message[
-            const.PORT_LEN + const.SEQ_LEN : -const.CHECKSUM_LEN - const.PORT_LEN
+            const.PORT_LEN + const.SEQ_LEN : -const.CRC_LEN - const.PORT_LEN
         ]
         self.__dst = str(
-            bin_to_dec(
-                message[-const.CHECKSUM_LEN - const.PORT_LEN : -const.CHECKSUM_LEN]
-            )
+            bin_to_dec(message[-const.CRC_LEN - const.PORT_LEN : -const.CRC_LEN])
         )
-        self.__checksum = bin_to_dec(message[-const.CHECKSUM_LEN :])
-        self.__verified = extracted and self.__checksum == Frame.__generate_checksum(
-            message[: -const.CHECKSUM_LEN]
+        self.__crc = bin_to_dec(message[-const.CRC_LEN :])
+        self.__verified = extracted and self.__crc == Frame.__generate_crc(
+            message[: -const.CRC_LEN]
         )
         self.__binary = binary
 
@@ -156,19 +154,27 @@ class Frame:
 
         return f"{const.LOCATOR}{binary}{const.LOCATOR}"
 
-    def __generate_checksum(binary: str) -> int:
+    def __generate_crc(binary: str) -> int:
         """
-        生成校验和。
+        生成CRC校验码。
 
         Args:
-            binary: 要对其生成校验和的01序列。
+            binary: 要对其生成CRC校验码的01序列。
 
         Returns:
-            16位校验和。
+            16位CRC校验码，以十进制整型形式返回。
         """
-        return sum(
-            [bin_to_dec(binary[i * 8 : i * 8 + 8]) for i in range(len(binary) // 8)]
-        )
+        poly = 0xFFFF
+        bytes_array = bytearray.fromhex(hex(int(binary, 2))[2:])
+        for byte in bytes_array:
+            poly ^= byte
+            for _ in range(8):
+                if poly & 1 != 0:
+                    poly >>= 1
+                    poly ^= 0xA001
+                else:
+                    poly >>= 1
+        return ((poly & 0xFF) << 8) + (poly >> 8)
 
     def calc_frame_num(message: str) -> int:
         """
