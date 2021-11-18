@@ -1,6 +1,8 @@
 import socket
+from collections import defaultdict
 from select import select
 from time import sleep
+from typing import final
 
 from utils.param import Constant as const
 
@@ -15,19 +17,26 @@ class AbstractLayer:
         Args:
             port: 本层所在端口。
         """
+        # 创建套接字，绑定地址。
         self._addr = ("127.0.0.1", int(port))
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._socket.bind(self._addr)
+
+        # 所有层套接字的默认超时时间均为`utils.param.Constant.USER_TIMEOUT`。
         self._socket.settimeout(const.USER_TIMEOUT)
+
+    def __str__(self) -> str:
+        """打印抽象层信息。"""
+        return f"<Abstract Layer at 127.0.0.1:{self._addr[1]}>"
 
     @property
     def socket(self) -> socket.socket:
-        """将该层套接字本体设为只读。"""
+        """将该层套接字设为只读。"""
         return self._socket
 
 
 class AppLayer(AbstractLayer):
-    """应用层。"""
+    """主机应用层。"""
 
     def __init__(self, port: str) -> None:
         """
@@ -37,7 +46,11 @@ class AppLayer(AbstractLayer):
             port: 应用层端口号。
         """
         super().__init__(port)
-        self._socket.settimeout(const.USER_TIMEOUT)
+        self._net = ("127.0.0.1", -1)
+
+    def __str__(self) -> str:
+        """打印应用层信息。"""
+        return f"<App Layer at 127.0.0.1:{self._addr[1]} {{Net:{self._net[1]}}}>"
 
     def bind_net(self, port: str) -> None:
         """
@@ -72,7 +85,7 @@ class AppLayer(AbstractLayer):
 
 
 class NetLayer(AbstractLayer):
-    """网络层。"""
+    """主机网络层。"""
 
     def __init__(self, port: str) -> None:
         """
@@ -82,7 +95,12 @@ class NetLayer(AbstractLayer):
             port: 网络层端口号。
         """
         super().__init__(port)
-        self._socket.settimeout(const.USER_TIMEOUT)
+        self._app = ("127.0.0.1", -1)
+        self._phy = ("127.0.0.1", -1)
+
+    def __str__(self) -> str:
+        """打印网络层信息。"""
+        return f"<Net Layer at 127.0.0.1:{self._addr[1]} {{App:{self._app[1]}, Phy:{self._phy[1]}}}>"
 
     def bind_app(self, port: str) -> None:
         """
@@ -92,15 +110,6 @@ class NetLayer(AbstractLayer):
             port: 应用层端口号。
         """
         self._app = ("127.0.0.1", int(port))
-
-    def bind_phy(self, port: str) -> None:
-        """
-        绑定物理层地址。
-
-        Args:
-            port: 物理层端口号。
-        """
-        self._phy = ("127.0.0.1", int(port))
 
     def send_to_app(self, message: str) -> int:
         """
@@ -124,12 +133,21 @@ class NetLayer(AbstractLayer):
         message, _ = self._socket.recvfrom(const.MAX_BUFFER_SIZE)
         return str(message)[2:-1]
 
+    def bind_phy(self, port: str) -> None:
+        """
+        绑定物理层地址。
+
+        Args:
+            port: 物理层端口号。
+        """
+        self._phy = ("127.0.0.1", int(port))
+
     def send_to_phy(self, binary: str) -> int:
         """
         向物理层发送消息。
 
         Args:
-            message: 要发的消息（01序列）。
+            binary: 要发的消息（01序列）。
 
         Returns:
             总共发送的字节数。
@@ -140,7 +158,7 @@ class NetLayer(AbstractLayer):
 
     def receive_from_phy(self, timeout: int = const.RECV_TIMEOUT) -> tuple[str, bool]:
         """
-        从应用层接收消息。
+        从物理层接收消息。
 
         Args:
             timeout: 接收超时时间，单位为秒，默认为`utils.param.Constant.RECV_TIMEOUT`。
@@ -154,21 +172,169 @@ class NetLayer(AbstractLayer):
         try:
             binary, _ = self._socket.recvfrom(const.MAX_BUFFER_SIZE)
         except socket.timeout:
-            return "", False
-        self._socket.settimeout(const.USER_TIMEOUT)
-        binary = "".join(list(map(lambda bit: chr(bit + ord("0")), binary)))
-        return str(binary), True
+            result = ("", False)
+        else:
+            binary = "".join(list(map(lambda bit: chr(bit + ord("0")), binary)))
+            result = (binary, True)
+        finally:
+            self._socket.settimeout(const.USER_TIMEOUT)
+            return result
 
 
-def select_readable(sockets: list[socket.socket]) -> list[socket.socket]:
-    """
-    从列表中挑选可读的套接字。
+class SwitchLayer(AbstractLayer):
+    """交换机网络层。"""
 
-    Args:
-        sockets: 要检验的套接字列表。
+    def __init__(self, port: str) -> None:
+        """
+        初始化网络层。
 
-    Returns:
-        当前可读的套接字列表。
-    """
-    ready_sockets, _, _ = select(sockets, [], [], const.SELECT_TIMEOUT)
-    return ready_sockets
+        Args:
+            port: 网络层端口号。
+        """
+        super().__init__(port)
+        self._phys: list[str] = []
+        self.__port_table = defaultdict(list[str])
+
+    def __str__(self) -> str:
+        """打印网络层信息。"""
+        return f"<Switch Layer at 127.0.0.1:{self._addr[1]} {{Phy:{self._phys}}}>"
+
+    def bind_phys(self, ports: list[str]) -> None:
+        """
+        绑定物理层地址。
+
+        Args:
+            ports: 物理层端口号列表。
+        """
+        self.update_table(dict(zip(ports, [const.BROADCAST_PORT] * len(ports))))
+
+    def send_to_phy(self, binary: str, port: str) -> int:
+        """
+        向物理层发送消息。
+
+        Args:
+            binary: 要发的消息（01序列）。
+            port: 信息要送到的本地物理层端口。
+
+        Returns:
+            总共发送的字节数。
+        """
+        binary = "".join(list(map(lambda char: chr(ord(char) - ord("0")), binary)))
+        sleep(const.FLOW_INTERVAL)
+        return self._socket.sendto(
+            bytes(binary, encoding="utf-8"), ("127.0.0.1", int(port))
+        )
+
+    def receive_from_phys(
+        self, timeout: int = const.RECV_TIMEOUT
+    ) -> tuple[str, str, bool]:
+        """
+        从物理层接收消息。
+
+        Args:
+            timeout: 接收超时时间，单位为秒，默认为`utils.param.Constant.RECV_TIMEOUT`。
+
+        Returns:
+            一个三元元组。
+            - [0] 接收到的消息。
+            - [1] 消息来自的本地物理层端口。
+            - [2] 是否接收成功，成功为True，失败为False。
+        """
+        self._socket.settimeout(timeout)
+        try:
+            binary, (_, port) = self._socket.recvfrom(const.MAX_BUFFER_SIZE)
+        except socket.timeout:
+            ret = ("", -1, False)
+        else:
+            binary = "".join(list(map(lambda bit: chr(bit + ord("0")), binary)))
+            ret = (binary, str(port), True)
+        finally:
+            self._socket.settimeout(const.USER_TIMEOUT)
+            return ret
+
+    def has_message(self) -> bool:
+        """
+        检测本层套接字是否有可读消息。
+
+        Returns:
+            可读为True，不可读为False。
+        """
+        ready_sockets, _, _ = select([self._socket], [], [], const.SELECT_TIMEOUT)
+        return len(ready_sockets) != 0
+
+    def search_locals(self, remote: str) -> list[str]:
+        """
+        在端口地址表中查找本地端口号。
+
+        Args:
+            remote: 某一远程应用层的端口号。
+
+        Returns:
+            对应的本地物理层端口号列表。
+        """
+        return list(
+            filter(
+                lambda local: remote in self.__port_table[local],
+                self.__port_table.keys(),
+            )
+        )
+
+    def search_remotes(self, local: str) -> list[str]:
+        """
+        在端口地址表中查找远程端口号。
+
+        Args:
+            local: 某一本地物理层的端口号。
+
+        Returns:
+            对应的远程应用层端口号列表。
+        """
+        return self.__port_table.get(local, [])
+
+    def has_relation(self, local: str, remote: str) -> bool:
+        """
+        在端口地址表中查找某一对应关系。
+
+        Args:
+            local: 本地物理层的端口号。
+            remote: 远程应用层的端口号。
+
+        Returns:
+            有该关系为True，没有该关系为False。
+        """
+        return remote in self.__port_table.get(local, [])
+
+    def update_table(self, relations: dict[str, str]) -> bool:
+        """
+        更新端口地址表。
+
+        Args:
+            包含若干对应关系的字典，包含两个键。
+            - local: 本地物理层的端口号。
+            - remote: 远程应用层的端口号。
+
+        Returns:
+            有更新为True，无更新为False。
+        """
+        updated = False
+        # 逐一更新。
+        for local, remote in relations.items():
+            # 如果已经有这对关系，就不再追加。
+            if self.has_relation(local, remote):
+                continue
+            # 如果没有这对关系，就追加进列表。
+            self.__port_table[local].append(remote)
+            updated = True
+
+        return updated
+
+    def print_table(self):
+        """打印端口地址表。"""
+        print("-" * 50)
+        print(f"|{'Local'.center(24)}{'Remotes'.center(24)}|")
+        print("-" * 50)
+        for local, remotes in self.__port_table.items():
+            print(
+                f"|{local.center(24)}{str([int(remote) for remote in remotes]).center(24)}|"
+            )
+        print("-" * 50)

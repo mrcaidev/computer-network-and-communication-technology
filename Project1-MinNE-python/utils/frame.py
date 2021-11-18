@@ -49,25 +49,29 @@ class Frame:
         """将帧对应的01序列设为只读。"""
         return self.__binary
 
-    def write(self, src: str, seq: int, data: str, dst: str) -> None:
+    def write(self, info: dict) -> None:
         """
         将信息写入帧。
 
         Args:
-            src: 帧的源端口。
-            seq: 帧的序号。
-            data: 要封装的消息。
-            dst: 帧的目的端口。
+            info: 包含帧信息的字典，必须包含以下几个键：
+            - src: 帧的源端口。
+            - seq: 帧的序号。
+            - data: 要封装的消息。
+            - dst: 帧的目的端口。
         """
-        self.__src = src
-        self.__seq = seq
-        self.__data = data
-        self.__dst = dst
+        # 存储参数。
+        self.__src = info["src"]
+        self.__seq = info["seq"]
+        self.__data = info["data"]
+        self.__dst = info["dst"]
 
-        checksum_target = f"{dec_to_bin(int(src), const.PORT_LEN)}{dec_to_bin(seq, const.SEQ_LEN)}{data}{dec_to_bin(int(dst), const.PORT_LEN)}"
+        # 生成校验和。
+        checksum_target = f"{dec_to_bin(int(self.__src), const.PORT_LEN)}{dec_to_bin(self.__seq, const.SEQ_LEN)}{self.__data}{dec_to_bin(int(self.__dst), const.PORT_LEN)}"
         self.__checksum = Frame.__generate_checksum(checksum_target)
         self.__verified = True
 
+        # 生成01序列。
         self.__binary = Frame.__add_locator(
             f"{checksum_target}{dec_to_bin(self.__checksum, const.CHECKSUM_LEN)}"
         )

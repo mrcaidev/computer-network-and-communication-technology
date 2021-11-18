@@ -27,7 +27,11 @@ def bin_to_dec(binary: str) -> int:
     Returns:
         十进制整型数。
     """
-    return int(binary, 2)
+    try:
+        decimal = int(binary, 2)
+    except Exception:
+        decimal = 0
+    return decimal
 
 
 def encode(message: str) -> str:
@@ -61,12 +65,3 @@ def decode(binary: str) -> str:
             for char in re.findall(f".{{{const.BITS_PER_CHAR}}}", binary)
         ]
     )
-
-
-if __name__ == "__main__":
-    message = input(">>> ")
-    binary = encode(message)
-    result = decode(binary)
-    print(f"Message:{message}")
-    print(f"Encoded:{binary}")
-    print(f"Decoded:{result}")
