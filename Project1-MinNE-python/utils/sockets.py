@@ -1,8 +1,7 @@
 import socket
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from select import select
 from time import sleep
-from typing import final
 
 from utils.param import Constant as const
 
@@ -192,21 +191,21 @@ class SwitchLayer(AbstractLayer):
             port: 网络层端口号。
         """
         super().__init__(port)
-        self._phys: list[str] = []
-        self.__port_table = defaultdict(list[str])
+        self._port_table = defaultdict(dict[str, int])
 
     def __str__(self) -> str:
         """打印网络层信息。"""
-        return f"<Switch Layer at 127.0.0.1:{self._addr[1]} {{Phy:{self._phys}}}>"
+        return f"<Switch Layer at 127.0.0.1:{self._addr[1]}>"
 
     def bind_phys(self, ports: list[str]) -> None:
         """
-        绑定物理层地址。
+        在端口地址表中记录本地物理层到广播端口。
 
         Args:
-            ports: 物理层端口号列表。
+            ports: 本地物理层端口号列表。
         """
-        self.update_table(dict(zip(ports, [const.BROADCAST_PORT] * len(ports))))
+        for port in ports:
+            self._port_table[port].update({const.BROADCAST_PORT: -1})
 
     def send_to_phy(self, binary: str, port: str) -> int:
         """
@@ -262,49 +261,26 @@ class SwitchLayer(AbstractLayer):
         ready_sockets, _, _ = select([self._socket], [], [], const.SELECT_TIMEOUT)
         return len(ready_sockets) != 0
 
-    def search_locals(self, remote: str) -> list[str]:
+    def remove_expired(self, remote: str) -> bool:
         """
-        在端口地址表中查找本地端口号。
+        清除过期的端口地址关系。
 
         Args:
-            remote: 某一远程应用层的端口号。
-
-        Returns:
-            对应的本地物理层端口号列表。
+            remote: 当前激活的远程端口号，需要重置其寿命。
         """
-        return list(
-            filter(
-                lambda local: remote in self.__port_table[local],
-                self.__port_table.keys(),
-            )
-        )
+        removed = False
+        for remotes in self._port_table.values():
+            for port, life in remotes.copy().items():
+                if port == remote:
+                    remotes.update({port: const.REMOTE_LIFE})
+                else:
+                    remotes.update({port: life - 1})
+                if life == 0:
+                    remotes.pop(port)
+                    removed = True
+        return removed
 
-    def search_remotes(self, local: str) -> list[str]:
-        """
-        在端口地址表中查找远程端口号。
-
-        Args:
-            local: 某一本地物理层的端口号。
-
-        Returns:
-            对应的远程应用层端口号列表。
-        """
-        return self.__port_table.get(local, [])
-
-    def has_relation(self, local: str, remote: str) -> bool:
-        """
-        在端口地址表中查找某一对应关系。
-
-        Args:
-            local: 本地物理层的端口号。
-            remote: 远程应用层的端口号。
-
-        Returns:
-            有该关系为True，没有该关系为False。
-        """
-        return remote in self.__port_table.get(local, [])
-
-    def update_table(self, relations: dict[str, str]) -> bool:
+    def update_table(self, relations: dict[str, dict[str, int]]) -> bool:
         """
         更新端口地址表。
 
@@ -323,18 +299,64 @@ class SwitchLayer(AbstractLayer):
             if self.has_relation(local, remote):
                 continue
             # 如果没有这对关系，就追加进列表。
-            self.__port_table[local].append(remote)
+            self._port_table[local].update({remote: const.REMOTE_LIFE})
             updated = True
 
         return updated
 
-    def print_table(self):
-        """打印端口地址表。"""
-        print("-" * 50)
-        print(f"|{'Local'.center(24)}{'Remotes'.center(24)}|")
-        print("-" * 50)
-        for local, remotes in self.__port_table.items():
-            print(
-                f"|{local.center(24)}{str([int(remote) for remote in remotes]).center(24)}|"
+    def search_locals(self, remote: str) -> list[str]:
+        """
+        在端口地址表中查找本地端口号。
+
+        Args:
+            remote: 某一远程应用层的端口号。
+
+        Returns:
+            对应的本地物理层端口号列表。
+        """
+        return list(
+            filter(
+                lambda local: remote in self._port_table[local].keys(),
+                self._port_table.keys(),
             )
-        print("-" * 50)
+        )
+
+    def search_remotes(self, local: str) -> list[str]:
+        """
+        在端口地址表中查找远程端口号。
+
+        Args:
+            local: 某一本地物理层的端口号。
+
+        Returns:
+            对应的远程应用层端口号列表。
+        """
+        return list(self._port_table.get(local, {}).keys())
+
+    def has_relation(self, local: str, remote: str) -> bool:
+        """
+        在端口地址表中查找某一对应关系。
+
+        Args:
+            local: 本地物理层的端口号。
+            remote: 远程应用层的端口号。
+
+        Returns:
+            有该关系为True，没有该关系为False。
+        """
+        return remote in self._port_table.get(local, {}).keys()
+
+    def print_table(self) -> None:
+        print(
+            """------------------------
+|       |    Remote    |
+| Local |--------------|
+|       | Port  | Life |"""
+        )
+        for local, remotes in self._port_table.items():
+            print("|----------------------|")
+            for port, life in remotes.items():
+                print(
+                    f"| {local.center(5)} | {port.center(5)} | {str(life).center(4)} |"
+                )
+        print("-" * 24)

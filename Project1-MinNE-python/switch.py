@@ -29,9 +29,12 @@ if __name__ == "__main__":
         frame = Frame()
         frame.read(binary)
 
+        # 刷新端口地址表。
+        if switch.remove_expired(frame.src):
+            switch.print_table()
+
         # 反向学习。
-        updated = switch.update_table({in_port: frame.src})
-        if updated:
+        if switch.update_table({in_port: frame.src}):
             switch.print_table()
 
         # 查找应该从哪个端口送出。
@@ -40,13 +43,13 @@ if __name__ == "__main__":
         # 如果查出是单播，就直接向端口发送。
         if len(out_ports) == 1:
             out_port = out_ports[0]
-            print(f"{frame.src}→{in_port}→{out_port}→{frame.dst}")
+            print(f"{frame.src} - {in_port} - {out_port} - {frame.dst}")
             switch.send_to_phy(binary, out_port)
 
         # 如果没查到或者是广播，就向所有端口发送。
         else:
-            print(f"{frame.src}→{in_port}→[", end=" ")
+            print(f"{frame.src} - {in_port} - [", end=" ")
             for port in filter(lambda port: port != in_port, phy_ports):
                 switch.send_to_phy(binary, port)
                 print(f"{port}", end=" ")
-            print(f"]→{frame.dst}")
+            print(f"] - {frame.dst}")
