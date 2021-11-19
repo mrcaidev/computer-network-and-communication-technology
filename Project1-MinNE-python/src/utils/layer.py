@@ -4,6 +4,7 @@ from select import select
 from time import sleep
 
 import utils.constant as const
+from utils.coding import bits_to_string, string_to_bits
 
 
 class AbstractLayer:
@@ -44,9 +45,36 @@ class AbstractLayer:
         Returns:
             总共发送的字节数。
         """
-        return self._socket.sendto(
-            bytes(message, encoding="utf-8"), ("127.0.0.1", int(port))
-        )
+        return self._socket.sendto(message.encode("utf-8"), ("127.0.0.1", int(port)))
+
+    def _receive(self, timeout: int = None) -> tuple[str, str, bool]:
+        """
+        接收消息。
+
+        Args:
+            timeout: 可选，超时时间，单位为秒，默认为`None`。
+
+        Returns:
+            一个三元元组。
+            - [0] 接收到的消息。
+            - [1] 发来该消息的端口号。
+            - [2] 是否成功接收，成功为True，失败为False。
+        """
+        # 如果指定了超时时间，就提前设置好。
+        if timeout != None:
+            self._socket.settimeout(timeout)
+
+        try:
+            message, (_, port) = self._socket.recvfrom(const.Network.MAX_BUFFER_SIZE)
+        except socket.timeout:
+            ret = ("", "-1", False)
+        else:
+            ret = (message.decode("utf-8"), str(port), True)
+        finally:
+            # 不管超不超时，都要恢复默认超时值。
+            if timeout != None:
+                self._socket.settimeout(const.Network.USER_TIMEOUT)
+            return ret
 
 
 class AppLayer(AbstractLayer):
@@ -82,8 +110,8 @@ class AppLayer(AbstractLayer):
         Returns:
             接收到的消息。
         """
-        message, _ = self._socket.recvfrom(const.Network.MAX_BUFFER_SIZE)
-        return str(message)[2:-1]
+        message, _, _ = self._receive()
+        return message
 
     def send_to_net(self, message: str) -> int:
         """
@@ -232,8 +260,8 @@ class NetLayer(AbstractLayer):
         Returns:
             接收到的消息。
         """
-        message, _ = self._socket.recvfrom(const.Network.MAX_BUFFER_SIZE)
-        return str(message)[2:-1]
+        message, _, _ = self._receive()
+        return message
 
     def bind_phy(self, port: str) -> None:
         """
@@ -254,9 +282,8 @@ class NetLayer(AbstractLayer):
         Returns:
             总共发送的字节数。
         """
-        binary = "".join(list(map(lambda char: chr(ord(char) - ord("0")), binary)))
         sleep(const.Network.FLOW_INTERVAL)
-        return self._send(binary, self._phy)
+        return self._send(string_to_bits(binary), self._phy)
 
     def receive_from_phy(
         self, timeout: int = const.Network.RECV_TIMEOUT
@@ -272,17 +299,9 @@ class NetLayer(AbstractLayer):
             - [0] 接收到的消息。
             - [1] 是否接收成功，成功为True，失败为False。
         """
-        self._socket.settimeout(timeout)
-        try:
-            binary, _ = self._socket.recvfrom(const.Network.MAX_BUFFER_SIZE)
-        except socket.timeout:
-            result = ("", False)
-        else:
-            binary = "".join(list(map(lambda bit: chr(bit + ord("0")), binary)))
-            result = (binary, True)
-        finally:
-            self._socket.settimeout(const.Network.USER_TIMEOUT)
-            return result
+        binary, _, success = self._receive(timeout)
+        binary = bits_to_string(binary) if success else binary
+        return binary, success
 
 
 class SwitchLayer(AbstractLayer):
@@ -323,9 +342,8 @@ class SwitchLayer(AbstractLayer):
         Returns:
             总共发送的字节数。
         """
-        binary = "".join(list(map(lambda char: chr(ord(char) - ord("0")), binary)))
         sleep(const.Network.FLOW_INTERVAL)
-        return self._send(binary, port)
+        return self._send(string_to_bits(binary), port)
 
     def receive_from_phy(
         self, timeout: int = const.Network.RECV_TIMEOUT
@@ -342,17 +360,9 @@ class SwitchLayer(AbstractLayer):
             - [1] 消息来自的本地物理层端口。
             - [2] 是否接收成功，成功为True，失败为False。
         """
-        self._socket.settimeout(timeout)
-        try:
-            binary, (_, port) = self._socket.recvfrom(const.Network.MAX_BUFFER_SIZE)
-        except socket.timeout:
-            ret = ("", -1, False)
-        else:
-            binary = "".join(list(map(lambda bit: chr(bit + ord("0")), binary)))
-            ret = (binary, str(port), True)
-        finally:
-            self._socket.settimeout(const.Network.USER_TIMEOUT)
-            return ret
+        binary, port, success = self._receive(timeout)
+        binary = bits_to_string(binary) if success else binary
+        return binary, port, success
 
     def has_message(self) -> bool:
         """

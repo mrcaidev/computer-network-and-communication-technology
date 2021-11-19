@@ -32,6 +32,32 @@ def bin_to_dec(binary: str) -> int:
     return decimal
 
 
+def string_to_bits(string: str) -> str:
+    """
+    将01字符串转换为01比特流。
+
+    Args:
+        string: 01字符串。
+
+    Returns:
+        转换后的01比特流。
+    """
+    return "".join(list(map(lambda char: chr(ord(char) - ord("0")), string)))
+
+
+def bits_to_string(bits: str) -> str:
+    """
+    将01比特流转换为01字符串。
+
+    Args:
+        bits: 01比特流。
+
+    Returns:
+        转换后的01字符串。
+    """
+    return "".join(list(map(lambda bit: chr(ord(bit) + ord("0")), bits)))
+
+
 def encode(message: str) -> str:
     """
     将用户消息编码为二进制。
