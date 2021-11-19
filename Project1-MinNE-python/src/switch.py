@@ -5,22 +5,21 @@ from utils import *
 if __name__ == "__main__":
     print("Switcher".center(30, "-"))
 
-    # 固定端口。
+    # 确定端口。
     if len(sys.argv) == 2 + const.Topology.HOST_PER_SWITCHER:
         switch_port = sys.argv[1]
         phy_ports = sys.argv[2:]
         print(f"Swt port: {switch_port}")
-        print(f"Phy ports: {phy_ports}")
+        print(f"Phy ports: {[int(port) for port in phy_ports]}")
     else:
         print(
-            f"[Error] Expect {const.Topology.HOST_PER_SWITCHER + 1} arguments, got {len(sys.argv) - 1}."
+            f"[Error] Expect {1 + const.Topology.HOST_PER_SWITCHER} arguments, got {len(sys.argv) - 1}."
         )
         exit(-1)
 
     # 创建交换机网络层。
     switch = SwitchLayer(switch_port)
     switch.bind_phys(phy_ports)
-    switch.print_table()
 
     # 开始运作。
     while True:

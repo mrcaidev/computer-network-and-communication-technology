@@ -7,11 +7,9 @@ if __name__ == "__main__":
 
     # 确定端口。
     if len(sys.argv) == 4:
-        app_port = sys.argv[1]
+        app_port, net_port, phy_port = sys.argv[1:]
         print(f"App port: {app_port}")
-        net_port = sys.argv[2]
         print(f"Net port: {net_port}")
-        phy_port = sys.argv[3]
         print(f"Phy port: {phy_port}")
     else:
         print(f"[Error] Expect 3 arguments, got {len(sys.argv) - 1}.")
