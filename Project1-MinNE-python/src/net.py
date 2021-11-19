@@ -14,12 +14,8 @@ if __name__ == "__main__":
         phy_port = sys.argv[3]
         print(f"Phy port: {phy_port}")
     else:
-        print("App port:")
-        app_port = get_port_from_user()
-        print("Net port:")
-        net_port = get_port_from_user()
-        print("Phy port:")
-        phy_port = get_port_from_user()
+        print(f"[Error] Expect 3 arguments, got {len(sys.argv) - 1}.")
+        exit(-1)
 
     # 创建网络层。
     net = NetLayer(net_port)
@@ -167,9 +163,7 @@ if __name__ == "__main__":
 
             # 每个接收端的回复都要接收，即使已经知道要重传。
             dst_num = (
-                1
-                if mode == const.Mode.UNICAST
-                else const.Topology.BROADCAST_RECVER_NUM
+                1 if mode == const.Mode.UNICAST else const.Topology.BROADCAST_RECVER_NUM
             )
             ack_cnt = 0
             for _ in range(dst_num):

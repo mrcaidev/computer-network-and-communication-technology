@@ -3,6 +3,8 @@ import sys
 from utils import *
 
 if __name__ == "__main__":
+    print("Switcher".center(30, "-"))
+
     # 固定端口。
     if len(sys.argv) == 2 + const.Topology.HOST_PER_SWITCHER:
         switch_port = sys.argv[1]
@@ -10,8 +12,10 @@ if __name__ == "__main__":
         print(f"Swt port: {switch_port}")
         print(f"Phy ports: {phy_ports}")
     else:
-        switch_port = input("Swt port: ")
-        phy_ports = [input("Phy port: ") for _ in range(const.Topology.HOST_PER_SWITCHER)]
+        print(
+            f"[Error] Expect {const.Topology.HOST_PER_SWITCHER + 1} arguments, got {len(sys.argv) - 1}."
+        )
+        exit(-1)
 
     # 创建交换机网络层。
     switch = SwitchLayer(switch_port)

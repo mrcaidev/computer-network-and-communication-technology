@@ -12,10 +12,8 @@ if __name__ == "__main__":
         net_port = sys.argv[2]
         print(f"Net port: {net_port}")
     else:
-        print("App port:")
-        app_port = get_port_from_user()
-        print("Net port:")
-        net_port = get_port_from_user()
+        print(f"[Error] Expect 2 arguments, got {len(sys.argv) - 1}.")
+        exit(-1)
 
     # 创建应用层。
     app = AppLayer(app_port)
@@ -24,7 +22,7 @@ if __name__ == "__main__":
     # 开始运作。
     while True:
         # 网元进入指定模式。
-        mode = get_mode_from_user()
+        mode = app.receive_from_user(const.InputType.MODE)
         app.send_to_net(mode)
 
         # 如果要退出程序，就跳出循环。
@@ -33,16 +31,15 @@ if __name__ == "__main__":
 
         # 如果要接收消息，就读取。
         elif mode == const.Mode.RECV:
-            print("Waiting...")
             message = app.receive_from_net()
-            print(f"\rReceived: {decode(message)}")
+            print(f"Received: {decode(message)}")
             continue
 
         # 如果要单播，就输入目的端口。
         elif mode == const.Mode.UNICAST:
-            print("Input destination port:")
-            app.send_to_net(get_port_from_user())
+            destination = app.receive_from_user(const.InputType.PORT)
+            app.send_to_net(destination)
 
         # 如果要单播或广播，就发送。
-        message = get_message_from_user()
+        message = app.receive_from_user(const.InputType.MESSAGE)
         app.send_to_net(encode(message))

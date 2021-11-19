@@ -46,3 +46,11 @@ class Network:
     KEEPALIVE_MAX_RETRY = 5
 
     REMOTE_LIFE = 5
+
+
+class InputType:
+    """用户输入分类。"""
+
+    MODE = 1
+    PORT = 2
+    MESSAGE = 3

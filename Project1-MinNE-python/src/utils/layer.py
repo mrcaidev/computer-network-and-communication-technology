@@ -84,6 +84,83 @@ class AppLayer(AbstractLayer):
         message, _ = self._socket.recvfrom(const.Network.MAX_BUFFER_SIZE)
         return str(message)[2:]
 
+    def receive_from_user(self, input_type: const.InputType) -> str:
+        """
+        从用户键盘输入接收消息。
+
+        Args:
+            input_type: 用户输入的分类，包括下列三种：
+            - `utils.constant.InputType.MODE`：网元模式。
+            - `utils.constant.InputType.PORT`：端口号。
+            - `utils.constant.InputType.MESSAGE`：要发送的消息。
+
+        Returns:
+            接收到的消息。
+        """
+        if input_type == const.InputType.MODE:
+            return AppLayer._get_mode_from_user()
+        elif input_type == const.InputType.PORT:
+            return AppLayer._get_port_from_user()
+        elif input_type == const.InputType.MESSAGE:
+            return AppLayer._get_message_from_user()
+        else:
+            return ""
+
+    def _get_mode_from_user() -> str:
+        """
+        从用户键盘输入获取当前工作模式。
+
+        Returns:
+            网元当前的工作模式，包括下列四种：
+            - `utils.constant.Mode.RECV`: 接收模式。
+            - `utils.constant.Mode.UNICAST`: 单播模式。
+            - `utils.constant.Mode.BROADCAST`: 广播模式。
+            - `utils.constant.Mode.QUIT`: 退出程序。
+        """
+        print("-----------------------------")
+        print("|        Select mode        |")
+        print("| 1::Receive     2::Unicast |")
+        print("| 3::Broadcast   4::Quit    |")
+        print("-----------------------------")
+        while True:
+            mode = input(">>> ")
+            if mode in const.Mode.LIST:
+                return mode
+
+    def _get_port_from_user() -> str:
+        """
+        从用户键盘输入获取端口号。
+
+        Returns:
+            在[1, 65535]区间内的端口号。
+        """
+        print("Input destination port:")
+        while True:
+            port = input(">>> ")
+            try:
+                port_num = int(port)
+            except Exception:
+                print("[Error] Port should be an integer.")
+                continue
+            else:
+                if 1 <= port_num <= 65535:
+                    return port
+                else:
+                    print("[Error] Port should fall between 1 and 65535.")
+
+    def _get_message_from_user() -> str:
+        """
+        从用户键盘输入获取要发送的消息。
+
+        Returns:
+            消息字符串。
+        """
+        print("Input a piece of message:")
+        while True:
+            message = input(">>> ")
+            if message != "":
+                return message
+
 
 class NetLayer(AbstractLayer):
     """主机网络层。"""
