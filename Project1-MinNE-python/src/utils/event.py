@@ -1,4 +1,4 @@
-from utils.param import Constant as const
+import utils.constant as const
 
 
 def get_mode_from_user() -> str:
@@ -7,10 +7,10 @@ def get_mode_from_user() -> str:
 
     Returns:
         网元当前的工作模式，包括下列四种：
-        - `utils.param.Constant.RECV`: 接收模式。
-        - `utils.param.Constant.UNICAST`: 单播模式。
-        - `utils.param.Constant.BROADCAST`: 广播模式。
-        - `utils.param.Constant.QUIT`: 退出程序。
+        - `utils.constant.Mode.RECV`: 接收模式。
+        - `utils.constant.Mode.UNICAST`: 单播模式。
+        - `utils.constant.Mode.BROADCAST`: 广播模式。
+        - `utils.constant.Mode.QUIT`: 退出程序。
     """
     print("-----------------------------")
     print("|        Select mode        |")
@@ -19,7 +19,7 @@ def get_mode_from_user() -> str:
     print("-----------------------------")
     while True:
         mode = input(">>> ")
-        if mode in const.MODES:
+        if mode in const.Mode.LIST:
             return mode
 
 

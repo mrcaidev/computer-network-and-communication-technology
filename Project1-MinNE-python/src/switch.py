@@ -4,14 +4,14 @@ from utils import *
 
 if __name__ == "__main__":
     # 固定端口。
-    if len(sys.argv) == 2 + const.HOST_PER_SWITCHER:
+    if len(sys.argv) == 2 + const.Topology.HOST_PER_SWITCHER:
         switch_port = sys.argv[1]
         phy_ports = sys.argv[2:]
         print(f"Swt port: {switch_port}")
         print(f"Phy ports: {phy_ports}")
     else:
         switch_port = input("Swt port: ")
-        phy_ports = [input("Phy port: ") for _ in range(const.HOST_PER_SWITCHER)]
+        phy_ports = [input("Phy port: ") for _ in range(const.Topology.HOST_PER_SWITCHER)]
 
     # 创建交换机网络层。
     switch = SwitchLayer(switch_port)

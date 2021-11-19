@@ -28,18 +28,18 @@ if __name__ == "__main__":
         app.send(mode)
 
         # 如果要退出程序，就跳出循环。
-        if mode == const.QUIT:
+        if mode == const.Mode.QUIT:
             break
 
         # 如果要接收消息，就读取。
-        elif mode == const.RECV:
+        elif mode == const.Mode.RECV:
             print("Waiting...")
             message = app.receive()
             print(f"\rReceived: {decode(message)}")
             continue
 
         # 如果要单播，就输入目的端口。
-        elif mode == const.UNICAST:
+        elif mode == const.Mode.UNICAST:
             print("Input destination port:")
             app.send(get_port_from_user())
 

@@ -37,17 +37,19 @@ if __name__ == "__main__":
         mode = net.receive_from_app()
 
         # 如果要退出程序，就跳出循环。
-        if mode == const.QUIT:
+        if mode == const.Mode.QUIT:
             break
 
         # 如果要接收消息，就逐帧读取。
-        elif mode == const.RECV:
+        elif mode == const.Mode.RECV:
             recv_cnt = 0
             recv_message = ""
             while True:
                 # 从物理层接收消息，第一帧可以等得久一些。
                 if recv_cnt == 0:
-                    phy_message, success = net.receive_from_phy(const.USER_TIMEOUT)
+                    phy_message, success = net.receive_from_phy(
+                        const.Network.USER_TIMEOUT
+                    )
                 else:
                     phy_message, success = net.receive_from_phy()
 
@@ -61,7 +63,7 @@ if __name__ == "__main__":
                 recv_frame.read(phy_message)
 
                 # 如果帧不是给自己的，就什么都不做，重新开始等待。
-                if recv_frame.dst not in (app_port, const.BROADCAST_PORT):
+                if recv_frame.dst not in (app_port, const.Topology.BROADCAST_PORT):
                     print(f"I'm not {recv_frame.dst}.")
                     continue
 
@@ -72,7 +74,7 @@ if __name__ == "__main__":
                         {
                             "src": app_port,
                             "seq": seq,
-                            "data": encode(const.ACK),
+                            "data": encode(const.Frame.ACK),
                             "dst": recv_frame.src,
                         }
                     )
@@ -86,7 +88,7 @@ if __name__ == "__main__":
                         {
                             "src": app_port,
                             "seq": seq + 1,
-                            "data": encode(const.NAK),
+                            "data": encode(const.Frame.NAK),
                             "dst": recv_frame.src,
                         }
                     )
@@ -105,7 +107,7 @@ if __name__ == "__main__":
                     {
                         "src": app_port,
                         "seq": seq,
-                        "data": encode(const.ACK),
+                        "data": encode(const.Frame.ACK),
                         "dst": recv_frame.src,
                     }
                 )
@@ -122,10 +124,10 @@ if __name__ == "__main__":
 
         # 如果要发送，就封装、发送、确认。
         # 确定目的端口。
-        if mode == const.UNICAST:
+        if mode == const.Mode.UNICAST:
             dst = net.receive_from_app()
         else:
-            dst = const.BROADCAST_PORT
+            dst = const.Topology.BROADCAST_PORT
 
         # 确定消息。
         app_message = net.receive_from_app()
@@ -141,7 +143,9 @@ if __name__ == "__main__":
 
         # 逐帧封装。
         for i in range(send_total):
-            seal_message = app_message[i * const.DATA_LEN : (i + 1) * const.DATA_LEN]
+            seal_message = app_message[
+                i * const.Frame.DATA_LEN : (i + 1) * const.Frame.DATA_LEN
+            ]
             seq = (seq + 1) % 256
             send_frame = Frame()
             send_frame.write(
@@ -162,7 +166,11 @@ if __name__ == "__main__":
                 print(f"[Frame {send_frames[send_cnt].seq}] Sent.")
 
             # 每个接收端的回复都要接收，即使已经知道要重传。
-            dst_num = 1 if mode == const.UNICAST else const.BROADCAST_RECVER_NUM
+            dst_num = (
+                1
+                if mode == const.Mode.UNICAST
+                else const.Topology.BROADCAST_RECVER_NUM
+            )
             ack_cnt = 0
             for _ in range(dst_num):
                 # 从物理层接收回复。
@@ -181,16 +189,16 @@ if __name__ == "__main__":
                 resp_frame = Frame()
                 resp_frame.read(resp_binary)
                 resp_message = decode(resp_frame.data)
-                if resp_message == const.ACK:
+                if resp_message == const.Frame.ACK:
                     print(f"[Frame {resp_frame.seq}] ACK.")
                     ack_cnt += 1
-                elif resp_message == const.NAK:
+                elif resp_message == const.Frame.NAK:
                     print(f"[Frame {resp_frame.seq}] NAK.")
                 else:
                     print(f"[Frame {resp_frame.seq}] Unknown response.")
 
             # 如果连续多次超时，就停止重传。
-            if timeout_cnt == const.KEEPALIVE_CNT:
+            if timeout_cnt == const.Network.KEEPALIVE_MAX_RETRY:
                 print("[Warning] Connection lost.")
                 break
 

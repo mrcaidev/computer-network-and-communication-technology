@@ -1,7 +1,5 @@
 import re
 
-from utils.param import Constant as const
-
 
 def dec_to_bin(decimal: int, length: int) -> str:
     """
@@ -44,9 +42,7 @@ def encode(message: str) -> str:
     Returns:
         编码所得的二进制字符串。
     """
-    return "".join(
-        str(bin(ord(char)))[2:].zfill(const.BITS_PER_CHAR) for char in message
-    )
+    return "".join(str(bin(ord(char)))[2:].zfill(16) for char in message)
 
 
 def decode(binary: str) -> str:
@@ -59,9 +55,4 @@ def decode(binary: str) -> str:
     Returns:
         解码所得的消息。
     """
-    return "".join(
-        [
-            chr(int(char, 2))
-            for char in re.findall(f".{{{const.BITS_PER_CHAR}}}", binary)
-        ]
-    )
+    return "".join([chr(int(char, 2)) for char in re.findall(".{16}", binary)])

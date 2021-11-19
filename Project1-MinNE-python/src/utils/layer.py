@@ -1,9 +1,9 @@
 import socket
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from select import select
 from time import sleep
 
-from utils.param import Constant as const
+import utils.constant as const
 
 
 class AbstractLayer:
@@ -21,8 +21,8 @@ class AbstractLayer:
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._socket.bind(self._addr)
 
-        # 所有层套接字的默认超时时间均为`utils.param.Constant.USER_TIMEOUT`。
-        self._socket.settimeout(const.USER_TIMEOUT)
+        # 所有层套接字的默认超时时间均为`utils.constant.Network.USER_TIMEOUT`。
+        self._socket.settimeout(const.Network.USER_TIMEOUT)
 
     def __str__(self) -> str:
         """打印抽象层信息。"""
@@ -79,7 +79,7 @@ class AppLayer(AbstractLayer):
         Returns:
             接收到的消息。
         """
-        message, _ = self._socket.recvfrom(const.MAX_BUFFER_SIZE)
+        message, _ = self._socket.recvfrom(const.Network.MAX_BUFFER_SIZE)
         return str(message)[2:]
 
 
@@ -129,7 +129,7 @@ class NetLayer(AbstractLayer):
         Returns:
             接收到的消息。
         """
-        message, _ = self._socket.recvfrom(const.MAX_BUFFER_SIZE)
+        message, _ = self._socket.recvfrom(const.Network.MAX_BUFFER_SIZE)
         return str(message)[2:-1]
 
     def bind_phy(self, port: str) -> None:
@@ -152,15 +152,17 @@ class NetLayer(AbstractLayer):
             总共发送的字节数。
         """
         binary = "".join(list(map(lambda char: chr(ord(char) - ord("0")), binary)))
-        sleep(const.FLOW_INTERVAL)
+        sleep(const.Network.FLOW_INTERVAL)
         return self._socket.sendto(bytes(binary, encoding="utf-8"), self._phy)
 
-    def receive_from_phy(self, timeout: int = const.RECV_TIMEOUT) -> tuple[str, bool]:
+    def receive_from_phy(
+        self, timeout: int = const.Network.RECV_TIMEOUT
+    ) -> tuple[str, bool]:
         """
         从物理层接收消息。
 
         Args:
-            timeout: 接收超时时间，单位为秒，默认为`utils.param.Constant.RECV_TIMEOUT`。
+            timeout: 接收超时时间，单位为秒，默认为`utils.constant.Network.RECV_TIMEOUT`。
 
         Returns:
             一个二元元组。
@@ -169,14 +171,14 @@ class NetLayer(AbstractLayer):
         """
         self._socket.settimeout(timeout)
         try:
-            binary, _ = self._socket.recvfrom(const.MAX_BUFFER_SIZE)
+            binary, _ = self._socket.recvfrom(const.Network.MAX_BUFFER_SIZE)
         except socket.timeout:
             result = ("", False)
         else:
             binary = "".join(list(map(lambda bit: chr(bit + ord("0")), binary)))
             result = (binary, True)
         finally:
-            self._socket.settimeout(const.USER_TIMEOUT)
+            self._socket.settimeout(const.Network.USER_TIMEOUT)
             return result
 
 
@@ -205,7 +207,7 @@ class SwitchLayer(AbstractLayer):
             ports: 本地物理层端口号列表。
         """
         for port in ports:
-            self._port_table[port].update({const.BROADCAST_PORT: -1})
+            self._port_table[port].update({const.Topology.BROADCAST_PORT: -1})
 
     def send_to_phy(self, binary: str, port: str) -> int:
         """
@@ -219,19 +221,19 @@ class SwitchLayer(AbstractLayer):
             总共发送的字节数。
         """
         binary = "".join(list(map(lambda char: chr(ord(char) - ord("0")), binary)))
-        sleep(const.FLOW_INTERVAL)
+        sleep(const.Network.FLOW_INTERVAL)
         return self._socket.sendto(
             bytes(binary, encoding="utf-8"), ("127.0.0.1", int(port))
         )
 
     def receive_from_phys(
-        self, timeout: int = const.RECV_TIMEOUT
+        self, timeout: int = const.Network.RECV_TIMEOUT
     ) -> tuple[str, str, bool]:
         """
         从物理层接收消息。
 
         Args:
-            timeout: 接收超时时间，单位为秒，默认为`utils.param.Constant.RECV_TIMEOUT`。
+            timeout: 接收超时时间，单位为秒，默认为`utils.constant.Network.RECV_TIMEOUT`。
 
         Returns:
             一个三元元组。
@@ -241,14 +243,14 @@ class SwitchLayer(AbstractLayer):
         """
         self._socket.settimeout(timeout)
         try:
-            binary, (_, port) = self._socket.recvfrom(const.MAX_BUFFER_SIZE)
+            binary, (_, port) = self._socket.recvfrom(const.Network.MAX_BUFFER_SIZE)
         except socket.timeout:
             ret = ("", -1, False)
         else:
             binary = "".join(list(map(lambda bit: chr(bit + ord("0")), binary)))
             ret = (binary, str(port), True)
         finally:
-            self._socket.settimeout(const.USER_TIMEOUT)
+            self._socket.settimeout(const.Network.USER_TIMEOUT)
             return ret
 
     def has_message(self) -> bool:
@@ -258,7 +260,9 @@ class SwitchLayer(AbstractLayer):
         Returns:
             可读为True，不可读为False。
         """
-        ready_sockets, _, _ = select([self._socket], [], [], const.SELECT_TIMEOUT)
+        ready_sockets, _, _ = select(
+            [self._socket], [], [], const.Network.SELECT_TIMEOUT
+        )
         return len(ready_sockets) != 0
 
     def remove_expired(self, remote: str) -> bool:
@@ -272,7 +276,7 @@ class SwitchLayer(AbstractLayer):
         for remotes in self._port_table.values():
             for port, life in remotes.copy().items():
                 if port == remote:
-                    remotes.update({port: const.REMOTE_LIFE})
+                    remotes.update({port: const.Network.REMOTE_LIFE})
                 else:
                     remotes.update({port: life - 1})
                 if life == 0:
@@ -299,7 +303,7 @@ class SwitchLayer(AbstractLayer):
             if self.has_relation(local, remote):
                 continue
             # 如果没有这对关系，就追加进列表。
-            self._port_table[local].update({remote: const.REMOTE_LIFE})
+            self._port_table[local].update({remote: const.Network.REMOTE_LIFE})
             updated = True
 
         return updated
