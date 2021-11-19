@@ -1,4 +1,4 @@
-# UESTC-CNTProject
+# cnt
 
 > 关于我，欢迎关注：
 >
@@ -26,6 +26,7 @@
 ### 项目简介
 
 1. 基于C++/winsock2，进行最小网元设计；
+    > 或其他语言，如本项目使用Python/socket。Golang和JavaScript也可以写。
 2. 基于Packet Tracer，实现简单的校园互联网；
 3. 基于WireShark，对网络流量抓包分析；
 4. 基于Simulink，完成数字数据的调制解调。
