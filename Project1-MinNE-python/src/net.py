@@ -1,4 +1,5 @@
 import sys
+from time import time
 
 from utils import *
 
@@ -27,7 +28,6 @@ if __name__ == "__main__":
 
     # 开始运作。
     while True:
-        print("-" * 30)
         # 网络层进入指定模式。
         mode = net.receive_from_app()
 
@@ -39,6 +39,7 @@ if __name__ == "__main__":
         elif mode == const.Mode.RECV:
             recv_cnt = 0
             recv_message = ""
+            record_flag = True
             while True:
                 # 从物理层接收消息，第一帧可以等得久一些。
                 if recv_cnt == 0:
@@ -52,6 +53,11 @@ if __name__ == "__main__":
                 if not success:
                     print(f"[Frame {seq + 1}] Timeout.")
                     continue
+
+                # 如果这是第一个接收到的帧，就开始计时。
+                if record_flag:
+                    start_time = time()
+                    record_flag = False
 
                 # 解析接收到的帧。
                 recv_frame = Frame()
@@ -115,6 +121,11 @@ if __name__ == "__main__":
 
             # 将消息传给应用层。
             net.send_to_app(recv_message)
+
+            # 计算网速。
+            end_time = time()
+            speed = 16 * len(recv_message) / (end_time - start_time)
+            print(f"[Finish] Average receiving speed: {round(speed, 1)}bps.")
             continue
 
         # 如果要发送，就封装、发送、确认。
@@ -150,6 +161,7 @@ if __name__ == "__main__":
 
         # 逐帧发送。
         send_cnt, timeout_cnt = 0, 0
+        start_time = time()
         while True:
             # 向物理层发送消息。
             net.send_to_phy(send_frames[send_cnt].binary)
@@ -205,3 +217,8 @@ if __name__ == "__main__":
 
         # 释放这些帧的空间。
         del send_frames
+
+        # 计算网速。
+        end_time = time()
+        speed = 16 * len(app_message) / (end_time - start_time)
+        print(f"[Finish] Average sending speed: {round(speed, 1)}bps.")

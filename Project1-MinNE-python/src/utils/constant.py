@@ -41,7 +41,7 @@ class Network:
 
     FLOW_INTERVAL = 0.1
     USER_TIMEOUT = 180
-    RECV_TIMEOUT = 3
+    RECV_TIMEOUT = 0.5
     SELECT_TIMEOUT = 0.5
     KEEPALIVE_MAX_RETRY = 5
 

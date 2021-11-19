@@ -14,6 +14,7 @@ class Frame:
         self.__crc = 0
         self.__verified = True
         self.__binary = ""
+        self.__length = 0
 
     def __str__(self) -> str:
         """打印帧信息。"""
@@ -49,6 +50,11 @@ class Frame:
         """将帧对应的01序列设为只读。"""
         return self.__binary
 
+    @property
+    def length(self) -> str:
+        """将帧长度设为只读。"""
+        return self.__length
+
     def write(self, info: dict) -> None:
         """
         将信息写入帧。
@@ -75,6 +81,7 @@ class Frame:
         self.__binary = Frame.__add_locator(
             f"{crc_target}{dec_to_bin(self.__crc, const.Frame.CRC_LEN)}"
         )
+        self.__length = len(self.__binary)
 
     def read(self, binary: str) -> None:
         """
@@ -106,6 +113,7 @@ class Frame:
             message[: -const.Frame.CRC_LEN]
         )
         self.__binary = binary
+        self.__length = len(message) + 2 * const.Frame.LOCATOR_LEN
 
     def __extract_message(binary: str) -> tuple[str, bool]:
         """
