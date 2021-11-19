@@ -17,16 +17,16 @@ class AbstractLayer:
             port: 本层所在端口。
         """
         # 创建套接字，绑定地址。
-        self._addr = ("127.0.0.1", int(port))
+        self._port = port
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self._socket.bind(self._addr)
+        self._socket.bind(("127.0.0.1", int(self._port)))
 
         # 所有层套接字的默认超时时间均为`utils.constant.Network.USER_TIMEOUT`。
         self._socket.settimeout(const.Network.USER_TIMEOUT)
 
     def __str__(self) -> str:
         """打印抽象层信息。"""
-        return f"<Abstract Layer at 127.0.0.1:{self._addr[1]}>"
+        return f"<Abstract Layer at 127.0.0.1:{self._port}>"
 
     @property
     def socket(self) -> socket.socket:
@@ -45,11 +45,11 @@ class AppLayer(AbstractLayer):
             port: 应用层端口号。
         """
         super().__init__(port)
-        self._net = ("127.0.0.1", -1)
+        self._net = "-1"
 
     def __str__(self) -> str:
         """打印应用层信息。"""
-        return f"<App Layer at 127.0.0.1:{self._addr[1]} {{Net:{self._net[1]}}}>"
+        return f"<App Layer at 127.0.0.1:{self._port} {{Net:{self._net}}}>"
 
     def bind_net(self, port: str) -> None:
         """
@@ -58,9 +58,9 @@ class AppLayer(AbstractLayer):
         Args:
             port: 网络层端口号。
         """
-        self._net = ("127.0.0.1", int(port))
+        self._net = port
 
-    def send(self, message: str) -> int:
+    def send_to_net(self, message: str) -> int:
         """
         向网络层发送消息。
 
@@ -70,9 +70,11 @@ class AppLayer(AbstractLayer):
         Returns:
             总共发送的字节数。
         """
-        return self._socket.sendto(bytes(message, encoding="utf-8"), self._net)
+        return self._socket.sendto(
+            bytes(message, encoding="utf-8"), ("127.0.0.1", int(self._net))
+        )
 
-    def receive(self) -> str:
+    def receive_from_net(self) -> str:
         """
         从网络层接收消息。
 
@@ -94,12 +96,12 @@ class NetLayer(AbstractLayer):
             port: 网络层端口号。
         """
         super().__init__(port)
-        self._app = ("127.0.0.1", -1)
-        self._phy = ("127.0.0.1", -1)
+        self._app = "-1"
+        self._phy = "-1"
 
     def __str__(self) -> str:
         """打印网络层信息。"""
-        return f"<Net Layer at 127.0.0.1:{self._addr[1]} {{App:{self._app[1]}, Phy:{self._phy[1]}}}>"
+        return f"<Net Layer at 127.0.0.1:{self._port} {{App:{self._app}, Phy:{self._phy}}}>"
 
     def bind_app(self, port: str) -> None:
         """
@@ -108,7 +110,7 @@ class NetLayer(AbstractLayer):
         Args:
             port: 应用层端口号。
         """
-        self._app = ("127.0.0.1", int(port))
+        self._app = port
 
     def send_to_app(self, message: str) -> int:
         """
@@ -120,7 +122,9 @@ class NetLayer(AbstractLayer):
         Returns:
             总共发送的字节数。
         """
-        return self._socket.sendto(bytes(message, encoding="utf-8"), self._app)
+        return self._socket.sendto(
+            bytes(message, encoding="utf-8"), ("127.0.0.1", int(self._app))
+        )
 
     def receive_from_app(self) -> str:
         """
@@ -139,7 +143,7 @@ class NetLayer(AbstractLayer):
         Args:
             port: 物理层端口号。
         """
-        self._phy = ("127.0.0.1", int(port))
+        self._phy = port
 
     def send_to_phy(self, binary: str) -> int:
         """
@@ -153,7 +157,9 @@ class NetLayer(AbstractLayer):
         """
         binary = "".join(list(map(lambda char: chr(ord(char) - ord("0")), binary)))
         sleep(const.Network.FLOW_INTERVAL)
-        return self._socket.sendto(bytes(binary, encoding="utf-8"), self._phy)
+        return self._socket.sendto(
+            bytes(binary, encoding="utf-8"), ("127.0.0.1", int(self._phy))
+        )
 
     def receive_from_phy(
         self, timeout: int = const.Network.RECV_TIMEOUT
@@ -197,7 +203,7 @@ class SwitchLayer(AbstractLayer):
 
     def __str__(self) -> str:
         """打印网络层信息。"""
-        return f"<Switch Layer at 127.0.0.1:{self._addr[1]}>"
+        return f"<Switch Layer at 127.0.0.1:{self._port}>"
 
     def bind_phys(self, ports: list[str]) -> None:
         """
@@ -226,7 +232,7 @@ class SwitchLayer(AbstractLayer):
             bytes(binary, encoding="utf-8"), ("127.0.0.1", int(port))
         )
 
-    def receive_from_phys(
+    def receive_from_phy(
         self, timeout: int = const.Network.RECV_TIMEOUT
     ) -> tuple[str, str, bool]:
         """

@@ -25,7 +25,7 @@ if __name__ == "__main__":
     while True:
         # 网元进入指定模式。
         mode = get_mode_from_user()
-        app.send(mode)
+        app.send_to_net(mode)
 
         # 如果要退出程序，就跳出循环。
         if mode == const.Mode.QUIT:
@@ -34,15 +34,15 @@ if __name__ == "__main__":
         # 如果要接收消息，就读取。
         elif mode == const.Mode.RECV:
             print("Waiting...")
-            message = app.receive()
+            message = app.receive_from_net()
             print(f"\rReceived: {decode(message)}")
             continue
 
         # 如果要单播，就输入目的端口。
         elif mode == const.Mode.UNICAST:
             print("Input destination port:")
-            app.send(get_port_from_user())
+            app.send_to_net(get_port_from_user())
 
         # 如果要单播或广播，就发送。
         message = get_message_from_user()
-        app.send(encode(message))
+        app.send_to_net(encode(message))
