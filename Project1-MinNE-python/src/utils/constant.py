@@ -45,7 +45,7 @@ class Network:
     SELECT_TIMEOUT = 0.5
     KEEPALIVE_MAX_RETRY = 5
 
-    REMOTE_LIFE = 5
+    REMOTE_MAX_LIFE = 100
 
 
 class InputType:

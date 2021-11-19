@@ -27,6 +27,7 @@ if __name__ == "__main__":
 
     # 开始运作。
     while True:
+        print("-" * 30)
         # 网络层进入指定模式。
         mode = net.receive_from_app()
 

@@ -387,7 +387,7 @@ class SwitchLayer(AbstractLayer):
         for remotes in self._port_table.values():
             for port, life in remotes.copy().items():
                 if port == remote:
-                    remotes.update({port: const.Network.REMOTE_LIFE})
+                    remotes.update({port: const.Network.REMOTE_MAX_LIFE})
                 else:
                     remotes.update({port: life - 1})
                 if life == 0:
@@ -414,7 +414,7 @@ class SwitchLayer(AbstractLayer):
             if self.has_relation(local, remote):
                 continue
             # 如果没有这对关系，就追加进列表。
-            self._port_table[local].update({remote: const.Network.REMOTE_LIFE})
+            self._port_table[local].update({remote: const.Network.REMOTE_MAX_LIFE})
             updated = True
 
         return updated
