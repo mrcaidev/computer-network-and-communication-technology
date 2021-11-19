@@ -3,7 +3,7 @@ import sys
 from utils import *
 
 if __name__ == "__main__":
-    print("Switcher".center(30, "-"))
+    print("Switch".center(30, "-"))
 
     # 确定端口。
     if len(sys.argv) == 2 + const.Topology.HOST_PER_SWITCHER:
