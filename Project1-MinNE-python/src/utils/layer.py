@@ -60,6 +60,16 @@ class AppLayer(AbstractLayer):
         """
         self._net = port
 
+    def receive_from_net(self) -> str:
+        """
+        从网络层接收消息。
+
+        Returns:
+            接收到的消息。
+        """
+        message, _ = self._socket.recvfrom(const.Network.MAX_BUFFER_SIZE)
+        return str(message)[2:-1]
+
     def send_to_net(self, message: str) -> int:
         """
         向网络层发送消息。
@@ -73,16 +83,6 @@ class AppLayer(AbstractLayer):
         return self._socket.sendto(
             bytes(message, encoding="utf-8"), ("127.0.0.1", int(self._net))
         )
-
-    def receive_from_net(self) -> str:
-        """
-        从网络层接收消息。
-
-        Returns:
-            接收到的消息。
-        """
-        message, _ = self._socket.recvfrom(const.Network.MAX_BUFFER_SIZE)
-        return str(message)[2:]
 
     def receive_from_user(self, input_type: const.InputType) -> str:
         """
@@ -106,6 +106,15 @@ class AppLayer(AbstractLayer):
         else:
             return ""
 
+    def send_to_user(self, message: str) -> None:
+        """
+        终端打印消息。
+
+        Args:
+            message: 要打印的消息。
+        """
+        print(message)
+
     def _get_mode_from_user() -> str:
         """
         从用户键盘输入获取当前工作模式。
@@ -117,11 +126,13 @@ class AppLayer(AbstractLayer):
             - `utils.constant.Mode.BROADCAST`: 广播模式。
             - `utils.constant.Mode.QUIT`: 退出程序。
         """
-        print("-----------------------------")
-        print("|        Select mode        |")
-        print("| 1::Receive     2::Unicast |")
-        print("| 3::Broadcast   4::Quit    |")
-        print("-----------------------------")
+        print(
+            """-----------------------------
+|        Select mode        |
+| 1::Receive     2::Unicast |
+| 3::Broadcast   4::Quit    |
+-----------------------------"""
+        )
         while True:
             mode = input(">>> ")
             if mode in const.Mode.LIST:

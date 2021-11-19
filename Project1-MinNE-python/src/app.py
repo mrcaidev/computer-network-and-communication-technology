@@ -7,9 +7,8 @@ if __name__ == "__main__":
 
     # 确定端口。
     if len(sys.argv) == 3:
-        app_port = sys.argv[1]
+        app_port, net_port = sys.argv[1:]
         print(f"App port: {app_port}")
-        net_port = sys.argv[2]
         print(f"Net port: {net_port}")
     else:
         print(f"[Error] Expect 2 arguments, got {len(sys.argv) - 1}.")
@@ -29,10 +28,10 @@ if __name__ == "__main__":
         if mode == const.Mode.QUIT:
             break
 
-        # 如果要接收消息，就读取。
+        # 如果要接收消息，就读取后打印。
         elif mode == const.Mode.RECV:
             message = app.receive_from_net()
-            print(f"Received: {decode(message)}")
+            app.send_to_user(f"Received: {decode(message)}")
             continue
 
         # 如果要单播，就输入目的端口。
