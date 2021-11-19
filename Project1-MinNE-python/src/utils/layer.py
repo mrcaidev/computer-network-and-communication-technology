@@ -33,6 +33,21 @@ class AbstractLayer:
         """将该层套接字设为只读。"""
         return self._socket
 
+    def _send(self, message: str, port: str) -> int:
+        """
+        发送消息。
+
+        Args:
+            message: 要发送的消息。
+            port: 要发送到的端口号。
+
+        Returns:
+            总共发送的字节数。
+        """
+        return self._socket.sendto(
+            bytes(message, encoding="utf-8"), ("127.0.0.1", int(port))
+        )
+
 
 class AppLayer(AbstractLayer):
     """主机应用层。"""
@@ -80,9 +95,7 @@ class AppLayer(AbstractLayer):
         Returns:
             总共发送的字节数。
         """
-        return self._socket.sendto(
-            bytes(message, encoding="utf-8"), ("127.0.0.1", int(self._net))
-        )
+        return self._send(message, self._net)
 
     def receive_from_user(self, input_type: const.InputType) -> str:
         """
@@ -210,9 +223,7 @@ class NetLayer(AbstractLayer):
         Returns:
             总共发送的字节数。
         """
-        return self._socket.sendto(
-            bytes(message, encoding="utf-8"), ("127.0.0.1", int(self._app))
-        )
+        return self._send(message, self._app)
 
     def receive_from_app(self) -> str:
         """
@@ -245,9 +256,7 @@ class NetLayer(AbstractLayer):
         """
         binary = "".join(list(map(lambda char: chr(ord(char) - ord("0")), binary)))
         sleep(const.Network.FLOW_INTERVAL)
-        return self._socket.sendto(
-            bytes(binary, encoding="utf-8"), ("127.0.0.1", int(self._phy))
-        )
+        return self._send(binary, self._phy)
 
     def receive_from_phy(
         self, timeout: int = const.Network.RECV_TIMEOUT
@@ -316,9 +325,7 @@ class SwitchLayer(AbstractLayer):
         """
         binary = "".join(list(map(lambda char: chr(ord(char) - ord("0")), binary)))
         sleep(const.Network.FLOW_INTERVAL)
-        return self._socket.sendto(
-            bytes(binary, encoding="utf-8"), ("127.0.0.1", int(port))
-        )
+        return self._send(binary, port)
 
     def receive_from_phy(
         self, timeout: int = const.Network.RECV_TIMEOUT
