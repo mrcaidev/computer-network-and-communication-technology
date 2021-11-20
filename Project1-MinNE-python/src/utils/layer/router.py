@@ -1,5 +1,10 @@
 from collections import namedtuple
 from json import load
+from select import select
+
+import utils.constant as const
+from utils.coding import bits_to_string, string_to_bits
+from utils.layer._abstract import AbstractLayer
 
 
 class RouterTable(dict):
@@ -114,24 +119,56 @@ class RouterTable(dict):
         return result, result != None
 
 
-if __name__ == "__main__":
-    table_17200 = RouterTable()
-    table_18200 = RouterTable()
-    with open(
-        "./Project1-MinNE-python/src/utils/layer/router_initializer.json",
-        "r",
-        encoding="utf-8",
-    ) as fr:
-        dic = load(fr)
-        table_17200.initialize(dic["17200"])
-        table_18200.initialize(dic["18200"])
-    print(table_17200)
-    print(table_18200)
-    package_17200 = table_17200.pack()
-    print("Package sealed by 17200:")
-    print(package_17200)
-    package_18200 = table_17200.unpack("17200", "18101", package_17200)
-    print("Package received by 18200:")
-    print(package_18200)
-    table_18200.update(package_18200)
-    print(table_18200)
+class RouterLayer(AbstractLayer, RouterTable):
+    """路由器网络层。"""
+
+    def __init__(self, port: str) -> None:
+        """初始化网络层。"""
+        AbstractLayer.__init__(self, port)
+        RouterTable.__init__(self)
+
+    def __str__(self) -> str:
+        """打印网络层信息。"""
+        return f"<Router Layer at 127.0.0.1:{self._port}>"
+
+    def send_to_phy(self, binary: str, port: str) -> int:
+        """
+        向物理层发送消息。
+
+        Args:
+            binary: 要发的消息（01序列）。
+            port: 信息要送到的本地物理层端口。
+
+        Returns:
+            总共发送的字节数。
+        """
+        return self._send(string_to_bits(binary), port)
+
+    def receive_from_phy(self) -> tuple[str, str, bool]:
+        """
+        从物理层接收消息。
+
+        Returns:
+            一个三元元组。
+            - [0] 接收到的消息。
+            - [1] 消息来自的本地物理层端口。
+            - [2] 是否接收成功，成功为True，失败为False。
+        """
+        binary, port, success = self._receive()
+        binary = bits_to_string(binary) if success else binary
+        return binary, port, success
+
+    def has_message(self) -> bool:
+        """
+        检测本层套接字是否有可读消息。
+
+        Returns:
+            可读为True，不可读为False。
+        """
+        ready_sockets, _, _ = select(
+            [self._socket], [], [], const.Network.SELECT_TIMEOUT
+        )
+        return len(ready_sockets) != 0
+
+    def print_table(self) -> None:
+        print(RouterTable.__str__(self))

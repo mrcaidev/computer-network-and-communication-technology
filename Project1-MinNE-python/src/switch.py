@@ -33,11 +33,11 @@ if __name__ == "__main__":
         frame.read(binary)
 
         # 刷新端口地址表。
-        if switch.remove_expired(frame.src):
+        if switch.refresh(frame.src):
             switch.print_table()
 
         # 反向学习。
-        if switch.update_table({in_port: frame.src}):
+        if switch.update(in_port, frame.src):
             switch.print_table()
 
         # 查找应该从哪个端口送出。

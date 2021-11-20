@@ -48,13 +48,17 @@ class SwitchTable(defaultdict):
         """
         for remotes in self.values():
             for port, life in remotes.copy().items():
-                refreshed_life = 3 if port == reset_port else life - 1
+                refreshed_life = (
+                    const.Network.REMOTE_MAX_LIFE if port == reset_port else life - 1
+                )
                 if refreshed_life == 0:
                     remotes.pop(port)
                 else:
                     remotes.update({port: refreshed_life})
 
-    def update(self, local: str, remote: str, life: int = 3) -> bool:
+    def update(
+        self, local: str, remote: str, life: int = const.Network.REMOTE_MAX_LIFE
+    ) -> bool:
         """
         更新端口地址表。
 
@@ -113,8 +117,8 @@ class SwitchLayer(AbstractLayer, SwitchTable):
         Args:
             port: 网络层端口号。
         """
-        AbstractLayer.__init__(port)
-        SwitchTable.__init__()
+        AbstractLayer.__init__(self, port)
+        SwitchTable.__init__(self)
 
     def __str__(self) -> str:
         """打印网络层信息。"""
@@ -170,4 +174,4 @@ class SwitchLayer(AbstractLayer, SwitchTable):
         return len(ready_sockets) != 0
 
     def print_table(self) -> None:
-        print(SwitchTable.__str__())
+        print(SwitchTable.__str__(self))
