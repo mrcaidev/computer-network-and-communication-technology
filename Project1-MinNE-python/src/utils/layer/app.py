@@ -1,3 +1,5 @@
+import os
+
 import utils.constant as const
 from utils.layer._abstract import AbstractLayer
 
@@ -35,7 +37,7 @@ class AppLayer(AbstractLayer):
         Returns:
             接收到的消息。
         """
-        message, _, _ = self._receive()
+        message, _, _ = self._receive(bufsize=const.Network.IN_NE_BUFSIZE)
         return message
 
     def send_to_net(self, message: str) -> int:
@@ -55,10 +57,12 @@ class AppLayer(AbstractLayer):
         从用户键盘输入接收消息。
 
         Args:
-            input_type: 用户输入的分类，包括下列三种：
+            input_type: 用户输入的分类，包括下列五种：
             - `utils.constant.InputType.MODE`：网元模式。
             - `utils.constant.InputType.PORT`：端口号。
-            - `utils.constant.InputType.MESSAGE`：要发送的消息。
+            - `utils.constant.InputType.MESSAGE_TYPE`：要发送的消息类型。
+            - `utils.constant.InputType.STRING`：要发送的消息。
+            - `utils.constant.InputType.FILENAME`：要发送的图片文件名。
 
         Returns:
             接收到的消息。
@@ -67,8 +71,12 @@ class AppLayer(AbstractLayer):
             return AppLayer._get_mode_from_user()
         elif input_type == const.InputType.PORT:
             return AppLayer._get_port_from_user()
-        elif input_type == const.InputType.MESSAGE:
-            return AppLayer._get_message_from_user()
+        elif input_type == const.InputType.MESSAGE_TYPE:
+            return AppLayer._get_msgtype_from_user()
+        elif input_type == const.InputType.STRING:
+            return AppLayer._get_string_from_user()
+        elif input_type == const.InputType.FILENAME:
+            return AppLayer._get_imgname_from_user()
         else:
             return ""
 
@@ -103,6 +111,8 @@ class AppLayer(AbstractLayer):
             mode = input(">>> ")
             if mode in const.Mode.LIST:
                 return mode
+            else:
+                print("[Warning] Invalid mode!")
 
     def _get_port_from_user() -> str:
         """
@@ -117,15 +127,32 @@ class AppLayer(AbstractLayer):
             try:
                 port_num = int(port)
             except Exception:
-                print("[Error] Port should be an integer.")
+                print("[Warning] Port should be an integer.")
                 continue
             else:
                 if 1 <= port_num <= 65535:
                     return port
                 else:
-                    print("[Error] Port should fall between 1 and 65535.")
+                    print("[Warning] Port should fall between 1 and 65535.")
 
-    def _get_message_from_user() -> str:
+    def _get_msgtype_from_user() -> str:
+        """
+        从用户键盘输入获取要发送的消息类型。
+
+        Returns:
+            消息类型，包括下列两种：
+            - `utils.constant.MessageType.STRING`：字符串。
+            - `utils.constant.MessageType.FILENAME`：图片文件。
+        """
+        print("Input message type:\n1::String  2::Picture")
+        while True:
+            message_type = input(">>> ")
+            if message_type in const.MessageType.LIST:
+                return message_type
+            else:
+                print("[Warning] Invalid message type!")
+
+    def _get_string_from_user() -> str:
         """
         从用户键盘输入获取要发送的消息。
 
@@ -137,3 +164,22 @@ class AppLayer(AbstractLayer):
             message = input(">>> ")
             if message != "":
                 return message
+
+    def _get_imgname_from_user() -> str:
+        """
+        从用户键盘输入获取要发送的图片文件名。
+
+        Returns:
+            图片文件的绝对路径。
+        """
+        print("Input file name: (i.e. foo.png)")
+        while True:
+            # 获取图片文件名。
+            filename = input(">>> ")
+            filepath = os.path.join(os.getcwd(), const.Others.IMAGE_DIR, filename)
+
+            # 检查是否有该文件。
+            if os.path.exists(filepath):
+                return filepath
+            else:
+                print(f"[Warning] {filename} not found under directory /img.")

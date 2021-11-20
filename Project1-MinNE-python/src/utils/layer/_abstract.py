@@ -43,11 +43,14 @@ class AbstractLayer:
         """
         return self._socket.sendto(message.encode("utf-8"), ("127.0.0.1", int(port)))
 
-    def _receive(self, timeout: int = None) -> tuple[str, str, bool]:
+    def _receive(
+        self, bufsize: int = const.Network.INTER_NE_BUFSIZE, timeout: int = None
+    ) -> tuple[str, str, bool]:
         """
         接收消息。
 
         Args:
+            bufsize: 可选，缓存区大小，单位为位，默认为`utils.constant.Network.INTER_NE_BUFSIZE`。
             timeout: 可选，超时时间，单位为秒，默认为`None`。
 
         Returns:
@@ -61,7 +64,7 @@ class AbstractLayer:
             self._socket.settimeout(timeout)
 
         try:
-            message, (_, port) = self._socket.recvfrom(const.Network.MAX_BUFFER_SIZE)
+            message, (_, port) = self._socket.recvfrom(bufsize)
         except socket.timeout:
             ret = ("", "-1", False)
         else:

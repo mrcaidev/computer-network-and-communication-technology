@@ -75,7 +75,7 @@ if __name__ == "__main__":
                         {
                             "src": app_port,
                             "seq": seq,
-                            "data": encode(const.Frame.ACK),
+                            "data": encode_string(const.Frame.ACK),
                             "dst": recv_frame.src,
                         }
                     )
@@ -89,7 +89,7 @@ if __name__ == "__main__":
                         {
                             "src": app_port,
                             "seq": seq + 1,
-                            "data": encode(const.Frame.NAK),
+                            "data": encode_string(const.Frame.NAK),
                             "dst": recv_frame.src,
                         }
                     )
@@ -99,8 +99,20 @@ if __name__ == "__main__":
                 # 如果帧信息正确，就接收这帧，发送ACK。
                 seq = recv_frame.seq
                 if recv_cnt == 0:
-                    recv_total = int(decode(recv_frame.data))
-                    print(f"[Frame {seq}] Receiving {recv_total} frame(s).")
+                    recv_total = bin_to_dec(
+                        recv_frame.data[: const.Frame.DATA_LEN // 2]
+                    )
+                    message_type = str(
+                        bin_to_dec(recv_frame.data[const.Frame.DATA_LEN // 2 :])
+                    )
+                    message_type_name = (
+                        "text"
+                        if message_type == const.MessageType.STRING
+                        else "picture"
+                    )
+                    print(
+                        f"[Frame {seq}] {recv_total} frame(s) of {message_type_name}."
+                    )
                 else:
                     recv_message += recv_frame.data
                     print(f"[Frame {seq}] Verified.")
@@ -108,7 +120,7 @@ if __name__ == "__main__":
                     {
                         "src": app_port,
                         "seq": seq,
-                        "data": encode(const.Frame.ACK),
+                        "data": encode_string(const.Frame.ACK),
                         "dst": recv_frame.src,
                     }
                 )
@@ -120,6 +132,7 @@ if __name__ == "__main__":
                     break
 
             # 将消息传给应用层。
+            net.send_to_app(message_type)
             net.send_to_app(recv_message)
 
             # 计算网速。
@@ -135,15 +148,23 @@ if __name__ == "__main__":
         else:
             dst = const.Topology.BROADCAST_PORT
 
+        # 确定消息类型。
+        message_type = net.receive_from_app()
+
         # 确定消息。
         app_message = net.receive_from_app()
         send_total = Frame.calc_frame_num(app_message)
 
-        # 第一帧是请求帧，告知对方总共发多少帧。
+        # 第一帧是请求帧，告知对方总帧数和消息类型。
         seq = (seq + 1) % 256
         request = Frame()
         request.write(
-            {"src": app_port, "seq": seq, "data": encode(str(send_total)), "dst": dst}
+            {
+                "src": app_port,
+                "seq": seq,
+                "data": f"{dec_to_bin(send_total, 16)}{dec_to_bin(int(message_type), 16)}",
+                "dst": dst,
+            }
         )
         send_frames = [request]
 
@@ -193,7 +214,7 @@ if __name__ == "__main__":
                 # 解包读取回复，如果是ACK，ACK次数就+1。
                 resp_frame = Frame()
                 resp_frame.read(resp_binary)
-                resp_message = decode(resp_frame.data)
+                resp_message = decode_string(resp_frame.data)
                 if resp_message == const.Frame.ACK:
                     print(f"[Frame {resp_frame.seq}] ACK.")
                     ack_cnt += 1

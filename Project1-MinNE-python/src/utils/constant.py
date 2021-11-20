@@ -37,8 +37,8 @@ class Frame:
 class Network:
     """流控与超时。"""
 
-    MAX_BUFFER_SIZE = 1024
-
+    INTER_NE_BUFSIZE = 1024
+    IN_NE_BUFSIZE = 8096
     FLOW_INTERVAL = 0.1
     USER_TIMEOUT = 180
     RECV_TIMEOUT = 0.5
@@ -53,4 +53,18 @@ class InputType:
 
     MODE = 1
     PORT = 2
-    MESSAGE = 3
+    MESSAGE_TYPE = 3
+    STRING = 4
+    FILENAME = 5
+
+
+class MessageType:
+    """消息分类。"""
+
+    STRING = "1"
+    FILENAME = "2"
+    LIST = (STRING, FILENAME)
+
+
+class Others:
+    IMAGE_DIR = "img"

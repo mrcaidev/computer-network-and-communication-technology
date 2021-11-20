@@ -1,5 +1,4 @@
 from collections import namedtuple
-from json import load
 from select import select
 
 import utils.constant as const

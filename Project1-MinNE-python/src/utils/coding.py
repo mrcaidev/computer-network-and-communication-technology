@@ -1,4 +1,8 @@
+import base64
+import os
 import re
+
+import utils.constant as const
 
 
 def dec_to_bin(decimal: int, length: int) -> str:
@@ -58,20 +62,20 @@ def bits_to_string(bits: str) -> str:
     return "".join(list(map(lambda bit: chr(ord(bit) + ord("0")), bits)))
 
 
-def encode(message: str) -> str:
+def encode_string(string: str) -> str:
     """
     将用户消息编码为二进制。
 
     Args:
-        message: 要编码的Unicode消息。
+        string: 要编码的Unicode消息。
 
     Returns:
         编码所得的二进制字符串。
     """
-    return "".join(str(bin(ord(char)))[2:].zfill(16) for char in message)
+    return "".join(str(bin(ord(char)))[2:].zfill(16) for char in string)
 
 
-def decode(binary: str) -> str:
+def decode_string(binary: str) -> str:
     """
     将二进制解码为可理解的信息。
 
@@ -82,3 +86,48 @@ def decode(binary: str) -> str:
         解码所得的消息。
     """
     return "".join([chr(int(char, 2)) for char in re.findall(".{16}", binary)])
+
+
+def encode_picture(filepath: str) -> str:
+    """
+    将图片编码为二进制。
+
+    Args:
+        filename: 图片绝对路径。
+
+    Returns:
+        编码所得的二进制字符串。
+    """
+    with open(filepath, "rb") as fr:
+        secret = base64.b64encode(fr.read()).decode("utf-8")
+    return "".join(str(bin(ord(char)))[2:].zfill(8) for char in secret)
+
+
+def decode_picture(binary: str) -> bool:
+    """
+    将二进制解码为图片。
+
+    Args:
+        binary: 要解码的二进制字符串。
+
+    Returns:
+        是否成功解码，成功为True，失败为False。
+    """
+    # 解码字符串。
+    try:
+        img_bytes = base64.b64decode(
+            "".join([chr(int(char, 2)) for char in re.findall(".{8}", binary)]).encode(
+                "utf-8"
+            )
+        )
+    except Exception:
+        return False
+
+    # 写入图片。
+    try:
+        with open(os.path.join(const.Others.IMAGE_DIR, "received.png"), "wb") as fw:
+            fw.write(img_bytes)
+    except Exception:
+        return False
+    else:
+        return True

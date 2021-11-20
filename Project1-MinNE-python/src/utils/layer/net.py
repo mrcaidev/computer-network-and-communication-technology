@@ -51,7 +51,7 @@ class NetLayer(AbstractLayer):
         Returns:
             接收到的消息。
         """
-        message, _, _ = self._receive()
+        message, _, _ = self._receive(bufsize=const.Network.IN_NE_BUFSIZE)
         return message
 
     def bind_phy(self, port: str) -> None:
@@ -90,6 +90,6 @@ class NetLayer(AbstractLayer):
             - [0] 接收到的消息。
             - [1] 是否接收成功，成功为True，失败为False。
         """
-        binary, _, success = self._receive(timeout)
+        binary, _, success = self._receive(timeout=timeout)
         binary = bits_to_string(binary) if success else binary
         return binary, success
