@@ -1,6 +1,5 @@
 from collections import defaultdict
 from select import select
-from time import sleep
 
 import utils.constant as const
 from utils.coding import bits_to_string, string_to_bits
@@ -142,17 +141,11 @@ class SwitchLayer(AbstractLayer, SwitchTable):
         Returns:
             总共发送的字节数。
         """
-        sleep(const.Network.FLOW_INTERVAL)
         return self._send(string_to_bits(binary), port)
 
-    def receive_from_phy(
-        self, timeout: int = const.Network.RECV_TIMEOUT
-    ) -> tuple[str, str, bool]:
+    def receive_from_phy(self) -> tuple[str, str, bool]:
         """
         从物理层接收消息。
-
-        Args:
-            timeout: 接收超时时间，单位为秒，默认为`utils.constant.Network.RECV_TIMEOUT`。
 
         Returns:
             一个三元元组。
@@ -160,7 +153,7 @@ class SwitchLayer(AbstractLayer, SwitchTable):
             - [1] 消息来自的本地物理层端口。
             - [2] 是否接收成功，成功为True，失败为False。
         """
-        binary, port, success = self._receive(timeout)
+        binary, port, success = self._receive()
         binary = bits_to_string(binary) if success else binary
         return binary, port, success
 
