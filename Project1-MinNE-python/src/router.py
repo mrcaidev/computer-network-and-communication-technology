@@ -1,4 +1,6 @@
+import os
 import sys
+from json import load
 
 from utils import *
 
@@ -18,4 +20,18 @@ if __name__ == "__main__":
         exit(-1)
 
     # 创建路由器网络层。
-    router = RouterLayer()
+    router = RouterLayer(router_port)
+
+    # 读取配置，初始化路由表。
+    with open(
+        os.path.join(os.path.dirname(sys.path[0]), "config", "router_initializer.json"),
+        mode="r",
+        encoding="utf-8",
+    ) as fr:
+        router.initialize(load(fr)[router_port])
+
+    # 开始运作。
+    while True:
+        # 如果没有消息到达，就继续select。
+        if not router.has_message():
+            continue
