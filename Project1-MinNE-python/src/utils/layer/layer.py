@@ -1,5 +1,5 @@
 import socket
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from select import select
 from time import sleep
 
@@ -315,7 +315,7 @@ class SwitchLayer(AbstractLayer):
             port: 网络层端口号。
         """
         super().__init__(port)
-        self._port_table = defaultdict(dict[str, int])
+        self._table = defaultdict(dict[str, int])
 
     def __str__(self) -> str:
         """打印网络层信息。"""
@@ -329,7 +329,7 @@ class SwitchLayer(AbstractLayer):
             ports: 本地物理层端口号列表。
         """
         for port in ports:
-            self._port_table[port].update({const.Topology.BROADCAST_PORT: -1})
+            self._table[port].update({const.Topology.BROADCAST_PORT: -1})
 
     def send_to_phy(self, binary: str, port: str) -> int:
         """
@@ -384,7 +384,7 @@ class SwitchLayer(AbstractLayer):
             remote: 当前激活的远程端口号，需要重置其寿命。
         """
         removed = False
-        for remotes in self._port_table.values():
+        for remotes in self._table.values():
             for port, life in remotes.copy().items():
                 if port == remote:
                     remotes.update({port: const.Network.REMOTE_MAX_LIFE})
@@ -395,7 +395,7 @@ class SwitchLayer(AbstractLayer):
                     removed = True
         return removed
 
-    def update_table(self, relations: dict[str, dict[str, int]]) -> bool:
+    def update_table(self, relations: dict[str, str]) -> bool:
         """
         更新端口地址表。
 
@@ -414,7 +414,7 @@ class SwitchLayer(AbstractLayer):
             if self.has_relation(local, remote):
                 continue
             # 如果没有这对关系，就追加进列表。
-            self._port_table[local].update({remote: const.Network.REMOTE_MAX_LIFE})
+            self._table[local].update({remote: const.Network.REMOTE_MAX_LIFE})
             updated = True
 
         return updated
@@ -431,8 +431,8 @@ class SwitchLayer(AbstractLayer):
         """
         return list(
             filter(
-                lambda local: remote in self._port_table[local].keys(),
-                self._port_table.keys(),
+                lambda local: remote in self._table[local].keys(),
+                self._table.keys(),
             )
         )
 
@@ -446,7 +446,7 @@ class SwitchLayer(AbstractLayer):
         Returns:
             对应的远程应用层端口号列表。
         """
-        return list(self._port_table.get(local, {}).keys())
+        return list(self._table.get(local, {}).keys())
 
     def has_relation(self, local: str, remote: str) -> bool:
         """
@@ -459,7 +459,7 @@ class SwitchLayer(AbstractLayer):
         Returns:
             有该关系为True，没有该关系为False。
         """
-        return remote in self._port_table.get(local, {}).keys()
+        return remote in self._table.get(local, {}).keys()
 
     def print_table(self) -> None:
         print(
@@ -468,7 +468,7 @@ class SwitchLayer(AbstractLayer):
 | Local |--------------|
 |       | Port  | Life |"""
         )
-        for local, remotes in self._port_table.items():
+        for local, remotes in self._table.items():
             print("|----------------------|")
             for port, life in remotes.items():
                 print(
