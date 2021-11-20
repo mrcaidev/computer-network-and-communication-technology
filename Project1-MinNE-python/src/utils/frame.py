@@ -18,7 +18,7 @@ class Frame:
 
     def __str__(self) -> str:
         """打印帧信息。"""
-        return f"[Frame {self.__seq}] ({self.__src}→{self.__dst}, {self.__verified}) {self.__data}"
+        return f"[Frame {self.__seq}] ({self.__src}→{self.__dst}) {self.__data}"
 
     @property
     def src(self) -> str:

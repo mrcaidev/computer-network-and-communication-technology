@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
                 # 如果序号重复，就丢弃这帧，再发一遍ACK。
                 if seq == recv_frame.seq:
-                    print(f"[Frame {seq}] Repeated.")
+                    print(f"{recv_frame} (Repeated)")
                     ack.write(
                         {
                             "src": app_port,
@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
                 # 如果校验未通过，就丢弃这帧，发送NAK。
                 if not recv_frame.verified:
-                    print(f"[Frame {seq + 1}] Invalid.")
+                    print(f"{recv_frame} (Invalid)")
                     nak.write(
                         {
                             "src": app_port,
@@ -115,7 +115,7 @@ if __name__ == "__main__":
                     )
                 else:
                     recv_message += recv_frame.data
-                    print(f"[Frame {seq}] Verified.")
+                    print(f"{recv_frame} (Verified)")
                 ack.write(
                     {
                         "src": app_port,
@@ -150,6 +150,9 @@ if __name__ == "__main__":
 
         # 确定消息类型。
         message_type = net.receive_from_app()
+        message_type_name = (
+            "text" if message_type == const.MessageType.STRING else "picture"
+        )
 
         # 确定消息。
         app_message = net.receive_from_app()
@@ -188,10 +191,10 @@ if __name__ == "__main__":
             net.send_to_phy(send_frames[send_cnt].binary)
             if send_cnt == 0:
                 print(
-                    f"[Frame {send_frames[send_cnt].seq}] Sending {send_total} frame(s)."
+                    f"[Frame {send_frames[send_cnt].seq}] {send_total} frame(s) of {message_type_name}."
                 )
             else:
-                print(f"[Frame {send_frames[send_cnt].seq}] Sent.")
+                print(f"{send_frames[send_cnt]} (Sent)")
 
             # 每个接收端的回复都要接收，即使已经知道要重传。
             dst_num = (
