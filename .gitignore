@@ -4,3 +4,5 @@ debug
 *.log
 *.docx
 Hash
+test.*
+manager.jar
