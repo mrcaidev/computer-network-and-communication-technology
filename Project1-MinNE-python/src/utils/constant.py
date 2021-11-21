@@ -41,7 +41,7 @@ class Network:
     IN_NE_BUFSIZE = 8096
     FLOW_INTERVAL = 0.03
     USER_TIMEOUT = 180
-    RECV_TIMEOUT = 0.1
+    RECV_TIMEOUT = 0.2
     SELECT_TIMEOUT = 0.5
     KEEPALIVE_MAX_RETRY = 5
 
@@ -54,17 +54,19 @@ class InputType:
     MODE = 1
     PORT = 2
     MESSAGE_TYPE = 3
-    STRING = 4
+    TEXT = 4
     FILENAME = 5
 
 
 class MessageType:
     """消息分类。"""
 
-    STRING = "1"
+    TEXT = "1"
     FILENAME = "2"
-    LIST = (STRING, FILENAME)
+    LIST = (TEXT, FILENAME)
 
 
 class Others:
+    """杂项参数。"""
+
     IMAGE_DIR = "img"

@@ -37,7 +37,7 @@ if __name__ == "__main__":
             net_message = app.receive_from_net()
 
             # 呈现字符串。
-            if message_type == const.MessageType.STRING:
+            if message_type == const.MessageType.TEXT:
                 string = decode_string(net_message)
                 app.send_to_user(f"Received text: {string}")
 
@@ -59,9 +59,9 @@ if __name__ == "__main__":
         message_type = app.receive_from_user(const.InputType.MESSAGE_TYPE)
         app.send_to_net(message_type)
 
-        # 如果要发送字符串。
-        if message_type == const.MessageType.STRING:
-            string = app.receive_from_user(const.InputType.STRING)
+        # 如果要发送文本。
+        if message_type == const.MessageType.TEXT:
+            string = app.receive_from_user(const.InputType.TEXT)
             app.send_to_net(encode_string(string))
 
         # 如果要发送图片。

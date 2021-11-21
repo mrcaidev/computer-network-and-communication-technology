@@ -37,7 +37,9 @@ class AppLayer(AbstractLayer):
         Returns:
             接收到的消息。
         """
-        message, _, _ = self._receive(bufsize=const.Network.IN_NE_BUFSIZE)
+        port = "-1"
+        while port != self._net:
+            message, port, _ = self._receive(bufsize=const.Network.IN_NE_BUFSIZE)
         return message
 
     def send_to_net(self, message: str) -> int:
@@ -61,7 +63,7 @@ class AppLayer(AbstractLayer):
             - `utils.constant.InputType.MODE`：网元模式。
             - `utils.constant.InputType.PORT`：端口号。
             - `utils.constant.InputType.MESSAGE_TYPE`：要发送的消息类型。
-            - `utils.constant.InputType.STRING`：要发送的消息。
+            - `utils.constant.InputType.TEXT`：要发送的消息。
             - `utils.constant.InputType.FILENAME`：要发送的图片文件名。
 
         Returns:
@@ -73,8 +75,8 @@ class AppLayer(AbstractLayer):
             return AppLayer._get_port_from_user()
         elif input_type == const.InputType.MESSAGE_TYPE:
             return AppLayer._get_msgtype_from_user()
-        elif input_type == const.InputType.STRING:
-            return AppLayer._get_string_from_user()
+        elif input_type == const.InputType.TEXT:
+            return AppLayer._get_text_from_user()
         elif input_type == const.InputType.FILENAME:
             return AppLayer._get_imgname_from_user()
         else:
@@ -141,10 +143,10 @@ class AppLayer(AbstractLayer):
 
         Returns:
             消息类型，包括下列两种：
-            - `utils.constant.MessageType.STRING`：字符串。
+            - `utils.constant.MessageType.TEXT`：字符串。
             - `utils.constant.MessageType.FILENAME`：图片文件。
         """
-        print("Input message type:\n1::String  2::Picture")
+        print("Input message type:\n1::Text  2::Picture")
         while True:
             message_type = input(">>> ")
             if message_type in const.MessageType.LIST:
@@ -152,7 +154,7 @@ class AppLayer(AbstractLayer):
             else:
                 print("[Warning] Invalid message type!")
 
-    def _get_string_from_user() -> str:
+    def _get_text_from_user() -> str:
         """
         从用户键盘输入获取要发送的消息。
 

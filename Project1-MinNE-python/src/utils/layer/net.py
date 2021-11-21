@@ -51,7 +51,9 @@ class NetLayer(AbstractLayer):
         Returns:
             接收到的消息。
         """
-        message, _, _ = self._receive(bufsize=const.Network.IN_NE_BUFSIZE)
+        port = "-1"
+        while port != self._app:
+            message, port, _ = self._receive(bufsize=const.Network.IN_NE_BUFSIZE)
         return message
 
     def bind_phy(self, port: str) -> None:

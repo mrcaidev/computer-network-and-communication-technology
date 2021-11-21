@@ -138,10 +138,17 @@ class Frame:
         start += const.Frame.LOCATOR_LEN
         susp = binary.find(const.Frame.SUSPICIOUS, start)
         while susp != -1:
+            # 如果下标上溢，说明帧有问题。
+            try:
+                after_susp = binary[susp + const.Frame.SUSPICIOUS_LEN]
+            except IndexError:
+                return const.Frame.EMPTY_FRAME, False
+
             # 如果到达帧尾，就返回提取出的信息。
-            if binary[susp + const.Frame.SUSPICIOUS_LEN] == "1":
+            if after_susp == "1":
                 message += binary[start : susp - 1]
                 return message, True
+
             # 如果只是连续5个1，就删除后面的0，然后继续寻找。
             else:
                 message += binary[start : susp + const.Frame.SUSPICIOUS_LEN]
