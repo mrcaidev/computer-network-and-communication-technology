@@ -30,7 +30,16 @@ if __name__ == "__main__":
     while True:
         # 网络层进入指定模式。
         mode = net.receive_from_app()
-        print(f"[Log] Current Mode: {mode}")
+        mode_name = (
+            "Receive"
+            if mode == const.Mode.RECV
+            else "Unicast"
+            if mode == const.Mode.UNICAST
+            else "Broadcast"
+            if mode == const.Mode.BROADCAST
+            else "Quit"
+        )
+        print(f"[Log] Current Mode: {mode_name}")
 
         # 如果要退出程序，就跳出循环。
         if mode == const.Mode.QUIT:
@@ -152,7 +161,7 @@ if __name__ == "__main__":
             # 计算网速。
             end_time = time()
             speed = 16 * len(recv_message) / (end_time - start_time)
-            print(f"[Finish] Average receiving speed: {round(speed, 1)}bps.")
+            print(f"[Log] Receiving speed: {round(speed, 1)}bps")
 
         # 如果要发送，就封装、发送、确认。
         else:
@@ -263,4 +272,4 @@ if __name__ == "__main__":
             # 计算网速。
             end_time = time()
             speed = 16 * len(app_message) / (end_time - start_time)
-            print(f"[Finish] Average sending speed: {round(speed, 1)}bps.")
+            print(f"[Log] Sending speed: {round(speed, 1)}bps")
