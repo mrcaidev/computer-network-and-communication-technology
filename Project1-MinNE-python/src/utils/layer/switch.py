@@ -39,43 +39,38 @@ class SwitchTable(defaultdict):
         )
         return f"{head}\n{body}\n{'-' * 24}"
 
-    def refresh(self, reset_port: str):
-        """
-        刷新表内端口的寿命。
-
-        Args:
-            reset_port: 当前激活的远程端口号，需要重置其寿命。
-        """
-        for remotes in self.values():
-            for port, life in remotes.copy().items():
-                refreshed_life = (
-                    const.Network.REMOTE_MAX_LIFE if port == reset_port else life - 1
-                )
-                if refreshed_life == 0:
-                    remotes.pop(port)
-                else:
-                    remotes.update({port: refreshed_life})
-
-    def update(
-        self, local: str, remote: str, life: int = const.Network.REMOTE_MAX_LIFE
-    ) -> bool:
+    def update(self, local: str, remote: str) -> bool:
         """
         更新端口地址表。
 
         Args:
-            local: 本地物理层端口号。
-            remote: 远程应用层端口号。
+            local: 当前激活的本地端口。
+            remote: 当前激活的远程端口。
 
         Returns:
-            有更新为True，无更新为False。
+            端口地址表是否有更新，有为True，没有为False。
         """
-        # 如果已经有这对关系，就不再追加。
-        if remote in self.get(local, {}).keys():
-            return False
+        updated = False
 
-        # 如果没有这对关系，就追加进字典。
-        self[local].update({remote: life})
-        return True
+        # 查询是否有该关系，没有就会迎来更新。
+        if remote not in self[local].keys():
+            updated = True
+
+        # 不管之前有没有这对关系，它们的寿命都要重置为最大值+1。（后面的遍历会扣回最大值。）
+        self[local].update({remote: const.Network.REMOTE_MAX_LIFE + 1})
+
+        # 所有远程端口寿命-1。
+        for remotes in self.values():
+            for port, life in remotes.copy().items():
+                life -= 1
+                if life == 0:
+                    remotes.pop(port)
+                    updated = True
+                else:
+                    remotes.update({port: life})
+
+        # 返回是否有端口关系更新。
+        return updated
 
     def search_locals(self, remote: str) -> list[str]:
         """
@@ -132,7 +127,7 @@ class SwitchLayer(AbstractLayer, SwitchTable):
             ports: 本地物理层端口号列表。
         """
         for port in ports:
-            self.update(port, const.Topology.BROADCAST_PORT, -1)
+            self[port].update({const.Topology.BROADCAST_PORT: -1})
 
     def send_to_phy(self, binary: str, port: str) -> int:
         """
