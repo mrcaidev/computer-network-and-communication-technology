@@ -184,7 +184,7 @@ if __name__ == "__main__":
             send_total = Frame.calc_frame_num(app_message)
 
             # 第一帧是请求帧，告知对方总帧数和消息类型。
-            seq = (seq + 1) % 256
+            seq = (seq + 1) % (2 ** const.Frame.SEQ_LEN)
             request = Frame()
             request.write(
                 {
@@ -201,7 +201,7 @@ if __name__ == "__main__":
                 seal_message = app_message[
                     i * const.Frame.DATA_LEN : (i + 1) * const.Frame.DATA_LEN
                 ]
-                seq = (seq + 1) % 256
+                seq = (seq + 1) % (2 ** const.Frame.SEQ_LEN)
                 send_frame = Frame()
                 send_frame.write(
                     {"src": app_port, "seq": seq, "data": seal_message, "dst": dst}
