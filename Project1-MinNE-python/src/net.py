@@ -149,10 +149,9 @@ if __name__ == "__main__":
                 if recv_cnt == recv_total + 1:
                     break
 
-            # 如果触发了Keepalive机制，就不能传消息给应用层。
+            # 如果触发了Keepalive机制，就报错。
             if timeout_cnt == const.Network.KEEPALIVE_MAX_RETRY:
                 print("[Warning] Connection lost.")
-                continue
 
             # 将消息传给应用层。
             net.send_to_app(message_type)
