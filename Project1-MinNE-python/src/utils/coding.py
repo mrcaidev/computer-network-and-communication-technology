@@ -62,7 +62,7 @@ def bits_to_string(bits: str) -> str:
     return "".join(list(map(lambda bit: chr(ord(bit) + ord("0")), bits)))
 
 
-def encode_string(string: str) -> str:
+def encode_text(string: str) -> str:
     """
     将用户消息编码为二进制。
 
@@ -75,7 +75,7 @@ def encode_string(string: str) -> str:
     return "".join(str(bin(ord(char)))[2:].zfill(16) for char in string)
 
 
-def decode_string(binary: str) -> str:
+def decode_text(binary: str) -> str:
     """
     将二进制解码为可理解的信息。
 

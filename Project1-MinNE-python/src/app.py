@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
             # 呈现字符串。
             if message_type == const.MessageType.TEXT:
-                string = decode_string(net_message)
+                string = decode_text(net_message)
                 app.send_to_user(f"Received text: {string}")
 
             # 呈现图片。
@@ -62,7 +62,7 @@ if __name__ == "__main__":
         # 如果要发送文本。
         if message_type == const.MessageType.TEXT:
             string = app.receive_from_user(const.InputType.TEXT)
-            app.send_to_net(encode_string(string))
+            app.send_to_net(encode_text(string))
 
         # 如果要发送图片。
         else:

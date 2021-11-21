@@ -95,7 +95,7 @@ if __name__ == "__main__":
                         {
                             "src": app_port,
                             "seq": seq,
-                            "data": encode_string(const.Frame.ACK),
+                            "data": encode_text(const.Frame.ACK),
                             "dst": recv_frame.src,
                         }
                     )
@@ -109,7 +109,7 @@ if __name__ == "__main__":
                         {
                             "src": app_port,
                             "seq": seq + 1,
-                            "data": encode_string(const.Frame.NAK),
+                            "data": encode_text(const.Frame.NAK),
                             "dst": recv_frame.src,
                         }
                     )
@@ -138,7 +138,7 @@ if __name__ == "__main__":
                     {
                         "src": app_port,
                         "seq": seq,
-                        "data": encode_string(const.Frame.ACK),
+                        "data": encode_text(const.Frame.ACK),
                         "dst": recv_frame.src,
                     }
                 )
@@ -244,7 +244,7 @@ if __name__ == "__main__":
                     # 解包读取回复，如果是ACK，ACK次数就+1。
                     resp_frame = Frame()
                     resp_frame.read(resp_binary)
-                    resp_message = decode_string(resp_frame.data)
+                    resp_message = decode_text(resp_frame.data)
                     if resp_message == const.Frame.ACK:
                         print(f"[Frame {resp_frame.seq}] ACK.")
                         ack_cnt += 1
