@@ -103,11 +103,7 @@ class AppLayer(AbstractLayer):
             - `utils.constant.Mode.QUIT`: 退出程序。
         """
         print(
-            """-----------------------------
-|        Select mode        |
-| 1::Receive     2::Unicast |
-| 3::Broadcast   4::Quit    |
------------------------------"""
+            f"""{'-'*29}\n|{'Select Mode'.center(27)}|\n| 1::Receive     2::Unicast |\n| 3::Broadcast   4::Quit    |\n{'-'*29}"""
         )
         while True:
             mode = input(">>> ")

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from json import loads
+
+import utils.constant as const
 
 
 @dataclass
@@ -42,30 +43,6 @@ class RouterTable(dict[str, Path]):
         )
         return f"{head}\n{body}\n{'-'*46}"
 
-    def initialize(self, initializer: dict[str, dict]) -> str:
-        """
-        从JSON文件初始化路由表周围环境。
-
-        Args:
-            initializer: 用于初始化环境的字典，键值对格式如下：
-            - 键：相邻路由器网络层端口号。
-            - 值：一个字典，包括下列两个键：
-                - exit: 要到达该路由器，要走哪个本地物理层端口。
-                - cost: 到达该路由器的费用。
-
-        Returns:
-            首先应合并谁的路由表。
-        """
-        self[self._port] = Path(next="", exit="", cost=0, optimized=True)
-        min_cost, min_dst = float("inf"), ""
-        for dst, dic in initializer.items():
-            cur_cost = dic["cost"]
-            self[dst] = Path(next=dst, exit=dic["exit"], cost=cur_cost, optimized=False)
-            if cur_cost < min_cost:
-                min_cost = cur_cost
-                min_dst = dst
-        return min_dst
-
     def pack(self) -> str:
         """
         将路由表内的下一跳与费用打包成字符串。
@@ -98,6 +75,38 @@ class RouterTable(dict[str, Path]):
             dst, cost = path.split(":")
             new_table.update({dst: int(cost)})
         return new_table
+
+    def initialize(self, initializer: dict[str, dict]) -> str:
+        """
+        从JSON文件初始化路由表周围环境。
+
+        Args:
+            initializer: 用于初始化环境的字典，键值对格式如下：
+            - 键：相邻路由器网络层端口号。
+            - 值：一个字典，包括下列两个键：
+                - exit: 要到达该路由器，要走哪个本地物理层端口。
+                - cost: 到达该路由器的费用。
+
+        Returns:
+            首先应合并谁的路由表。
+        """
+        # 到自己的费用始终为0。
+        self[self._port] = Path(next="", exit="", cost=0, optimized=True)
+
+        # 依传入的字典逐项初始化。
+        min_cost, min_dst = float("inf"), ""
+        for dst, dic in initializer.items():
+            # 记录到达周围路由器的路径。
+            cur_cost = dic["cost"]
+            self[dst] = Path(next=dst, exit=dic["exit"], cost=cur_cost, optimized=False)
+
+            # 顺便找到费用最小值。
+            if cur_cost < min_cost:
+                min_cost = cur_cost
+                min_dst = dst
+
+        # 返回当前费用最低的路由器端口号。
+        return min_dst
 
     def merge(self, src: str, table: dict[str, int]) -> str:
         """
@@ -166,30 +175,17 @@ class RouterTable(dict[str, Path]):
         # 返回最小值对应的端口。
         return min_dst
 
+    def search(self, dst: str) -> Path:
+        """
+        在路由表中查询到达目的地的路径。
 
-with open("config/router_env.json", "r", encoding="utf-8") as fr:
-    router_env = loads(fr.read())
+        Args:
+            dst: 目的地路由器网络层端口号。
 
-table_11200 = RouterTable("11200")
-table_21200 = RouterTable("21200")
-table_31200 = RouterTable("31200")
-table_41200 = RouterTable("41200")
-table_51200 = RouterTable("51200")
-
-next_merge_router = table_11200.initialize(router_env["11200"])
-print(table_11200)
-
-table_21200.initialize(router_env["21200"])
-package_21200 = table_21200.pack()
-table_31200.initialize(router_env["31200"])
-package_31200 = table_31200.pack()
-table_41200.initialize(router_env["41200"])
-package_41200 = table_41200.pack()
-table_51200.initialize(router_env["51200"])
-package_51200 = table_51200.pack()
-
-while next_merge_router != "":
-    next_merge_router = table_11200.merge(
-        next_merge_router, RouterTable.unpack(eval(f"package_{next_merge_router}"))
-    )
-    print(table_11200)
+        Returns:
+            到达目的地的路径。
+        """
+        return self.get(
+            dst,
+            Path(next=const.Topology.DEFAULT_ROUTER, exit="", cost=0, optimized=False),
+        )

@@ -15,11 +15,7 @@ class SwitchTable(defaultdict):
 
     def __str__(self) -> None:
         """打印端口地址表。"""
-        head = """------------------------
-|       |    Remote    |
-| Local |--------------|
-|       | Port  | Life |"""
-
+        head = f"{'-'*24}\n|{'-'*7}|{'Remote'.center(14)}|\n|{'Local'.center(14)}|{'-'*14}|\n|{'-'*7}|{'Port'.center(7)}|{'Life'.center(6)}|"
         body = "\n".join(
             filter(
                 None,
@@ -27,7 +23,7 @@ class SwitchTable(defaultdict):
                     "|----------------------|\n"
                     + "\n".join(
                         [
-                            f"| {local.center(5)} | {port.center(5)} | {str(life).center(4)} |"
+                            f"|{local.center(7)}|{port.center(7)}|{str(life).center(6)}|"
                             for port, life in remotes.items()
                         ]
                     )
@@ -37,7 +33,7 @@ class SwitchTable(defaultdict):
                 ],
             )
         )
-        return f"{head}\n{body}\n{'-' * 24}"
+        return f"{head}\n{body}\n{'-'*24}"
 
     def update(self, local: str, remote: str) -> bool:
         """
@@ -126,8 +122,7 @@ class SwitchLayer(AbstractLayer, SwitchTable):
         Args:
             ports: 本地物理层端口号列表。
         """
-        for port in ports:
-            self[port].update({const.Topology.BROADCAST_PORT: -1})
+        self.update(dict([port, const.Topology.BROADCAST_PORT] for port in ports))
 
     def send_to_phy(self, binary: str, port: str) -> int:
         """
