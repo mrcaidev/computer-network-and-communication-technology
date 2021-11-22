@@ -1,6 +1,9 @@
 from dataclasses import dataclass
+from select import select
 
 import utils.constant as const
+from utils.coding import bits_to_string, string_to_bits
+from utils.layer._abstract import AbstractLayer
 
 
 @dataclass
@@ -189,3 +192,59 @@ class RouterTable(dict[str, Path]):
             dst,
             Path(next=const.Topology.DEFAULT_ROUTER, exit="", cost=0, optimized=False),
         )
+
+
+class RouterLayer(AbstractLayer, RouterTable):
+    """路由器网络层。"""
+
+    def __init__(self, port: str) -> None:
+        """
+        初始化网络层。
+
+        Args:
+            port: 网络层端口号。
+        """
+        AbstractLayer.__init__(self, port)
+        RouterTable.__init__(self, port)
+
+    def send_to_phy(self, binary: str, port: str) -> int:
+        """
+        向物理层发送消息。
+
+        Args:
+            binary: 要发的消息（01序列）。
+            port: 信息要送到的本地物理层端口。
+
+        Returns:
+            总共发送的字节数。
+        """
+        return self._send(string_to_bits(binary), port)
+
+    def receive_from_phy(self) -> tuple[str, str, bool]:
+        """
+        从物理层接收消息。
+
+        Returns:
+            一个三元元组。
+            - [0] 接收到的消息。
+            - [1] 消息来自的本地物理层端口。
+            - [2] 是否接收成功，成功为True，失败为False。
+        """
+        binary, _, success = self._receive()
+        binary = bits_to_string(binary) if success else binary
+        return binary, _, success
+
+    def has_message(self) -> bool:
+        """
+        检测本层套接字是否有可读消息。
+
+        Returns:
+            可读为True，不可读为False。
+        """
+        ready_sockets, _, _ = select(
+            [self._socket], [], [], const.Network.SELECT_TIMEOUT
+        )
+        return len(ready_sockets) != 0
+
+    def print_table(self) -> None:
+        print(RouterTable.__str__(self))
