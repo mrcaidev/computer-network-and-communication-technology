@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     # 读取配置，初始化路由表。
     with open(
-        os.path.join(os.path.dirname(sys.path[0]), "config", "router_initializer.json"),
+        os.path.join(os.path.dirname(sys.path[0]), "config", "router_env.json"),
         mode="r",
         encoding="utf-8",
     ) as fr:
@@ -35,3 +35,8 @@ if __name__ == "__main__":
         # 如果没有消息到达，就继续select。
         if not router.has_message():
             continue
+
+        # 读取消息。
+        binary, _ = router.receive_from_phy()
+        frame = Frame()
+        frame.read(binary)

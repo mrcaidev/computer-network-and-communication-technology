@@ -220,19 +220,18 @@ class RouterLayer(AbstractLayer, RouterTable):
         """
         return self._send(string_to_bits(binary), port)
 
-    def receive_from_phy(self) -> tuple[str, str, bool]:
+    def receive_from_phy(self) -> tuple[str, bool]:
         """
         从物理层接收消息。
 
         Returns:
-            一个三元元组。
+            一个二元元组。
             - [0] 接收到的消息。
-            - [1] 消息来自的本地物理层端口。
-            - [2] 是否接收成功，成功为True，失败为False。
+            - [1] 是否接收成功，成功为True，失败为False。
         """
         binary, _, success = self._receive()
         binary = bits_to_string(binary) if success else binary
-        return binary, _, success
+        return binary, success
 
     def has_message(self) -> bool:
         """

@@ -6,7 +6,7 @@ if __name__ == "__main__":
     print("Switch".center(30, "-"))
 
     # 确定端口。
-    if len(sys.argv) == 2 + const.Topology.HOST_PER_SWITCHER:
+    if len(sys.argv) == 2 + const.Topology.HOST_PER_SWITCHER + 1:
         switch_port = sys.argv[1]
         phy_ports = sys.argv[2:]
         print(f"Swt port: {switch_port}")
