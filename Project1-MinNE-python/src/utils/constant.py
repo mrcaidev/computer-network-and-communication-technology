@@ -63,11 +63,13 @@ class MessageType:
     """消息分类。"""
 
     TEXT = "1"
-    FILENAME = "2"
-    LIST = (TEXT, FILENAME)
+    IMAGE = "2"
+    LIST = (TEXT, IMAGE)
 
 
-class Others:
-    """杂项参数。"""
+class File:
+    """目录名。"""
 
     IMAGE_DIR = "img"
+    CONFIG_DIR = "config"
+    PORT_MAP = "port_mapping.json"

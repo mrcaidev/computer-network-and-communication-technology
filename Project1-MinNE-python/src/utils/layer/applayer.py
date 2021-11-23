@@ -1,6 +1,6 @@
 import os
 
-from utils.constant import InputType, MessageType, Mode, Network, Others
+from utils.constant import InputType, MessageType, Mode, Network, File
 from utils.layer._abstractlayer import AbstractLayer
 
 
@@ -174,9 +174,7 @@ class AppLayer(AbstractLayer):
         while True:
             # 获取图片文件名。
             filename = input(">>> ")
-            filepath = os.path.join(
-                os.path.dirname(os.getcwd()), Others.IMAGE_DIR, filename
-            )
+            filepath = os.path.join(os.path.dirname(os.getcwd()), File.IMAGE_DIR, filename)
 
             # 检查是否有该文件。
             if os.path.exists(filepath):

@@ -2,7 +2,7 @@ import base64
 import os
 import re
 
-from utils.constant import Others
+from utils.constant import File
 
 
 def dec_to_bin(decimal: int, length: int) -> str:
@@ -126,9 +126,7 @@ def decode_picture(binary: str) -> bool:
     # 写入图片。
     try:
         with open(
-            os.path.join(
-                os.path.dirname(os.getcwd()), Others.IMAGE_DIR, "received.png"
-            ),
+            os.path.join(os.path.dirname(os.getcwd()), File.IMAGE_DIR, "received.png"),
             mode="wb",
         ) as fw:
             fw.write(img_bytes)
