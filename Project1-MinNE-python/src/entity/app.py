@@ -1,9 +1,9 @@
 import os
 from json import loads
 
-from utils.coding import decode_picture, decode_text, encode_picture, encode_text
+from layer.app import AppLayer
+from utils.coding import decode_image, decode_text, encode_image, encode_text
 from utils.constant import File, InputType, MessageType, Mode, Topology
-from utils.layer.applayer import AppLayer
 
 
 class AppEntity(AppLayer):
@@ -64,12 +64,12 @@ class AppEntity(AppLayer):
             self.send_to_user(f"[Log] Received text: {text}")
 
         # 如果收到的是图片。
-        elif msgtype == MessageType.IMAGE:
-            success = decode_picture(message)
+        elif msgtype == MessageType.FILE:
+            success = decode_image(message)
             if success:
-                self.send_to_user("[Log] Received picture: Saved under /img.")
+                self.send_to_user("[Log] Received image: Saved under /img.")
             else:
-                self.send_to_user("[Warning] Failed to save picture.")
+                self.send_to_user("[Warning] Failed to save image.")
 
         # 如果是不支持的消息类型。
         else:
@@ -86,7 +86,7 @@ class AppEntity(AppLayer):
         self.send_to_net(dst)
 
         # 发送消息类型。
-        msgtype = self.receive_from_user(InputType.MESSAGE_TYPE)
+        msgtype = self.receive_from_user(InputType.MSGTYPE)
         self.send_to_net(msgtype)
 
         # 如果要发送文本。
@@ -95,9 +95,9 @@ class AppEntity(AppLayer):
             self.send_to_net(encode_text(text))
 
         # 如果要发送图片。
-        elif msgtype == MessageType.IMAGE:
-            filepath = self.receive_from_user(InputType.FILENAME)
-            self.send_to_net(encode_picture(filepath))
+        elif msgtype == MessageType.FILE:
+            filepath = self.receive_from_user(InputType.FILE)
+            self.send_to_net(encode_image(filepath))
 
         # 如果是不支持的消息类型。
         else:
@@ -119,7 +119,7 @@ class AppEntity(AppLayer):
             self.enter_mode()
             if self.mode == Mode.QUIT:
                 break
-            elif self.mode == Mode.RECV:
+            elif self.mode == Mode.RECEIVE:
                 self.recv()
             elif self.mode == Mode.UNICAST:
                 self.unicast()

@@ -1,7 +1,8 @@
 import os
 
-from utils.constant import InputType, MessageType, Mode, Network, File
-from utils.layer._abstractlayer import AbstractLayer
+from utils.constant import File, InputType, MessageType, Mode, Network
+
+from layer._abstract import AbstractLayer
 
 
 class AppLayer(AbstractLayer):
@@ -62,9 +63,9 @@ class AppLayer(AbstractLayer):
             input_type: 用户输入的分类，包括下列五种：
             - `utils.constant.InputType.MODE`：网元模式。
             - `utils.constant.InputType.PORT`：端口号。
-            - `utils.constant.InputType.MESSAGE_TYPE`：要发送的消息类型。
+            - `utils.constant.InputType.MSGTYPE`：要发送的消息类型。
             - `utils.constant.InputType.TEXT`：要发送的消息。
-            - `utils.constant.InputType.FILENAME`：要发送的图片文件名。
+            - `utils.constant.InputType.FILE`：要发送的文件名。
 
         Returns:
             接收到的消息。
@@ -73,12 +74,12 @@ class AppLayer(AbstractLayer):
             return AppLayer._get_mode_from_user()
         elif input_type == InputType.PORT:
             return AppLayer._get_port_from_user()
-        elif input_type == InputType.MESSAGE_TYPE:
+        elif input_type == InputType.MSGTYPE:
             return AppLayer._get_msgtype_from_user()
         elif input_type == InputType.TEXT:
             return AppLayer._get_text_from_user()
-        elif input_type == InputType.FILENAME:
-            return AppLayer._get_imgname_from_user()
+        elif input_type == InputType.FILE:
+            return AppLayer._get_filename_from_user()
         else:
             return ""
 
@@ -97,7 +98,7 @@ class AppLayer(AbstractLayer):
 
         Returns:
             网元当前的工作模式，包括下列四种：
-            - `utils.constant.Mode.RECV`: 接收模式。
+            - `utils.constant.Mode.RECEIVE`: 接收模式。
             - `utils.constant.Mode.UNICAST`: 单播模式。
             - `utils.constant.Mode.BROADCAST`: 广播模式。
             - `utils.constant.Mode.QUIT`: 退出程序。
@@ -110,7 +111,7 @@ class AppLayer(AbstractLayer):
             if mode in Mode.LIST:
                 return mode
             else:
-                print("[Warning] Invalid mode!")
+                print("[Warning] Invalid mode.")
 
     def _get_port_from_user() -> str:
         """
@@ -140,13 +141,13 @@ class AppLayer(AbstractLayer):
         Returns:
             消息类型，包括下列两种：
             - `utils.constant.MessageType.TEXT`：字符串。
-            - `utils.constant.MessageType.FILENAME`：图片文件。
+            - `utils.constant.MessageType.FILE`：文件。
         """
-        print("Input message type:\n1::Text  2::Picture")
+        print("Input message type:\n1::Text  2::File")
         while True:
-            message_type = input(">>> ")
-            if message_type in MessageType.LIST:
-                return message_type
+            msgtype = input(">>> ")
+            if msgtype in MessageType.LIST:
+                return msgtype
             else:
                 print("[Warning] Invalid message type!")
 
@@ -163,18 +164,20 @@ class AppLayer(AbstractLayer):
             if message != "":
                 return message
 
-    def _get_imgname_from_user() -> str:
+    def _get_filename_from_user() -> str:
         """
-        从用户键盘输入获取要发送的图片文件名。
+        从用户键盘输入获取要发送的文件名。
 
         Returns:
-            图片文件的绝对路径。
+            文件的绝对路径。
         """
         print("Input file name: (i.e. foo.png)")
         while True:
             # 获取图片文件名。
             filename = input(">>> ")
-            filepath = os.path.join(os.path.dirname(os.getcwd()), File.IMAGE_DIR, filename)
+            filepath = os.path.join(
+                os.path.dirname(os.getcwd()), File.RSC_DIR, filename
+            )
 
             # 检查是否有该文件。
             if os.path.exists(filepath):

@@ -3,7 +3,8 @@ from select import select
 
 from utils.coding import bits_to_string, string_to_bits
 from utils.constant import Network, Topology
-from utils.layer._abstractlayer import AbstractLayer
+
+from layer._abstract import AbstractLayer
 
 
 class SwitchTable(defaultdict):

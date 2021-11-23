@@ -32,7 +32,7 @@ if __name__ == "__main__":
         mode = net.receive_from_app()
         mode_name = (
             "Receive"
-            if mode == Mode.RECV
+            if mode == Mode.RECEIVE
             else "Unicast"
             if mode == Mode.UNICAST
             else "Broadcast"
@@ -46,7 +46,7 @@ if __name__ == "__main__":
             break
 
         # 如果要接收消息，就逐帧读取。
-        elif mode == Mode.RECV:
+        elif mode == Mode.RECEIVE:
             recv_cnt = 0
             recv_message = ""
             record_flag = True
@@ -54,9 +54,7 @@ if __name__ == "__main__":
             while True:
                 # 从物理层接收消息，第一帧可以等得久一些。
                 if recv_cnt == 0:
-                    phy_message, success = net.receive_from_phy(
-                        Network.USER_TIMEOUT
-                    )
+                    phy_message, success = net.receive_from_phy(Network.USER_TIMEOUT)
                 else:
                     phy_message, success = net.receive_from_phy()
 
@@ -119,18 +117,12 @@ if __name__ == "__main__":
                 # 如果帧信息正确，就接收这帧，发送ACK。
                 seq = recv_frame.seq
                 if recv_cnt == 0:
-                    recv_total = bin_to_dec(
-                        recv_frame.data[: FramePack.DATA_LEN // 2]
-                    )
-                    message_type = str(
+                    recv_total = bin_to_dec(recv_frame.data[: FramePack.DATA_LEN // 2])
+                    msgtype = str(
                         bin_to_dec(recv_frame.data[FramePack.DATA_LEN // 2 :])
                     )
-                    message_type_name = (
-                        "text" if message_type == MessageType.TEXT else "picture"
-                    )
-                    print(
-                        f"[Frame {seq}] {recv_total} frame(s) of {message_type_name}."
-                    )
+                    msgtype_name = "text" if msgtype == MessageType.TEXT else "image"
+                    print(f"[Frame {seq}] {recv_total} frame(s) of {msgtype_name}.")
                 else:
                     recv_message += recv_frame.data
                     print(f"{recv_frame} (Verified)")
@@ -154,7 +146,7 @@ if __name__ == "__main__":
                 print("[Warning] Connection lost.")
 
             # 将消息传给应用层。
-            net.send_to_app(message_type)
+            net.send_to_app(msgtype)
             net.send_to_app(recv_message)
 
             # 计算网速。
@@ -172,11 +164,9 @@ if __name__ == "__main__":
             print(f"[Log] Destination port: {dst}")
 
             # 确定消息类型。
-            message_type = net.receive_from_app()
-            message_type_name = (
-                "text" if message_type == MessageType.TEXT else "picture"
-            )
-            print(f"[Log] Message type: {message_type_name}")
+            msgtype = net.receive_from_app()
+            msgtype_name = "text" if msgtype == MessageType.TEXT else "image"
+            print(f"[Log] Message type: {msgtype_name}")
 
             # 确定消息。
             app_message = net.receive_from_app()
@@ -189,7 +179,7 @@ if __name__ == "__main__":
                 {
                     "src": app_port,
                     "seq": seq,
-                    "data": f"{dec_to_bin(send_total, 16)}{dec_to_bin(int(message_type), 16)}",
+                    "data": f"{dec_to_bin(send_total, 16)}{dec_to_bin(int(msgtype), 16)}",
                     "dst": dst,
                 }
             )
@@ -215,17 +205,13 @@ if __name__ == "__main__":
                 net.send_to_phy(send_frames[send_cnt].binary)
                 if send_cnt == 0:
                     print(
-                        f"[Frame {send_frames[send_cnt].seq}] {send_total} frame(s) of {message_type_name}."
+                        f"[Frame {send_frames[send_cnt].seq}] {send_total} frame(s) of {msgtype_name}."
                     )
                 else:
                     print(f"{send_frames[send_cnt]} (Sent)")
 
                 # 每个接收端的回复都要接收，即使已经知道要重传。
-                dst_num = (
-                    1
-                    if mode == Mode.UNICAST
-                    else Topology.BROADCAST_RECVER_NUM
-                )
+                dst_num = 1 if mode == Mode.UNICAST else Topology.BROADCAST_RECVER_NUM
                 ack_cnt = 0
                 for _ in range(dst_num):
                     # 从物理层接收回复。
