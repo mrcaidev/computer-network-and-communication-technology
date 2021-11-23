@@ -89,7 +89,7 @@ def decode_text(binary: str) -> str:
     return "".join([chr(int(char, 2)) for char in re.findall(".{16}", binary)])
 
 
-def encode_picture(filepath: str) -> str:
+def encode_image(filepath: str) -> str:
     """
     将图片编码为01字符串。
 
@@ -104,7 +104,7 @@ def encode_picture(filepath: str) -> str:
     return "".join(str(bin(ord(char)))[2:].zfill(8) for char in secret)
 
 
-def decode_picture(binary: str) -> bytes:
+def decode_image(binary: str) -> bytes:
     """
     将01字符串解码为图片。
 
