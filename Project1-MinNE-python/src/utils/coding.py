@@ -1,8 +1,5 @@
 import base64
-import os
 import re
-
-from utils.constant import File
 
 
 def dec_to_bin(decimal: int, length: int) -> str:
@@ -11,12 +8,15 @@ def dec_to_bin(decimal: int, length: int) -> str:
 
     Args:
         decimal: 十进制整型数。
-        bits: 转换后的二进制字符串长度。
+        length: 转换后的二进制字符串长度。
 
     Returns:
         二进制字符串。
     """
-    return bin(decimal)[2:].zfill(length)
+    if decimal >= 0:
+        return bin(decimal)[2:].zfill(length)
+    else:
+        return f"1{bin(decimal)[3:].zfill(length-1)}"
 
 
 def bin_to_dec(binary: str) -> int:
@@ -32,8 +32,9 @@ def bin_to_dec(binary: str) -> int:
     try:
         decimal = int(binary, 2)
     except Exception:
-        decimal = 0
-    return decimal
+        return 0
+    else:
+        return decimal
 
 
 def string_to_bits(string: str) -> str:
@@ -64,56 +65,55 @@ def bits_to_string(bits: str) -> str:
 
 def encode_text(string: str) -> str:
     """
-    将用户消息编码为二进制。
+    将文本编码为01字符串。
 
     Args:
-        string: 要编码的Unicode消息。
+        string: 要编码的文本。
 
     Returns:
-        编码所得的二进制字符串。
+        编码所得的01字符串。
     """
     return "".join(str(bin(ord(char)))[2:].zfill(16) for char in string)
 
 
 def decode_text(binary: str) -> str:
     """
-    将二进制解码为可理解的信息。
+    将01字符串解码为文本。
 
     Args:
-        binary: 要解码的二进制字符串。
+        binary: 要解码的01字符串。
 
     Returns:
-        解码所得的消息。
+        解码所得的文本。
     """
     return "".join([chr(int(char, 2)) for char in re.findall(".{16}", binary)])
 
 
 def encode_picture(filepath: str) -> str:
     """
-    将图片编码为二进制。
+    将图片编码为01字符串。
 
     Args:
-        filename: 图片绝对路径。
+        filename: 要编码的图片的绝对路径。
 
     Returns:
-        编码所得的二进制字符串。
+        编码所得的01字符串。
     """
-    with open(filepath, "rb") as fr:
+    with open(filepath, mode="rb") as fr:
         secret = base64.b64encode(fr.read()).decode("utf-8")
     return "".join(str(bin(ord(char)))[2:].zfill(8) for char in secret)
 
 
-def decode_picture(binary: str) -> bool:
+def decode_picture(binary: str) -> bytes:
     """
-    将二进制解码为图片。
+    将01字符串解码为图片。
 
     Args:
-        binary: 要解码的二进制字符串。
+        binary: 要解码的01字符串。
 
     Returns:
-        是否成功解码，成功为True，失败为False。
+        解码所得的图片的字节串。
     """
-    # 解码字符串。
     try:
         img_bytes = base64.b64decode(
             "".join([chr(int(char, 2)) for char in re.findall(".{8}", binary)]).encode(
@@ -121,16 +121,18 @@ def decode_picture(binary: str) -> bool:
             )
         )
     except Exception:
-        return False
-
-    # 写入图片。
-    try:
-        with open(
-            os.path.join(os.path.dirname(os.getcwd()), File.IMAGE_DIR, "received.png"),
-            mode="wb",
-        ) as fw:
-            fw.write(img_bytes)
-    except Exception:
-        return False
+        return b""
     else:
-        return True
+        return img_bytes
+
+    # # 写入图片。
+    # try:
+    #     with open(
+    #         os.path.join(os.path.dirname(os.getcwd()), File.IMAGE_DIR, "received.png"),
+    #         mode="wb",
+    #     ) as fw:
+    #         fw.write(img_bytes)
+    # except Exception:
+    #     return False
+    # else:
+    #     return True
