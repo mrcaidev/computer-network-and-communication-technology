@@ -6,7 +6,7 @@ if __name__ == "__main__":
     print("Switch".center(30, "-"))
 
     # 确定端口。
-    if len(sys.argv) == 2 + Topology.HOST_PER_SWITCHER + 1:
+    if len(sys.argv) == 2 + Topology.HOST_PER_SWITCHER:
         switch_port = sys.argv[1]
         phy_ports = sys.argv[2:]
         print(f"Swt port: {switch_port}")
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         frame.read(binary)
 
         # 刷新端口地址表。
-        if switch.update(local=in_port, remote=frame.src):
+        if switch.refresh(local=in_port, remote=frame.src):
             switch.print_table()
 
         # 查找应该从哪个端口送出。

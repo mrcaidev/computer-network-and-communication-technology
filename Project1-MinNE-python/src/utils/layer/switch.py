@@ -35,7 +35,7 @@ class SwitchTable(defaultdict):
         )
         return f"{head}\n{body}\n{'-'*24}"
 
-    def update(self, local: str, remote: str) -> bool:
+    def refresh(self, local: str, remote: str) -> bool:
         """
         更新端口地址表。
 
@@ -122,7 +122,7 @@ class SwitchLayer(AbstractLayer, SwitchTable):
         Args:
             ports: 本地物理层端口号列表。
         """
-        self.update(dict([port, Topology.BROADCAST_PORT] for port in ports))
+        self.update(dict([port, {Topology.BROADCAST_PORT: -1}] for port in ports))
 
     def send_to_phy(self, binary: str, port: str) -> int:
         """
