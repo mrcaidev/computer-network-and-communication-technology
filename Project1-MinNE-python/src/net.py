@@ -1,25 +1,12 @@
 import sys
 from time import time
 
+from layer import NetLayer
 from utils import *
 
 if __name__ == "__main__":
-    print("Net".center(30, "-"))
-
-    # 确定端口。
-    if len(sys.argv) == 4:
-        app_port, net_port, phy_port = sys.argv[1:]
-        print(f"App port: {app_port}")
-        print(f"Net port: {net_port}")
-        print(f"Phy port: {phy_port}")
-    else:
-        print(f"[Error] Expect 3 arguments, got {len(sys.argv) - 1}.")
-        exit(-1)
-
     # 创建网络层。
-    net = NetLayer(net_port)
-    net.bind_app(app_port)
-    net.bind_phy(phy_port)
+    net = NetLayer(sys.argv[1])
 
     # 全局变量。
     seq = 0
@@ -82,7 +69,7 @@ if __name__ == "__main__":
                 recv_frame.read(phy_message)
 
                 # 如果帧不是给自己的，就什么都不做，重新开始等待。
-                if recv_frame.dst not in (app_port, Topology.BROADCAST_PORT):
+                if recv_frame.dst not in (net.app, Topology.BROADCAST_PORT):
                     print(f"[Warning] I'm not {recv_frame.dst}.")
                     continue
 
@@ -91,7 +78,7 @@ if __name__ == "__main__":
                     print(f"{recv_frame} (Repeated)")
                     ack.write(
                         {
-                            "src": app_port,
+                            "src": net.app,
                             "seq": seq,
                             "data": encode_text(FramePack.ACK),
                             "dst": recv_frame.src,
@@ -105,7 +92,7 @@ if __name__ == "__main__":
                     print(f"{recv_frame} (Invalid)")
                     nak.write(
                         {
-                            "src": app_port,
+                            "src": net.app,
                             "seq": seq + 1,
                             "data": encode_text(FramePack.NAK),
                             "dst": recv_frame.src,
@@ -128,7 +115,7 @@ if __name__ == "__main__":
                     print(f"{recv_frame} (Verified)")
                 ack.write(
                     {
-                        "src": app_port,
+                        "src": net.app,
                         "seq": seq,
                         "data": encode_text(FramePack.ACK),
                         "dst": recv_frame.src,
@@ -177,7 +164,7 @@ if __name__ == "__main__":
             request = Frame()
             request.write(
                 {
-                    "src": app_port,
+                    "src": net.app,
                     "seq": seq,
                     "data": f"{dec_to_bin(send_total, 16)}{dec_to_bin(int(msgtype), 16)}",
                     "dst": dst,
@@ -193,7 +180,7 @@ if __name__ == "__main__":
                 seq = (seq + 1) % (2 ** FramePack.SEQ_LEN)
                 send_frame = Frame()
                 send_frame.write(
-                    {"src": app_port, "seq": seq, "data": seal_message, "dst": dst}
+                    {"src": net.app, "seq": seq, "data": seal_message, "dst": dst}
                 )
                 send_frames.append(send_frame)
 

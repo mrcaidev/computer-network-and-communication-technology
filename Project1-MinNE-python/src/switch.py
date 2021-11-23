@@ -1,25 +1,11 @@
 import sys
 
+from layer import SwitchLayer
 from utils import *
 
 if __name__ == "__main__":
-    print("Switch".center(30, "-"))
-
-    # 确定端口。
-    if len(sys.argv) == 2 + Topology.HOST_PER_SWITCHER:
-        switch_port = sys.argv[1]
-        phy_ports = sys.argv[2:]
-        print(f"Swt port: {switch_port}")
-        print(f"Phy ports: {[int(port) for port in phy_ports]}")
-    else:
-        print(
-            f"[Error] Expect {1 + Topology.HOST_PER_SWITCHER} arguments, got {len(sys.argv) - 1}."
-        )
-        exit(-1)
-
     # 创建交换机网络层。
-    switch = SwitchLayer(switch_port)
-    switch.bind_phys(phy_ports)
+    switch = SwitchLayer(sys.argv[1])
 
     # 开始运作。
     while True:
@@ -48,7 +34,7 @@ if __name__ == "__main__":
         # 如果没查到或者是广播，就向所有端口发送。
         else:
             print(f"{frame.src} - {in_port} - [", end=" ")
-            for port in filter(lambda port: port != in_port, phy_ports):
+            for port in filter(lambda port: port != in_port, switch.phy):
                 switch.send_to_phy(binary, port)
                 print(f"{port}", end=" ")
             print(f"] - {frame.dst}")

@@ -8,28 +8,22 @@ from layer._abstract import AbstractLayer
 class AppLayer(AbstractLayer):
     """主机应用层。"""
 
-    def __init__(self, port: str) -> None:
+    def __init__(self, device_id: int) -> None:
         """
         初始化应用层。
 
         Args:
-            port: 应用层端口号。
+            device_id: 设备号。
         """
-        super().__init__(port)
-        self._net = "-1"
+        config = super().get_config(device_id)
+        super().__init__(config["app"])
+        self._net = config["net"]
+        print("App".center(30, "-"))
+        print(f"App port: {self._port}\nNet port: {self._net}")
 
     def __str__(self) -> str:
         """打印应用层信息。"""
         return f"<App Layer at 127.0.0.1:{self._port} {{Net:{self._net}}}>"
-
-    def bind_net(self, port: str) -> None:
-        """
-        绑定网络层地址。
-
-        Args:
-            port: 网络层端口号。
-        """
-        self._net = port
 
     def receive_from_net(self) -> str:
         """

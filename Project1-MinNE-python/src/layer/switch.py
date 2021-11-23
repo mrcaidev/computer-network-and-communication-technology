@@ -102,28 +102,24 @@ class SwitchTable(defaultdict):
 class SwitchLayer(AbstractLayer, SwitchTable):
     """交换机网络层。"""
 
-    def __init__(self, port: str) -> None:
+    def __init__(self, device_id: str) -> None:
         """
         初始化网络层。
 
         Args:
-            port: 网络层端口号。
+            device_id: 设备号。
         """
-        AbstractLayer.__init__(self, port)
         SwitchTable.__init__(self)
+        config = AbstractLayer.get_config(device_id)
+        AbstractLayer.__init__(self, config["net"])
+        self.phy = config["phy"]
+        print("Switch".center(30, "-"))
+        print(f"Net port: {self._port}\nNet port: {self.phy}")
+        self.update(dict([port, {Topology.BROADCAST_PORT: -1}] for port in self.phy))
 
     def __str__(self) -> str:
         """打印网络层信息。"""
         return f"<Switch Layer at 127.0.0.1:{self._port}>"
-
-    def bind_phys(self, ports: list[str]) -> None:
-        """
-        在端口地址表中记录本地物理层到广播端口。
-
-        Args:
-            ports: 本地物理层端口号列表。
-        """
-        self.update(dict([port, {Topology.BROADCAST_PORT: -1}] for port in ports))
 
     def send_to_phy(self, binary: str, port: str) -> int:
         """

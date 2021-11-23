@@ -89,12 +89,12 @@ def decode_text(binary: str) -> str:
     return "".join([chr(int(char, 2)) for char in re.findall(".{16}", binary)])
 
 
-def encode_image(filepath: str) -> str:
+def encode_file(filepath: str) -> str:
     """
-    将图片编码为01字符串。
+    将文件编码为01字符串。
 
     Args:
-        filename: 要编码的图片的绝对路径。
+        filename: 要编码的文件的绝对路径。
 
     Returns:
         编码所得的01字符串。
@@ -104,15 +104,15 @@ def encode_image(filepath: str) -> str:
     return "".join(str(bin(ord(char)))[2:].zfill(8) for char in secret)
 
 
-def decode_image(binary: str) -> bytes:
+def decode_file(binary: str) -> bytes:
     """
-    将01字符串解码为图片。
+    将01字符串解码为文件。
 
     Args:
         binary: 要解码的01字符串。
 
     Returns:
-        解码所得的图片的字节串。
+        解码所得的文件的字节串。
     """
     try:
         img_bytes = base64.b64decode(
@@ -124,15 +124,3 @@ def decode_image(binary: str) -> bytes:
         return b""
     else:
         return img_bytes
-
-    # # 写入图片。
-    # try:
-    #     with open(
-    #         os.path.join(os.path.dirname(os.getcwd()), File.IMAGE_DIR, "received.png"),
-    #         mode="wb",
-    #     ) as fw:
-    #         fw.write(img_bytes)
-    # except Exception:
-    #     return False
-    # else:
-    #     return True

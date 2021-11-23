@@ -9,29 +9,25 @@ from layer._abstract import AbstractLayer
 class NetLayer(AbstractLayer):
     """主机网络层。"""
 
-    def __init__(self, port: str) -> None:
+    def __init__(self, device_id: int) -> None:
         """
         初始化网络层。
 
         Args:
-            port: 网络层端口号。
+            device_id: 设备号。
         """
-        super().__init__(port)
-        self._app = "-1"
-        self._phy = "-1"
+        config = super().get_config(device_id)
+        super().__init__(config["net"])
+        self.app = config["app"]
+        self.phy = config["phy"]
+        print("Net".center(30, "-"))
+        print(f"App port: {self.app}\nNet port: {self._port}\nPhy port: {self.phy}")
 
     def __str__(self) -> str:
         """打印网络层信息。"""
-        return f"<Net Layer at 127.0.0.1:{self._port} {{App:{self._app}, Phy:{self._phy}}}>"
-
-    def bind_app(self, port: str) -> None:
-        """
-        绑定应用层地址。
-
-        Args:
-            port: 应用层端口号。
-        """
-        self._app = port
+        return (
+            f"<Net Layer at 127.0.0.1:{self._port} {{App:{self.app}, Phy:{self.phy}}}>"
+        )
 
     def send_to_app(self, message: str) -> int:
         """
@@ -43,7 +39,7 @@ class NetLayer(AbstractLayer):
         Returns:
             总共发送的字节数。
         """
-        return self._send(message, self._app)
+        return self._send(message, self.app)
 
     def receive_from_app(self) -> str:
         """
@@ -53,18 +49,9 @@ class NetLayer(AbstractLayer):
             接收到的消息。
         """
         port = "-1"
-        while port != self._app:
+        while port != self.app:
             message, port, _ = self._receive(bufsize=Network.IN_NE_BUFSIZE)
         return message
-
-    def bind_phy(self, port: str) -> None:
-        """
-        绑定物理层地址。
-
-        Args:
-            port: 物理层端口号。
-        """
-        self._phy = port
 
     def send_to_phy(self, binary: str) -> int:
         """
@@ -77,7 +64,7 @@ class NetLayer(AbstractLayer):
             总共发送的字节数。
         """
         sleep(Network.FLOW_INTERVAL)
-        return self._send(string_to_bits(binary), self._phy)
+        return self._send(string_to_bits(binary), self.phy)
 
     def receive_from_phy(self, timeout: int = Network.RECV_TIMEOUT) -> tuple[str, bool]:
         """

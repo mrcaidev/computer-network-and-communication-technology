@@ -202,15 +202,19 @@ class RouterTable(dict[str, Path]):
 class RouterLayer(AbstractLayer, RouterTable):
     """路由器网络层。"""
 
-    def __init__(self, port: str) -> None:
+    def __init__(self, device_id: str) -> None:
         """
         初始化网络层。
 
         Args:
-            port: 网络层端口号。
+            device_id: 设备号。
         """
-        AbstractLayer.__init__(self, port)
-        RouterTable.__init__(self, port)
+        config = AbstractLayer.get_config(device_id)
+        AbstractLayer.__init__(self, config["net"])
+        RouterTable.__init__(self, config["net"])
+        self._phy = config["phy"]
+        print("Router".center(30, "-"))
+        print(f"Net port: {self._port}\nNet port: {self._phy}")
 
     def send_to_phy(self, binary: str, port: str) -> int:
         """
