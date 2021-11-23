@@ -1,29 +1,19 @@
-class Topology:
-    """网络拓扑参数。"""
+class File:
+    """目录与文件。"""
 
-    HOST_PER_SWITCHER = 2
-    SWITCHER_PER_ROUTER = 2
-    BROADCAST_RECVER_NUM = 1
-    BROADCAST_PORT = "65535"
-    DEFAULT_ROUTER = "1"
-
-
-class Mode:
-    """网元模式。"""
-
-    RECV = "1"
-    UNICAST = "2"
-    BROADCAST = "3"
-    QUIT = "4"
-    LIST = (RECV, UNICAST, BROADCAST, QUIT)
+    IMAGE_DIR = "img"
+    CONFIG_DIR = "config"
+    PORT_MAP = "port_mapping.json"
+    ROUTER_ENV = "router_env.json"
 
 
 class FramePack:
-    """帧封装参数。"""
+    """帧封装。"""
 
     LOCATOR = "01111110"
-    LOCATOR_LEN = 8
     SUSPICIOUS = "11111"
+
+    LOCATOR_LEN = 8
     SUSPICIOUS_LEN = 5
     PORT_LEN = 16
     SEQ_LEN = 8
@@ -35,41 +25,53 @@ class FramePack:
     EMPTY_FRAME = "0" * 88
 
 
-class Network:
-    """流控与超时。"""
-
-    INTER_NE_BUFSIZE = 1024
-    IN_NE_BUFSIZE = 8096
-    FLOW_INTERVAL = 0.03
-    USER_TIMEOUT = 180
-    RECV_TIMEOUT = 0.15
-    SELECT_TIMEOUT = 0.5
-    KEEPALIVE_MAX_RETRY = 8
-
-    REMOTE_MAX_LIFE = 100
-
-
 class InputType:
-    """用户输入分类。"""
+    """用户输入类型。"""
 
     MODE = 1
     PORT = 2
-    MESSAGE_TYPE = 3
+    MSGTYPE = 3
     TEXT = 4
     FILENAME = 5
 
 
 class MessageType:
-    """消息分类。"""
+    """消息类型。"""
 
     TEXT = "1"
     IMAGE = "2"
     LIST = (TEXT, IMAGE)
 
 
-class File:
-    """目录名。"""
+class Mode:
+    """网元模式。"""
 
-    IMAGE_DIR = "img"
-    CONFIG_DIR = "config"
-    PORT_MAP = "port_mapping.json"
+    RECEIVE = "1"
+    UNICAST = "2"
+    BROADCAST = "3"
+    QUIT = "4"
+    LIST = (RECEIVE, UNICAST, BROADCAST, QUIT)
+
+
+class Network:
+    """通信网络约束。"""
+
+    INTER_NE_BUFSIZE = 1024
+    IN_NE_BUFSIZE = 8 * 1024 * 1024
+
+    USER_TIMEOUT = 180
+    SELECT_TIMEOUT = 0.5
+    RECV_TIMEOUT = 0.15
+    FLOW_INTERVAL = 0.03
+
+    KEEPALIVE_MAX_RETRY = 8
+
+    REMOTE_MAX_LIFE = 100
+
+
+class Topology:
+    """网络拓扑。"""
+
+    BROADCAST_RECVER_NUM = 1
+    BROADCAST_PORT = "65535"
+    DEFAULT_ROUTER = "1"
