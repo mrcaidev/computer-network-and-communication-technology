@@ -2,7 +2,7 @@ from time import sleep
 
 from utils.coding import bits_to_string, string_to_bits
 from utils.constant import Network
-from utils.layer._abstract import AbstractLayer
+from utils.layer._abstractlayer import AbstractLayer
 
 
 class NetLayer(AbstractLayer):
