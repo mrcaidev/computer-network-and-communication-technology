@@ -45,9 +45,9 @@ if __name__ == "__main__":
             elif message_type == MessageType.FILENAME:
                 decoded = decode_picture(net_message)
                 if decoded:
-                    app.send_to_user("Received picture: Saved in directory /img.")
+                    app.send_to_user("[Log] Received picture: Saved in directory /img.")
                 else:
-                    app.send_to_user("[Warning] Received picture: Failed to decode.")
+                    app.send_to_user("[Warning] Received picture: Failed to save.")
             continue
 
         # 如果要单播，就输入目的端口。

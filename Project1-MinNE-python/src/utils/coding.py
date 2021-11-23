@@ -125,7 +125,12 @@ def decode_picture(binary: str) -> bool:
 
     # 写入图片。
     try:
-        with open(os.path.join(Others.IMAGE_DIR, "received.png"), "wb") as fw:
+        with open(
+            os.path.join(
+                os.path.dirname(os.getcwd()), Others.IMAGE_DIR, "received.png"
+            ),
+            mode="wb",
+        ) as fw:
             fw.write(img_bytes)
     except Exception:
         return False

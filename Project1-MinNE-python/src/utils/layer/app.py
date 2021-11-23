@@ -174,10 +174,12 @@ class AppLayer(AbstractLayer):
         while True:
             # 获取图片文件名。
             filename = input(">>> ")
-            filepath = os.path.join(os.getcwd(), Others.IMAGE_DIR, filename)
+            filepath = os.path.join(
+                os.path.dirname(os.getcwd()), Others.IMAGE_DIR, filename
+            )
 
             # 检查是否有该文件。
             if os.path.exists(filepath):
                 return filepath
             else:
-                print(f"[Warning] {filename} not found under directory /img.")
+                print(f"[Warning] {filepath} not found.")
