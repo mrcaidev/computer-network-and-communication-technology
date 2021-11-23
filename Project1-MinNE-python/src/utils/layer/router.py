@@ -178,20 +178,26 @@ class RouterTable(dict[str, Path]):
         # 返回最小值对应的端口。
         return min_dst
 
-    def search(self, dst: str) -> Path:
+    def search(self, app: str) -> Path:
         """
-        在路由表中查询到达目的地的路径。
+        在路由表中查询到达目的应用层的路径。
 
         Args:
-            dst: 目的地路由器网络层端口号。
+            dst: 目的应用层端口号。
 
         Returns:
             到达目的地的路径。
         """
-        return self.get(
-            dst,
-            Path(next=const.Topology.DEFAULT_ROUTER, exit="", cost=0, optimized=False),
-        )
+        try:
+            app_router = list(
+                filter(lambda router: app[:1] == router[:1], self.keys())
+            )[0]
+        except IndexError:
+            return Path(
+                next=const.Topology.DEFAULT_ROUTER, exit="", cost=0, optimized=False
+            )
+        else:
+            return self[app_router]
 
 
 class RouterLayer(AbstractLayer, RouterTable):
