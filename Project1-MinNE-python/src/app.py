@@ -21,15 +21,15 @@ if __name__ == "__main__":
     # 开始运作。
     while True:
         # 网元进入指定模式。
-        mode = app.receive_from_user(const.InputType.MODE)
+        mode = app.receive_from_user(InputType.MODE)
         app.send_to_net(mode)
 
         # 如果要退出程序，就跳出循环。
-        if mode == const.Mode.QUIT:
+        if mode == Mode.QUIT:
             break
 
         # 如果要接收消息，就读取后打印。
-        elif mode == const.Mode.RECV:
+        elif mode == Mode.RECV:
             # 接收消息类型。
             message_type = app.receive_from_net()
 
@@ -37,12 +37,12 @@ if __name__ == "__main__":
             net_message = app.receive_from_net()
 
             # 呈现字符串。
-            if message_type == const.MessageType.TEXT:
+            if message_type == MessageType.TEXT:
                 string = decode_text(net_message)
                 app.send_to_user(f"Received text: {string}")
 
             # 呈现图片。
-            elif message_type == const.MessageType.FILENAME:
+            elif message_type == MessageType.FILENAME:
                 decoded = decode_picture(net_message)
                 if decoded:
                     app.send_to_user("Received picture: Saved in directory /img.")
@@ -51,20 +51,20 @@ if __name__ == "__main__":
             continue
 
         # 如果要单播，就输入目的端口。
-        elif mode == const.Mode.UNICAST:
-            destination = app.receive_from_user(const.InputType.PORT)
+        elif mode == Mode.UNICAST:
+            destination = app.receive_from_user(InputType.PORT)
             app.send_to_net(destination)
 
         # 询问消息类型。
-        message_type = app.receive_from_user(const.InputType.MESSAGE_TYPE)
+        message_type = app.receive_from_user(InputType.MESSAGE_TYPE)
         app.send_to_net(message_type)
 
         # 如果要发送文本。
-        if message_type == const.MessageType.TEXT:
-            string = app.receive_from_user(const.InputType.TEXT)
+        if message_type == MessageType.TEXT:
+            string = app.receive_from_user(InputType.TEXT)
             app.send_to_net(encode_text(string))
 
         # 如果要发送图片。
         else:
-            filepath = app.receive_from_user(const.InputType.FILENAME)
+            filepath = app.receive_from_user(InputType.FILENAME)
             app.send_to_net(encode_picture(filepath))
