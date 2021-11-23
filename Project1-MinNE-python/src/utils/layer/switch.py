@@ -1,8 +1,8 @@
 from collections import defaultdict
 from select import select
 
-import utils.constant as const
 from utils.coding import bits_to_string, string_to_bits
+from utils.constant import Network, Topology
 from utils.layer._abstract import AbstractLayer
 
 
@@ -53,7 +53,7 @@ class SwitchTable(defaultdict):
             updated = True
 
         # 不管之前有没有这对关系，它们的寿命都要重置为最大值+1。（后面的遍历会扣回最大值。）
-        self[local].update({remote: const.Network.REMOTE_MAX_LIFE + 1})
+        self[local].update({remote: Network.REMOTE_MAX_LIFE + 1})
 
         # 所有远程端口寿命-1。
         for remotes in self.values():
@@ -122,7 +122,7 @@ class SwitchLayer(AbstractLayer, SwitchTable):
         Args:
             ports: 本地物理层端口号列表。
         """
-        self.update(dict([port, const.Topology.BROADCAST_PORT] for port in ports))
+        self.update(dict([port, Topology.BROADCAST_PORT] for port in ports))
 
     def send_to_phy(self, binary: str, port: str) -> int:
         """
@@ -158,9 +158,7 @@ class SwitchLayer(AbstractLayer, SwitchTable):
         Returns:
             可读为True，不可读为False。
         """
-        ready_sockets, _, _ = select(
-            [self._socket], [], [], const.Network.SELECT_TIMEOUT
-        )
+        ready_sockets, _, _ = select([self._socket], [], [], Network.SELECT_TIMEOUT)
         return len(ready_sockets) != 0
 
     def print_table(self) -> None:

@@ -32,21 +32,21 @@ if __name__ == "__main__":
         mode = net.receive_from_app()
         mode_name = (
             "Receive"
-            if mode == const.Mode.RECV
+            if mode == Mode.RECV
             else "Unicast"
-            if mode == const.Mode.UNICAST
+            if mode == Mode.UNICAST
             else "Broadcast"
-            if mode == const.Mode.BROADCAST
+            if mode == Mode.BROADCAST
             else "Quit"
         )
         print(f"[Log] Current Mode: {mode_name}")
 
         # 如果要退出程序，就跳出循环。
-        if mode == const.Mode.QUIT:
+        if mode == Mode.QUIT:
             break
 
         # 如果要接收消息，就逐帧读取。
-        elif mode == const.Mode.RECV:
+        elif mode == Mode.RECV:
             recv_cnt = 0
             recv_message = ""
             record_flag = True
@@ -55,7 +55,7 @@ if __name__ == "__main__":
                 # 从物理层接收消息，第一帧可以等得久一些。
                 if recv_cnt == 0:
                     phy_message, success = net.receive_from_phy(
-                        const.Network.USER_TIMEOUT
+                        Network.USER_TIMEOUT
                     )
                 else:
                     phy_message, success = net.receive_from_phy()
@@ -65,7 +65,7 @@ if __name__ == "__main__":
                     print(f"[Frame {seq + 1}] Timeout.")
                     timeout_cnt += 1
                     # 如果超时次数达到Keepalive机制上限，就不再接收。
-                    if timeout_cnt == const.Network.KEEPALIVE_MAX_RETRY:
+                    if timeout_cnt == Network.KEEPALIVE_MAX_RETRY:
                         break
                     # 如果超时次数还没有很多，就什么都不做，重新开始等待。
                     else:
@@ -84,7 +84,7 @@ if __name__ == "__main__":
                 recv_frame.read(phy_message)
 
                 # 如果帧不是给自己的，就什么都不做，重新开始等待。
-                if recv_frame.dst not in (app_port, const.Topology.BROADCAST_PORT):
+                if recv_frame.dst not in (app_port, Topology.BROADCAST_PORT):
                     print(f"[Warning] I'm not {recv_frame.dst}.")
                     continue
 
@@ -95,7 +95,7 @@ if __name__ == "__main__":
                         {
                             "src": app_port,
                             "seq": seq,
-                            "data": encode_text(const.Frame.ACK),
+                            "data": encode_text(FramePack.ACK),
                             "dst": recv_frame.src,
                         }
                     )
@@ -109,7 +109,7 @@ if __name__ == "__main__":
                         {
                             "src": app_port,
                             "seq": seq + 1,
-                            "data": encode_text(const.Frame.NAK),
+                            "data": encode_text(FramePack.NAK),
                             "dst": recv_frame.src,
                         }
                     )
@@ -120,13 +120,13 @@ if __name__ == "__main__":
                 seq = recv_frame.seq
                 if recv_cnt == 0:
                     recv_total = bin_to_dec(
-                        recv_frame.data[: const.Frame.DATA_LEN // 2]
+                        recv_frame.data[: FramePack.DATA_LEN // 2]
                     )
                     message_type = str(
-                        bin_to_dec(recv_frame.data[const.Frame.DATA_LEN // 2 :])
+                        bin_to_dec(recv_frame.data[FramePack.DATA_LEN // 2 :])
                     )
                     message_type_name = (
-                        "text" if message_type == const.MessageType.TEXT else "picture"
+                        "text" if message_type == MessageType.TEXT else "picture"
                     )
                     print(
                         f"[Frame {seq}] {recv_total} frame(s) of {message_type_name}."
@@ -138,7 +138,7 @@ if __name__ == "__main__":
                     {
                         "src": app_port,
                         "seq": seq,
-                        "data": encode_text(const.Frame.ACK),
+                        "data": encode_text(FramePack.ACK),
                         "dst": recv_frame.src,
                     }
                 )
@@ -150,7 +150,7 @@ if __name__ == "__main__":
                     break
 
             # 如果触发了Keepalive机制，就报错。
-            if timeout_cnt == const.Network.KEEPALIVE_MAX_RETRY:
+            if timeout_cnt == Network.KEEPALIVE_MAX_RETRY:
                 print("[Warning] Connection lost.")
 
             # 将消息传给应用层。
@@ -165,16 +165,16 @@ if __name__ == "__main__":
         # 如果要发送，就封装、发送、确认。
         else:
             # 确定目的端口。
-            if mode == const.Mode.UNICAST:
+            if mode == Mode.UNICAST:
                 dst = net.receive_from_app()
             else:
-                dst = const.Topology.BROADCAST_PORT
+                dst = Topology.BROADCAST_PORT
             print(f"[Log] Destination port: {dst}")
 
             # 确定消息类型。
             message_type = net.receive_from_app()
             message_type_name = (
-                "text" if message_type == const.MessageType.TEXT else "picture"
+                "text" if message_type == MessageType.TEXT else "picture"
             )
             print(f"[Log] Message type: {message_type_name}")
 
@@ -183,7 +183,7 @@ if __name__ == "__main__":
             send_total = Frame.calc_frame_num(app_message)
 
             # 第一帧是请求帧，告知对方总帧数和消息类型。
-            seq = (seq + 1) % (2 ** const.Frame.SEQ_LEN)
+            seq = (seq + 1) % (2 ** FramePack.SEQ_LEN)
             request = Frame()
             request.write(
                 {
@@ -198,9 +198,9 @@ if __name__ == "__main__":
             # 逐帧封装。
             for i in range(send_total):
                 seal_message = app_message[
-                    i * const.Frame.DATA_LEN : (i + 1) * const.Frame.DATA_LEN
+                    i * FramePack.DATA_LEN : (i + 1) * FramePack.DATA_LEN
                 ]
-                seq = (seq + 1) % (2 ** const.Frame.SEQ_LEN)
+                seq = (seq + 1) % (2 ** FramePack.SEQ_LEN)
                 send_frame = Frame()
                 send_frame.write(
                     {"src": app_port, "seq": seq, "data": seal_message, "dst": dst}
@@ -223,8 +223,8 @@ if __name__ == "__main__":
                 # 每个接收端的回复都要接收，即使已经知道要重传。
                 dst_num = (
                     1
-                    if mode == const.Mode.UNICAST
-                    else const.Topology.BROADCAST_RECVER_NUM
+                    if mode == Mode.UNICAST
+                    else Topology.BROADCAST_RECVER_NUM
                 )
                 ack_cnt = 0
                 for _ in range(dst_num):
@@ -244,16 +244,16 @@ if __name__ == "__main__":
                     resp_frame = Frame()
                     resp_frame.read(resp_binary)
                     resp_message = decode_text(resp_frame.data)
-                    if resp_message == const.Frame.ACK:
+                    if resp_message == FramePack.ACK:
                         print(f"[Frame {resp_frame.seq}] ACK.")
                         ack_cnt += 1
-                    elif resp_message == const.Frame.NAK:
+                    elif resp_message == FramePack.NAK:
                         print(f"[Frame {resp_frame.seq}] NAK.")
                     else:
                         print(f"[Frame {resp_frame.seq}] Unknown response.")
 
                 # 如果连续多次超时，就停止重传。
-                if timeout_cnt == const.Network.KEEPALIVE_MAX_RETRY:
+                if timeout_cnt == Network.KEEPALIVE_MAX_RETRY:
                     print("[Warning] Connection lost.")
                     break
 

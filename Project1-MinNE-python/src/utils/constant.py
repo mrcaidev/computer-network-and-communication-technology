@@ -18,8 +18,8 @@ class Mode:
     LIST = (RECV, UNICAST, BROADCAST, QUIT)
 
 
-class Frame:
-    """帧参数。"""
+class FramePack:
+    """帧封装参数。"""
 
     LOCATOR = "01111110"
     LOCATOR_LEN = 8

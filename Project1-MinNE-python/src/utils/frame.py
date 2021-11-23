@@ -1,5 +1,5 @@
-import utils.constant as const
 from utils.coding import *
+from utils.constant import FramePack
 
 
 class Frame:
@@ -73,13 +73,13 @@ class Frame:
         self.__dst = info["dst"]
 
         # 生成CRC码。
-        crc_target = f"{dec_to_bin(int(self.__src), const.Frame.PORT_LEN)}{dec_to_bin(self.__seq, const.Frame.SEQ_LEN)}{self.__data}{dec_to_bin(int(self.__dst), const.Frame.PORT_LEN)}"
+        crc_target = f"{dec_to_bin(int(self.__src), FramePack.PORT_LEN)}{dec_to_bin(self.__seq, FramePack.SEQ_LEN)}{self.__data}{dec_to_bin(int(self.__dst), FramePack.PORT_LEN)}"
         self.__crc = Frame.__generate_crc(crc_target)
         self.__verified = True
 
         # 生成01序列。
         self.__binary = Frame.__add_locator(
-            f"{crc_target}{dec_to_bin(self.__crc, const.Frame.CRC_LEN)}"
+            f"{crc_target}{dec_to_bin(self.__crc, FramePack.CRC_LEN)}"
         )
         self.__length = len(self.__binary)
 
@@ -92,28 +92,32 @@ class Frame:
         """
         message, extracted = Frame.__extract_message(binary)
 
-        self.__src = str(bin_to_dec(message[: const.Frame.PORT_LEN]))
+        self.__src = str(bin_to_dec(message[: FramePack.PORT_LEN]))
         self.__seq = bin_to_dec(
-            message[const.Frame.PORT_LEN : const.Frame.PORT_LEN + const.Frame.SEQ_LEN]
+            message[
+                FramePack.PORT_LEN : FramePack.PORT_LEN
+                + FramePack.SEQ_LEN
+            ]
         )
         self.__data = message[
-            const.Frame.PORT_LEN
-            + const.Frame.SEQ_LEN : -const.Frame.CRC_LEN
-            - const.Frame.PORT_LEN
+            FramePack.PORT_LEN
+            + FramePack.SEQ_LEN : -FramePack.CRC_LEN
+            - FramePack.PORT_LEN
         ]
         self.__dst = str(
             bin_to_dec(
                 message[
-                    -const.Frame.CRC_LEN - const.Frame.PORT_LEN : -const.Frame.CRC_LEN
+                    -FramePack.CRC_LEN
+                    - FramePack.PORT_LEN : -FramePack.CRC_LEN
                 ]
             )
         )
-        self.__crc = bin_to_dec(message[-const.Frame.CRC_LEN :])
+        self.__crc = bin_to_dec(message[-FramePack.CRC_LEN :])
         self.__verified = extracted and self.__crc == Frame.__generate_crc(
-            message[: -const.Frame.CRC_LEN]
+            message[: -FramePack.CRC_LEN]
         )
         self.__binary = binary
-        self.__length = len(message) + 2 * const.Frame.LOCATOR_LEN
+        self.__length = len(message) + 2 * FramePack.LOCATOR_LEN
 
     def __extract_message(binary: str) -> tuple[str, bool]:
         """
@@ -128,21 +132,21 @@ class Frame:
             - [1] 是否提取成功，成功为True，失败为False。
         """
         message = ""
-        start = binary.find(const.Frame.LOCATOR)
+        start = binary.find(FramePack.LOCATOR)
 
         # 如果没找到定位串，就返回空帧。
         if start == -1:
-            return const.Frame.EMPTY_FRAME, False
+            return FramePack.EMPTY_FRAME, False
 
         # 向后反变换。
-        start += const.Frame.LOCATOR_LEN
-        susp = binary.find(const.Frame.SUSPICIOUS, start)
+        start += FramePack.LOCATOR_LEN
+        susp = binary.find(FramePack.SUSPICIOUS, start)
         while susp != -1:
             # 如果下标上溢，说明帧有问题。
             try:
-                after_susp = binary[susp + const.Frame.SUSPICIOUS_LEN]
+                after_susp = binary[susp + FramePack.SUSPICIOUS_LEN]
             except IndexError:
-                return const.Frame.EMPTY_FRAME, False
+                return FramePack.EMPTY_FRAME, False
 
             # 如果到达帧尾，就返回提取出的信息。
             if after_susp == "1":
@@ -151,12 +155,12 @@ class Frame:
 
             # 如果只是连续5个1，就删除后面的0，然后继续寻找。
             else:
-                message += binary[start : susp + const.Frame.SUSPICIOUS_LEN]
-                start = susp + const.Frame.SUSPICIOUS_LEN + 1
-                susp = binary.find(const.Frame.SUSPICIOUS, start)
+                message += binary[start : susp + FramePack.SUSPICIOUS_LEN]
+                start = susp + FramePack.SUSPICIOUS_LEN + 1
+                susp = binary.find(FramePack.SUSPICIOUS, start)
 
         # 如果只找到了1个定位串，也返回空帧。
-        return const.Frame.EMPTY_FRAME, False
+        return FramePack.EMPTY_FRAME, False
 
     def __add_locator(binary: str) -> str:
         """
@@ -169,12 +173,12 @@ class Frame:
             加上定位串后的01序列。
         """
         # 变换，在连续的5个`1`之后添加1个`0`。
-        cur = binary.find(const.Frame.SUSPICIOUS)
+        cur = binary.find(FramePack.SUSPICIOUS)
         while cur != -1:
-            binary = f"{binary[: cur + const.Frame.SUSPICIOUS_LEN]}0{binary[cur + const.Frame.SUSPICIOUS_LEN :]}"
-            cur = binary.find(const.Frame.SUSPICIOUS, cur + 6)
+            binary = f"{binary[: cur + FramePack.SUSPICIOUS_LEN]}0{binary[cur + FramePack.SUSPICIOUS_LEN :]}"
+            cur = binary.find(FramePack.SUSPICIOUS, cur + 6)
 
-        return f"{const.Frame.LOCATOR}{binary}{const.Frame.LOCATOR}"
+        return f"{FramePack.LOCATOR}{binary}{FramePack.LOCATOR}"
 
     def __generate_crc(binary: str) -> int:
         """
@@ -213,7 +217,7 @@ class Frame:
         """
         length = len(message)
         return (
-            length // const.Frame.DATA_LEN
-            if length % const.Frame.DATA_LEN == 0
-            else length // const.Frame.DATA_LEN + 1
+            length // FramePack.DATA_LEN
+            if length % FramePack.DATA_LEN == 0
+            else length // FramePack.DATA_LEN + 1
         )

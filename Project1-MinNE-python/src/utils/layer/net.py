@@ -1,7 +1,7 @@
 from time import sleep
 
-import utils.constant as const
 from utils.coding import bits_to_string, string_to_bits
+from utils.constant import Network
 from utils.layer._abstract import AbstractLayer
 
 
@@ -53,7 +53,7 @@ class NetLayer(AbstractLayer):
         """
         port = "-1"
         while port != self._app:
-            message, port, _ = self._receive(bufsize=const.Network.IN_NE_BUFSIZE)
+            message, port, _ = self._receive(bufsize=Network.IN_NE_BUFSIZE)
         return message
 
     def bind_phy(self, port: str) -> None:
@@ -75,12 +75,10 @@ class NetLayer(AbstractLayer):
         Returns:
             总共发送的字节数。
         """
-        sleep(const.Network.FLOW_INTERVAL)
+        sleep(Network.FLOW_INTERVAL)
         return self._send(string_to_bits(binary), self._phy)
 
-    def receive_from_phy(
-        self, timeout: int = const.Network.RECV_TIMEOUT
-    ) -> tuple[str, bool]:
+    def receive_from_phy(self, timeout: int = Network.RECV_TIMEOUT) -> tuple[str, bool]:
         """
         从物理层接收消息。
 

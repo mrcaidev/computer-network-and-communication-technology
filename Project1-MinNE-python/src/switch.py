@@ -6,14 +6,14 @@ if __name__ == "__main__":
     print("Switch".center(30, "-"))
 
     # 确定端口。
-    if len(sys.argv) == 2 + const.Topology.HOST_PER_SWITCHER + 1:
+    if len(sys.argv) == 2 + Topology.HOST_PER_SWITCHER + 1:
         switch_port = sys.argv[1]
         phy_ports = sys.argv[2:]
         print(f"Swt port: {switch_port}")
         print(f"Phy ports: {[int(port) for port in phy_ports]}")
     else:
         print(
-            f"[Error] Expect {1 + const.Topology.HOST_PER_SWITCHER} arguments, got {len(sys.argv) - 1}."
+            f"[Error] Expect {1 + Topology.HOST_PER_SWITCHER} arguments, got {len(sys.argv) - 1}."
         )
         exit(-1)
 

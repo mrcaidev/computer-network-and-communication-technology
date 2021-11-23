@@ -1,6 +1,6 @@
 import os
 
-import utils.constant as const
+from utils.constant import InputType, MessageType, Mode, Network, Others
 from utils.layer._abstract import AbstractLayer
 
 
@@ -39,7 +39,7 @@ class AppLayer(AbstractLayer):
         """
         port = "-1"
         while port != self._net:
-            message, port, _ = self._receive(bufsize=const.Network.IN_NE_BUFSIZE)
+            message, port, _ = self._receive(bufsize=Network.IN_NE_BUFSIZE)
         return message
 
     def send_to_net(self, message: str) -> int:
@@ -54,7 +54,7 @@ class AppLayer(AbstractLayer):
         """
         return self._send(message, self._net)
 
-    def receive_from_user(self, input_type: const.InputType) -> str:
+    def receive_from_user(self, input_type: InputType) -> str:
         """
         从用户键盘输入接收消息。
 
@@ -69,15 +69,15 @@ class AppLayer(AbstractLayer):
         Returns:
             接收到的消息。
         """
-        if input_type == const.InputType.MODE:
+        if input_type == InputType.MODE:
             return AppLayer._get_mode_from_user()
-        elif input_type == const.InputType.PORT:
+        elif input_type == InputType.PORT:
             return AppLayer._get_port_from_user()
-        elif input_type == const.InputType.MESSAGE_TYPE:
+        elif input_type == InputType.MESSAGE_TYPE:
             return AppLayer._get_msgtype_from_user()
-        elif input_type == const.InputType.TEXT:
+        elif input_type == InputType.TEXT:
             return AppLayer._get_text_from_user()
-        elif input_type == const.InputType.FILENAME:
+        elif input_type == InputType.FILENAME:
             return AppLayer._get_imgname_from_user()
         else:
             return ""
@@ -107,7 +107,7 @@ class AppLayer(AbstractLayer):
         )
         while True:
             mode = input(">>> ")
-            if mode in const.Mode.LIST:
+            if mode in Mode.LIST:
                 return mode
             else:
                 print("[Warning] Invalid mode!")
@@ -145,7 +145,7 @@ class AppLayer(AbstractLayer):
         print("Input message type:\n1::Text  2::Picture")
         while True:
             message_type = input(">>> ")
-            if message_type in const.MessageType.LIST:
+            if message_type in MessageType.LIST:
                 return message_type
             else:
                 print("[Warning] Invalid message type!")
@@ -174,7 +174,7 @@ class AppLayer(AbstractLayer):
         while True:
             # 获取图片文件名。
             filename = input(">>> ")
-            filepath = os.path.join(os.getcwd(), const.Others.IMAGE_DIR, filename)
+            filepath = os.path.join(os.getcwd(), Others.IMAGE_DIR, filename)
 
             # 检查是否有该文件。
             if os.path.exists(filepath):

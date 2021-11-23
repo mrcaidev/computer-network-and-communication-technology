@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from select import select
 
-import utils.constant as const
 from utils.coding import bits_to_string, string_to_bits
+from utils.constant import Network, Topology
 from utils.layer._abstract import AbstractLayer
 
 
@@ -193,9 +193,7 @@ class RouterTable(dict[str, Path]):
                 filter(lambda router: app[:1] == router[:1], self.keys())
             )[0]
         except IndexError:
-            return Path(
-                next=const.Topology.DEFAULT_ROUTER, exit="", cost=0, optimized=False
-            )
+            return Path(next=Topology.DEFAULT_ROUTER, exit="", cost=0, optimized=False)
         else:
             return self[app_router]
 
@@ -246,9 +244,7 @@ class RouterLayer(AbstractLayer, RouterTable):
         Returns:
             可读为True，不可读为False。
         """
-        ready_sockets, _, _ = select(
-            [self._socket], [], [], const.Network.SELECT_TIMEOUT
-        )
+        ready_sockets, _, _ = select([self._socket], [], [], Network.SELECT_TIMEOUT)
         return len(ready_sockets) != 0
 
     def print_table(self) -> None:

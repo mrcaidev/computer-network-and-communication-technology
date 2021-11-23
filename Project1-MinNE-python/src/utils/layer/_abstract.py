@@ -1,6 +1,6 @@
 import socket
 
-import utils.constant as const
+from utils.constant import Network
 
 
 class AbstractLayer:
@@ -19,7 +19,7 @@ class AbstractLayer:
         self._socket.bind(("127.0.0.1", int(self._port)))
 
         # 所有层套接字的默认超时时间均为`utils.constant.Network.USER_TIMEOUT`。
-        self._socket.settimeout(const.Network.USER_TIMEOUT)
+        self._socket.settimeout(Network.USER_TIMEOUT)
 
     def __str__(self) -> str:
         """打印抽象层信息。"""
@@ -44,7 +44,7 @@ class AbstractLayer:
         return self._socket.sendto(message.encode("utf-8"), ("127.0.0.1", int(port)))
 
     def _receive(
-        self, bufsize: int = const.Network.INTER_NE_BUFSIZE, timeout: int = None
+        self, bufsize: int = Network.INTER_NE_BUFSIZE, timeout: int = None
     ) -> tuple[str, str, bool]:
         """
         接收消息。
@@ -63,6 +63,7 @@ class AbstractLayer:
         if timeout != None:
             self._socket.settimeout(timeout)
 
+        ret = ("", "", None)
         try:
             message, (_, port) = self._socket.recvfrom(bufsize)
         except socket.timeout:
@@ -72,5 +73,5 @@ class AbstractLayer:
         finally:
             # 不管超不超时，都要恢复默认超时值。
             if timeout != None:
-                self._socket.settimeout(const.Network.USER_TIMEOUT)
+                self._socket.settimeout(Network.USER_TIMEOUT)
             return ret
