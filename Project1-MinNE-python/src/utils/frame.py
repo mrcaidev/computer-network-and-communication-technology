@@ -1,4 +1,4 @@
-from utils.coding import *
+from utils.coding import bin_to_dec, dec_to_bin
 from utils.constant import FramePack
 
 
@@ -94,10 +94,7 @@ class Frame:
 
         self.__src = str(bin_to_dec(message[: FramePack.PORT_LEN]))
         self.__seq = bin_to_dec(
-            message[
-                FramePack.PORT_LEN : FramePack.PORT_LEN
-                + FramePack.SEQ_LEN
-            ]
+            message[FramePack.PORT_LEN : FramePack.PORT_LEN + FramePack.SEQ_LEN]
         )
         self.__data = message[
             FramePack.PORT_LEN
@@ -106,10 +103,7 @@ class Frame:
         ]
         self.__dst = str(
             bin_to_dec(
-                message[
-                    -FramePack.CRC_LEN
-                    - FramePack.PORT_LEN : -FramePack.CRC_LEN
-                ]
+                message[-FramePack.CRC_LEN - FramePack.PORT_LEN : -FramePack.CRC_LEN]
             )
         )
         self.__crc = bin_to_dec(message[-FramePack.CRC_LEN :])
