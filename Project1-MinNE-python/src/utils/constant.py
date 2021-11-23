@@ -1,7 +1,7 @@
 class File:
     """目录与文件。"""
 
-    IMAGE_DIR = "img"
+    RSC_DIR = "resource"
     CONFIG_DIR = "config"
     PORT_MAP = "port_mapping.json"
     ROUTER_ENV = "router_env.json"
@@ -32,15 +32,15 @@ class InputType:
     PORT = 2
     MSGTYPE = 3
     TEXT = 4
-    FILENAME = 5
+    FILE = 5
 
 
 class MessageType:
     """消息类型。"""
 
     TEXT = "1"
-    IMAGE = "2"
-    LIST = (TEXT, IMAGE)
+    FILE = "2"
+    LIST = (TEXT, FILE)
 
 
 class Mode:
