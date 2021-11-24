@@ -3,6 +3,7 @@ from select import select
 
 from utils.coding import bits_to_string, string_to_bits
 from utils.constant import Network, Topology
+from utils.io import get_device_map
 
 from layer._abstract import AbstractLayer
 
@@ -12,11 +13,11 @@ class SwitchTable(defaultdict):
 
     def __init__(self) -> None:
         """初始化内部defaultdict。"""
-        return super().__init__(dict[str, int])
+        super().__init__(dict[str, int])
 
     def __str__(self) -> None:
         """打印端口地址表。"""
-        head = f"{'-'*24}\n|{'-'*7}|{'Remote'.center(14)}|\n|{'Local'.center(14)}|{'-'*14}|\n|{'-'*7}|{'Port'.center(7)}|{'Life'.center(6)}|"
+        head = f"{'-'*24}\n|{'-'*7}|{'Remote'.center(14)}|\n|{'Local'.center(7)}|{'-'*14}|\n|{'-'*7}|{'Port'.center(7)}|{'Life'.center(6)}|"
         body = "\n".join(
             filter(
                 None,
@@ -38,7 +39,7 @@ class SwitchTable(defaultdict):
 
     def refresh(self, local: str, remote: str) -> bool:
         """
-        更新端口地址表。
+        刷新端口地址表。
 
         Args:
             local: 当前激活的本地端口。
@@ -47,27 +48,28 @@ class SwitchTable(defaultdict):
         Returns:
             端口地址表是否有更新，有为True，没有为False。
         """
-        updated = False
+        refreshed = False
 
         # 查询是否有该关系，没有就会迎来更新。
         if remote not in self[local].keys():
-            updated = True
+            refreshed = True
 
         # 不管之前有没有这对关系，它们的寿命都要重置为最大值+1。（后面的遍历会扣回最大值。）
         self[local].update({remote: Network.REMOTE_MAX_LIFE + 1})
 
         # 所有远程端口寿命-1。
         for remotes in self.values():
+            remotes: dict[str, int]
             for port, life in remotes.copy().items():
                 life -= 1
                 if life == 0:
                     remotes.pop(port)
-                    updated = True
+                    refreshed = True
                 else:
                     remotes.update({port: life})
 
         # 返回是否有端口关系更新。
-        return updated
+        return refreshed
 
     def search_locals(self, remote: str) -> list[str]:
         """
@@ -99,7 +101,7 @@ class SwitchTable(defaultdict):
         return list(self.get(local, {}).keys())
 
 
-class SwitchLayer(AbstractLayer, SwitchTable):
+class SwitchLayer(SwitchTable, AbstractLayer):
     """交换机网络层。"""
 
     def __init__(self, device_id: str) -> None:
@@ -109,30 +111,52 @@ class SwitchLayer(AbstractLayer, SwitchTable):
         Args:
             device_id: 设备号。
         """
+        # 初始化端口地址表。
         SwitchTable.__init__(self)
-        config = AbstractLayer.get_config(device_id)
+
+        # 初始化套接字。
+        config = get_device_map(device_id)
         AbstractLayer.__init__(self, config["net"])
-        self.phy = config["phy"]
-        print("Switch".center(30, "-"))
-        print(f"Net port: {self._port}\nNet port: {self.phy}")
-        self.update(dict([port, {Topology.BROADCAST_PORT: -1}] for port in self.phy))
+        self._phy = config["phy"]
+
+        # 将所有物理层对应的广播关系设为无限寿命。
+        self.update(
+            dict([port, {Topology.BROADCAST_PORT: float("inf")}] for port in self._phy)
+        )
 
     def __str__(self) -> str:
         """打印网络层信息。"""
-        return f"<Switch Layer at 127.0.0.1:{self._port}>"
+        return f"<Switch Layer @{self._port}>"
 
     def send_to_phy(self, binary: str, port: str) -> int:
         """
         向物理层发送消息。
 
         Args:
-            binary: 要发的消息（01序列）。
+            binary: 要发的消息。（01字符串）
             port: 信息要送到的本地物理层端口。
 
         Returns:
             总共发送的字节数。
         """
         return self._send(string_to_bits(binary), port)
+
+    def broadcast(self, binary: str, port: str) -> str:
+        """
+        向所有物理层发送消息，除了传入的特殊端口。
+
+        Args:
+            binary: 要发的消息。（01字符串）
+            port: 该次不向其广播的端口号。
+
+        Returns:
+            发送到的端口列表。
+        """
+        targets = list(filter(lambda phy: phy != port, self._phy))
+        for phy in targets:
+            self.send_to_phy(binary, phy)
+
+        return f"[{' '.join(targets)}]"
 
     def receive_from_phy(self) -> tuple[str, str, bool]:
         """

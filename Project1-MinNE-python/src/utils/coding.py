@@ -104,7 +104,7 @@ def encode_file(filepath: str) -> str:
     return "".join(str(bin(ord(char)))[2:].zfill(8) for char in secret)
 
 
-def decode_file(binary: str) -> bytes:
+def decode_file(binary: str) -> tuple[bytes, bool]:
     """
     将01字符串解码为文件。
 
@@ -112,15 +112,17 @@ def decode_file(binary: str) -> bytes:
         binary: 要解码的01字符串。
 
     Returns:
-        解码所得的文件的字节串。
+        一个二元元组。
+        - [0] 解码所得的文件的字节串。
+        - [1] 是否成功解码，成功为True，失败为False。
     """
     try:
-        img_bytes = base64.b64decode(
+        data = base64.b64decode(
             "".join([chr(int(char, 2)) for char in re.findall(".{8}", binary)]).encode(
                 "utf-8"
             )
         )
     except Exception:
-        return b""
+        return b"", False
     else:
-        return img_bytes
+        return data, True

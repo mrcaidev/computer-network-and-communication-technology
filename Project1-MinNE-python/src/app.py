@@ -1,12 +1,18 @@
-import os
 import sys
 
 from layer import AppLayer
 from utils import *
 
 if __name__ == "__main__":
-    # 创建应用层。
-    app = AppLayer(sys.argv[1])
+    # 解析参数。
+    if len(sys.argv) != 2:
+        print("[Error] Device ID expected.")
+        exit(-1)
+
+    # 创建主机应用层。
+    device_id = sys.argv[1]
+    app = AppLayer(device_id)
+    print(app)
 
     # 开始运作。
     while True:
@@ -14,56 +20,47 @@ if __name__ == "__main__":
         mode = app.receive_from_user(InputType.MODE)
         app.send_to_net(mode)
 
-        # 如果要退出程序，就跳出循环。
+        # 如果要退出程序。
         if mode == Mode.QUIT:
             break
 
-        # 如果要接收消息，就读取后打印。
+        # 如果要接收消息。
         elif mode == Mode.RECEIVE:
             # 接收消息类型和消息本体。
             msgtype = app.receive_from_net()
             message = app.receive_from_net()
-
-            # 呈现字符串。
+            # 如果收到的是文本。
             if msgtype == MessageType.TEXT:
                 text = decode_text(message)
-                app.send_to_user(f"[Log] Received text: {text}")
-
-            # 呈现文件。
+                print(f"[Log] Received text: {text}")
+            # 如果收到的是文件。
             elif msgtype == MessageType.FILE:
-                result = decode_file(message)
-                if result == b"":
-                    app.send_to_user("[Log] Failed to decode file.")
+                # 如果解码失败，就报错。
+                file, decoded = decode_file(message)
+                if not decoded:
+                    print("[Warning] Failed to decode file.")
+                    continue
+                # 如果保存失败，就报错。
+                saved = save_file(file)
+                if not saved:
+                    print("[Warning] Failed to save file.")
                 else:
-                    try:
-                        with open(
-                            os.path.join(app.rootdir, File.RSC_DIR, "received.png"),
-                            mode="wb",
-                        ) as fw:
-                            fw.write(result)
-                    except Exception:
-                        app.send_to_user("[Warning] Received picture: Failed to save.")
-                    else:
-                        app.send_to_user(
-                            "[Log] Received picture: Saved under /resource."
-                        )
-            continue
+                    print(f"[Log] File Saved under {File.RSC_DIR}.")
 
-        # 如果要单播，就输入目的端口。
-        elif mode == Mode.UNICAST:
-            destination = app.receive_from_user(InputType.PORT)
-            app.send_to_net(destination)
-
-        # 询问消息类型。
-        msgtype = app.receive_from_user(InputType.MSGTYPE)
-        app.send_to_net(msgtype)
-
-        # 如果要发送文本。
-        if msgtype == MessageType.TEXT:
-            text = app.receive_from_user(InputType.TEXT)
-            app.send_to_net(encode_text(text))
-
-        # 如果要发送图片。
+        # 如果要发送消息。
         else:
-            filepath = app.receive_from_user(InputType.FILE)
-            app.send_to_net(encode_file(filepath))
+            # 如果要单播，就要额外输入并发送目的端口。
+            if mode == Mode.UNICAST:
+                dst = app.receive_from_user(InputType.PORT)
+                app.send_to_net(dst)
+            # 发送消息类型。
+            msgtype = app.receive_from_user(InputType.MSGTYPE)
+            app.send_to_net(msgtype)
+            # 如果发送的是文本。
+            if msgtype == MessageType.TEXT:
+                text = app.receive_from_user(InputType.TEXT)
+                app.send_to_net(encode_text(text))
+            # 如果发送的是图片。
+            else:
+                file = app.receive_from_user(InputType.FILE)
+                app.send_to_net(encode_file(file))

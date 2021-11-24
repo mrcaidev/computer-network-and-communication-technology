@@ -3,6 +3,7 @@ from select import select
 
 from utils.coding import bits_to_string, string_to_bits
 from utils.constant import Network, Topology
+from utils.io import get_device_map
 
 from layer._abstract import AbstractLayer
 
@@ -29,10 +30,10 @@ class RouterTable(dict[str, Path]):
     - 值：到达目的路由器的最佳路径。
     """
 
-    def __init__(self, port: str) -> None:
+    def __init__(self) -> None:
         """初始化路由表。"""
         super().__init__()
-        self._port = port
+        self._port = "Lately covered by AbstractLayer."
 
     def __str__(self) -> str:
         """打印路由表。"""
@@ -82,7 +83,7 @@ class RouterTable(dict[str, Path]):
 
     def initialize(self, initializer: dict[str, dict]) -> str:
         """
-        从JSON文件初始化路由表周围环境。
+        初始化路由表周围环境。
 
         Args:
             initializer: 用于初始化环境的字典，键值对格式如下：
@@ -199,7 +200,7 @@ class RouterTable(dict[str, Path]):
             return self[app_router]
 
 
-class RouterLayer(AbstractLayer, RouterTable):
+class RouterLayer(RouterTable, AbstractLayer):
     """路由器网络层。"""
 
     def __init__(self, device_id: str) -> None:
@@ -209,19 +210,24 @@ class RouterLayer(AbstractLayer, RouterTable):
         Args:
             device_id: 设备号。
         """
-        config = AbstractLayer.get_config(device_id)
+        # 初始化路由表。
+        RouterTable.__init__(self)
+
+        # 初始化套接字。
+        config = get_device_map(device_id)
         AbstractLayer.__init__(self, config["net"])
-        RouterTable.__init__(self, config["net"])
         self._phy = config["phy"]
-        print("Router".center(30, "-"))
-        print(f"Net port: {self._port}\nNet port: {self._phy}")
+
+    def __str__(self) -> str:
+        """打印网络层信息。"""
+        return f"<Router Layer @{self._port}>"
 
     def send_to_phy(self, binary: str, port: str) -> int:
         """
         向物理层发送消息。
 
         Args:
-            binary: 要发的消息（01序列）。
+            binary: 要发的消息。（01字符串）
             port: 信息要送到的本地物理层端口。
 
         Returns:

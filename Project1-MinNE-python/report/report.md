@@ -369,7 +369,7 @@ class Frame:
     pass
 
   def read(self, ...):
-    """将01序列解析为帧。"""
+    """将01字符串解析为帧。"""
     pass
 
   def __extract_message(...):

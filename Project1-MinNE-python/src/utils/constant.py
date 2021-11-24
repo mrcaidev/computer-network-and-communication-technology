@@ -1,10 +1,13 @@
 class File:
     """目录与文件。"""
 
-    RSC_DIR = "resource"
     CONFIG_DIR = "config"
-    PORT_MAP = "port_mapping.json"
+    LOG_DIR = "log"
+    RSC_DIR = "resource"
+    DEVICE_MAP = "device_map.json"
     ROUTER_ENV = "router_env.json"
+    LOG = "log.txt"
+    LOG_TIME = "datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]"
 
 
 class FramePack:

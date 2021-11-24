@@ -1,6 +1,5 @@
-import os
-
-from utils.constant import File, InputType, MessageType, Mode, Network
+from utils.constant import InputType, MessageType, Mode, Network
+from utils.io import get_device_map, search_rsc
 
 from layer._abstract import AbstractLayer
 
@@ -8,22 +7,20 @@ from layer._abstract import AbstractLayer
 class AppLayer(AbstractLayer):
     """主机应用层。"""
 
-    def __init__(self, device_id: int) -> None:
+    def __init__(self, device_id: str) -> None:
         """
         初始化应用层。
 
         Args:
             device_id: 设备号。
         """
-        config = super().get_config(device_id)
+        config = get_device_map(device_id)
         super().__init__(config["app"])
         self._net = config["net"]
-        print("App".center(30, "-"))
-        print(f"App port: {self._port}\nNet port: {self._net}")
 
     def __str__(self) -> str:
         """打印应用层信息。"""
-        return f"<App Layer at 127.0.0.1:{self._port} {{Net:{self._net}}}>"
+        return f"<App Layer @{self._port}>"
 
     def receive_from_net(self) -> str:
         """
@@ -32,9 +29,11 @@ class AppLayer(AbstractLayer):
         Returns:
             接收到的消息。
         """
-        port = "-1"
+        # 保证消息来自网络层。
+        port = None
         while port != self._net:
             message, port, _ = self._receive(bufsize=Network.IN_NE_BUFSIZE)
+
         return message
 
     def send_to_net(self, message: str) -> int:
@@ -49,7 +48,8 @@ class AppLayer(AbstractLayer):
         """
         return self._send(message, self._net)
 
-    def receive_from_user(self, input_type: InputType) -> str:
+    @classmethod
+    def receive_from_user(cls, input_type: InputType) -> str:
         """
         从用户键盘输入接收消息。
 
@@ -73,19 +73,11 @@ class AppLayer(AbstractLayer):
         elif input_type == InputType.TEXT:
             return AppLayer._get_text_from_user()
         elif input_type == InputType.FILE:
-            return AppLayer._get_filename_from_user()
+            return AppLayer._get_file_from_user()
         else:
             return ""
 
-    def send_to_user(self, message: str) -> None:
-        """
-        终端打印消息。
-
-        Args:
-            message: 要打印的消息。
-        """
-        print(message)
-
+    @staticmethod
     def _get_mode_from_user() -> str:
         """
         从用户键盘输入获取当前工作模式。
@@ -107,6 +99,7 @@ class AppLayer(AbstractLayer):
             else:
                 print("[Warning] Invalid mode.")
 
+    @staticmethod
     def _get_port_from_user() -> str:
         """
         从用户键盘输入获取端口号。
@@ -128,6 +121,7 @@ class AppLayer(AbstractLayer):
                 else:
                     print("[Warning] Port should fall between 1 and 65535.")
 
+    @staticmethod
     def _get_msgtype_from_user() -> str:
         """
         从用户键盘输入获取要发送的消息类型。
@@ -145,6 +139,7 @@ class AppLayer(AbstractLayer):
             else:
                 print("[Warning] Invalid message type!")
 
+    @staticmethod
     def _get_text_from_user() -> str:
         """
         从用户键盘输入获取要发送的消息。
@@ -158,7 +153,8 @@ class AppLayer(AbstractLayer):
             if message != "":
                 return message
 
-    def _get_filename_from_user() -> str:
+    @staticmethod
+    def _get_file_from_user() -> str:
         """
         从用户键盘输入获取要发送的文件名。
 
@@ -167,14 +163,9 @@ class AppLayer(AbstractLayer):
         """
         print("Input file name: (i.e. foo.png)")
         while True:
-            # 获取图片文件名。
             filename = input(">>> ")
-            filepath = os.path.join(
-                os.path.dirname(os.getcwd()), File.RSC_DIR, filename
-            )
-
-            # 检查是否有该文件。
-            if os.path.exists(filepath):
+            filepath = search_rsc(filename)
+            if filepath != None:
                 return filepath
             else:
                 print(f"[Warning] {filepath} not found.")

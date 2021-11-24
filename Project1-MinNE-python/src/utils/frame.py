@@ -47,7 +47,7 @@ class Frame:
 
     @property
     def binary(self) -> str:
-        """将帧对应的01序列设为只读。"""
+        """将帧对应的01字符串设为只读。"""
         return self.__binary
 
     @property
@@ -77,7 +77,7 @@ class Frame:
         self.__crc = Frame.__generate_crc(crc_target)
         self.__verified = True
 
-        # 生成01序列。
+        # 生成01字符串。
         self.__binary = Frame.__add_locator(
             f"{crc_target}{dec_to_bin(self.__crc, FramePack.CRC_LEN)}"
         )
@@ -85,10 +85,10 @@ class Frame:
 
     def read(self, binary: str) -> None:
         """
-        读入01序列，解析为帧。
+        读入01字符串，解析为帧。
 
         Args:
-            binary: 物理层中传输的01序列字符串。
+            binary: 物理层中传输的01字符串字符串。
         """
         message, extracted = Frame.__extract_message(binary)
 
@@ -115,10 +115,10 @@ class Frame:
 
     def __extract_message(binary: str) -> tuple[str, bool]:
         """
-        从有干扰的01序列中提取帧序列。
+        从有干扰的01字符串中提取帧序列。
 
         Args:
-            binary: 物理层中传输的01序列字符串。
+            binary: 物理层中传输的01字符串字符串。
 
         Returns:
             一个二元元组。
@@ -158,13 +158,13 @@ class Frame:
 
     def __add_locator(binary: str) -> str:
         """
-        变换01序列，并加上定位串。
+        变换01字符串，并加上定位串。
 
         Args:
-            binary: 待操作的01序列，包含帧内的所有信息。
+            binary: 待操作的01字符串，包含帧内的所有信息。
 
         Returns:
-            加上定位串后的01序列。
+            加上定位串后的01字符串。
         """
         # 变换，在连续的5个`1`之后添加1个`0`。
         cur = binary.find(FramePack.SUSPICIOUS)
@@ -179,7 +179,7 @@ class Frame:
         生成CRC校验码。
 
         Args:
-            binary: 要对其生成CRC校验码的01序列。
+            binary: 要对其生成CRC校验码的01字符串。
 
         Returns:
             16位CRC校验码，以十进制整型形式返回。
