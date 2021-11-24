@@ -3,7 +3,7 @@ from select import select
 
 from utils.coding import bits_to_string, string_to_bits
 from utils.constant import Network, Topology
-from utils.io import get_device_map
+from utils.io import get_device_map, get_router_env
 
 from layer._abstract import AbstractLayer
 
@@ -217,6 +217,7 @@ class RouterLayer(RouterTable, AbstractLayer):
         config = get_device_map(device_id)
         AbstractLayer.__init__(self, config["net"])
         self._phy = config["phy"]
+        self.initialize(get_router_env(device_id))
 
     def __str__(self) -> str:
         """打印网络层信息。"""

@@ -16,9 +16,6 @@ if __name__ == "__main__":
     router = RouterLayer(device_id)
     print(router)
 
-    # 初始化路由表。
-    router.initialize(get_router_env(device_id))
-
     # 开始运作。
     while True:
         # 如果没有消息到达，就继续select。
