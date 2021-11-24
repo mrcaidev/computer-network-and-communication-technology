@@ -60,7 +60,7 @@ if __name__ == "__main__":
                 if start_timing_flag:
                     start_time = time()
                     start_timing_flag = False
-                    print(f"[Log] Started: {eval(File.LOG_TIME)}")
+                    print(f"[Log] Started: {eval(File.FULL_TIME)}")
 
                 # 解析接收到的帧。
                 recv_frame = Frame()
@@ -133,7 +133,7 @@ if __name__ == "__main__":
             net.send_to_app(recv_message)
 
             # 计算网速。
-            print(f"[Log] Finished: {eval(File.LOG_TIME)}")
+            print(f"[Log] Finished: {eval(File.FULL_TIME)}")
             end_time = time()
             speed = 16 * len(recv_message) / (end_time - start_time)
             print(f"[Log] Receiving speed: {round(speed, 1)}bps")
@@ -183,7 +183,7 @@ if __name__ == "__main__":
 
             # 逐帧发送。
             send_cnt, timeout_cnt = 0, 0
-            print(f"[Log] Started: {eval(File.LOG_TIME)}")
+            print(f"[Log] Started: {eval(File.FULL_TIME)}")
             start_time = time()
             while True:
                 # 向物理层发送消息。
@@ -240,7 +240,7 @@ if __name__ == "__main__":
             del send_frames
 
             # 计算网速。
-            print(f"[Log] Finished: {eval(File.LOG_TIME)}")
+            print(f"[Log] Finished: {eval(File.FULL_TIME)}")
             end_time = time()
             speed = 16 * len(app_message) / (end_time - start_time)
             print(f"[Log] Sending speed: {round(speed, 1)}bps")

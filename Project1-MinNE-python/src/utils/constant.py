@@ -7,7 +7,8 @@ class File:
     DEVICE_MAP = "device_map.json"
     ROUTER_ENV = "router_env.json"
     LOG = "log.txt"
-    LOG_TIME = "datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]"
+    FULL_TIME = "datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]"
+    ABBR_TIME = "datetime.now().strftime('%H-%M-%S')"
 
 
 class FramePack:

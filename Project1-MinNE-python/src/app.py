@@ -38,14 +38,14 @@ if __name__ == "__main__":
                 # 如果解码失败，就报错。
                 file, decoded = decode_file(message)
                 if not decoded:
-                    print("[Warning] Failed to decode file.")
+                    print("[Warning] Failed to decode file")
                     continue
                 # 如果保存失败，就报错。
-                saved = save_file(file)
+                filepath, saved = save_file(file)
                 if not saved:
-                    print("[Warning] Failed to save file.")
+                    print("[Warning] Failed to save file")
                 else:
-                    print(f"[Log] File Saved under {File.RSC_DIR}.")
+                    print(f"[Log] File Saved as {filepath}")
 
         # 如果要发送消息。
         else:

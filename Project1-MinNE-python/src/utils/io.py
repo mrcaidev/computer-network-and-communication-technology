@@ -40,7 +40,7 @@ def log(src: str, message: str) -> bool:
         with open(
             os.path.join(log_dir, f"{src}.log"), mode="a", encoding="utf-8"
         ) as fa:
-            fa.write(f"[{eval(File.LOG_TIME)}] {message}\n")
+            fa.write(f"[{eval(File.FULL_TIME)}] {message}\n")
     except FileNotFoundError:
         return False
     else:
@@ -133,7 +133,7 @@ def search_rsc(filename: str) -> str:
     return filepath if os.path.exists(filepath) else None
 
 
-def save_file(data: bytes) -> bool:
+def save_file(data: bytes) -> tuple[str, bool]:
     """
     保存文件至资源目录。
 
@@ -143,10 +143,11 @@ def save_file(data: bytes) -> bool:
     Returns:
         是否成功保存，成功为True，失败为False。
     """
+    filepath = os.path.join(rsc_dir, f"received-{eval(File.ABBR_TIME)}.png")
     try:
-        with open(os.path.join(File.RSC_DIR, "received.png"), mode="wb") as fw:
+        with open(filepath, "wb") as fw:
             fw.write(data)
     except Exception:
-        return False
+        return "", False
     else:
-        return True
+        return filepath, True
