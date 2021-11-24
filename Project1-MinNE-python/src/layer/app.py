@@ -1,3 +1,5 @@
+from re import fullmatch
+
 from utils.constant import InputType, MessageType, Mode, Network
 from utils.io import get_device_map, search_rsc
 
@@ -14,13 +16,14 @@ class AppLayer(AbstractLayer):
         Args:
             device_id: 设备号。
         """
+        self._device_id = device_id
         config = get_device_map(device_id)
         super().__init__(config["app"])
         self._net = config["net"]
 
     def __str__(self) -> str:
         """打印应用层信息。"""
-        return f"<App Layer @{self._port}>"
+        return f"[Device {self._device_id}] <App Layer @{self._port}>"
 
     def receive_from_net(self) -> str:
         """
@@ -48,15 +51,14 @@ class AppLayer(AbstractLayer):
         """
         return self._send(message, self._net)
 
-    @classmethod
-    def receive_from_user(cls, input_type: InputType) -> str:
+    def receive_from_user(self, input_type: InputType) -> str:
         """
         从用户键盘输入接收消息。
 
         Args:
             input_type: 用户输入的分类，包括下列五种：
             - `utils.constant.InputType.MODE`：网元模式。
-            - `utils.constant.InputType.PORT`：端口号。
+            - `utils.constant.InputType.DST`：目标应用层端口号。
             - `utils.constant.InputType.MSGTYPE`：要发送的消息类型。
             - `utils.constant.InputType.TEXT`：要发送的消息。
             - `utils.constant.InputType.FILE`：要发送的文件名。
@@ -66,8 +68,8 @@ class AppLayer(AbstractLayer):
         """
         if input_type == InputType.MODE:
             return AppLayer._get_mode_from_user()
-        elif input_type == InputType.PORT:
-            return AppLayer._get_port_from_user()
+        elif input_type == InputType.DST:
+            return self._get_dst_from_user()
         elif input_type == InputType.MSGTYPE:
             return AppLayer._get_msgtype_from_user()
         elif input_type == InputType.TEXT:
@@ -99,27 +101,28 @@ class AppLayer(AbstractLayer):
             else:
                 print("[Warning] Invalid mode.")
 
-    @staticmethod
-    def _get_port_from_user() -> str:
+    def _get_dst_from_user(self) -> str:
         """
-        从用户键盘输入获取端口号。
+        从用户键盘输入获取目的应用层端口号。
 
         Returns:
-            在[1, 65535]区间内的端口号。
+            目的应用层端口号。
         """
-        print("Input destination port:")
+        print("Input destination device ID:")
         while True:
-            port = input(">>> ")
-            try:
-                port_num = int(port)
-            except Exception:
-                print("[Warning] Port should be an integer.")
+            device_id = input(">>> ")
+
+            # 只能输入1-9间的整数。
+            if not fullmatch(r"[1-9]", device_id):
+                print("[Warning] ID should be an integer between 1 and 9.")
                 continue
-            else:
-                if 1 <= port_num <= 65535:
-                    return port
-                else:
-                    print("[Warning] Port should fall between 1 and 65535.")
+
+            # 不能输入本机设备号。
+            if device_id == self._device_id:
+                print("[Warning] This is my ID.")
+                continue
+
+            return f"1{device_id}300"
 
     @staticmethod
     def _get_msgtype_from_user() -> str:

@@ -17,6 +17,7 @@ class NetLayer(AbstractLayer):
         Args:
             device_id: 设备号。
         """
+        self._device_id = device_id
         config = get_device_map(device_id)
         super().__init__(config["net"])
         self._app = config["app"]
@@ -24,7 +25,7 @@ class NetLayer(AbstractLayer):
 
     def __str__(self) -> str:
         """打印网络层信息。"""
-        return f"<Net Layer @{self._port}>"
+        return f"[Device {self._device_id}] <Net Layer @{self._port}>"
 
     @property
     def app(self) -> str:

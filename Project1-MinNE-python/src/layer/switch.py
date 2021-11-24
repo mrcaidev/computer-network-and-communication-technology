@@ -111,22 +111,21 @@ class SwitchLayer(SwitchTable, AbstractLayer):
         Args:
             device_id: 设备号。
         """
-        # 初始化端口地址表。
-        SwitchTable.__init__(self)
-
         # 初始化套接字。
+        self._device_id = device_id
         config = get_device_map(device_id)
         AbstractLayer.__init__(self, config["net"])
         self._phy = config["phy"]
 
-        # 将所有物理层对应的广播关系设为无限寿命。
+        # 初始化端口地址表。
+        SwitchTable.__init__(self)
         self.update(
             dict([port, {Topology.BROADCAST_PORT: float("inf")}] for port in self._phy)
         )
 
     def __str__(self) -> str:
         """打印网络层信息。"""
-        return f"<Switch Layer @{self._port}>"
+        return f"[Device {self._device_id}] <Switch Layer @{self._port}>"
 
     def send_to_phy(self, binary: str, port: str) -> int:
         """

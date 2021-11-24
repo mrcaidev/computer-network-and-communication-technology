@@ -51,7 +51,7 @@ if __name__ == "__main__":
         else:
             # 如果要单播，就要额外输入并发送目的端口。
             if mode == Mode.UNICAST:
-                dst = app.receive_from_user(InputType.PORT)
+                dst = app.receive_from_user(InputType.DST)
                 app.send_to_net(dst)
             # 发送消息类型。
             msgtype = app.receive_from_user(InputType.MSGTYPE)

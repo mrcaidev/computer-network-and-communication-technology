@@ -83,15 +83,17 @@ def get_device_map(device_id: str) -> dict:
         exit(-1)
 
 
-def get_router_env(device_id: str) -> dict[str, dict]:
+def get_router_env(port: str) -> dict[str, dict]:
     """
     获取配置文件内的初始路由表。
 
     Args:
-        device_id: 设备号。
+        port: 路由器网络层端口号。
 
     Returns:
-        包含该设备配置的字典，键在下列三个字段中取：
+        包含路由表初始值的字典，键值对格式如下：
+        - 键：相邻路由器的网络层端口号。
+        - 值：
         - "app": 该设备的应用层端口号。
         - "net": 该设备的网络层端口号。
         - "phy": 该设备的物理层端口号。
@@ -102,11 +104,11 @@ def get_router_env(device_id: str) -> dict[str, dict]:
         with open(filepath, "r", encoding="utf-8") as fr:
             # 读取初始路由表。
             try:
-                env: dict = loads(fr.read())[device_id]
+                env: dict = loads(fr.read())[port]
 
             # 如果配置读取出错，就报错退出。
             except KeyError:
-                print(f"[Error] Wrong device id: {device_id}.")
+                print(f"[Error] Wrong device id: {port}.")
                 exit(-1)
 
             # 如果配置读取成功，就返回配置。

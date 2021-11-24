@@ -33,7 +33,7 @@ class InputType:
     """用户输入类型。"""
 
     MODE = 1
-    PORT = 2
+    DST = 2
     MSGTYPE = 3
     TEXT = 4
     FILE = 5

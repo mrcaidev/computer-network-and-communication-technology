@@ -30,10 +30,11 @@ class RouterTable(dict[str, Path]):
     - 值：到达目的路由器的最佳路径。
     """
 
-    def __init__(self) -> None:
+    def __init__(self, device_id: str) -> None:
         """初始化路由表。"""
         super().__init__()
-        self._port = "Lately covered by AbstractLayer."
+        self._device_id = device_id
+        self.initialize(get_router_env(self._device_id))
 
     def __str__(self) -> str:
         """打印路由表。"""
@@ -42,7 +43,7 @@ class RouterTable(dict[str, Path]):
             [
                 f"|{dst.center(13)}|{path.next.center(11)}|{path.exit.center(11)}|{str(path.cost).center(6)}|"
                 for dst, path in filter(
-                    lambda item: item[0] != self._port, self.items()
+                    lambda item: item[0] != self._device_id, self.items()
                 )
             ]
         )
@@ -58,7 +59,7 @@ class RouterTable(dict[str, Path]):
         return "|".join(
             f"{dst}:{cost}"
             for dst, cost in filter(
-                lambda item: item[0] != self._port,
+                lambda item: item[0] != self._device_id,
                 [(dst, str(path.cost)) for dst, path in self.items()],
             )
         )
@@ -96,7 +97,7 @@ class RouterTable(dict[str, Path]):
             首先应合并谁的路由表。
         """
         # 到自己的费用始终为0。
-        self[self._port] = Path(next="", exit="", cost=0, optimized=True)
+        self[self._device_id] = Path(next="", exit="", cost=0, optimized=True)
 
         # 依传入的字典逐项初始化。
         min_cost, min_dst = float("inf"), ""
@@ -210,18 +211,17 @@ class RouterLayer(RouterTable, AbstractLayer):
         Args:
             device_id: 设备号。
         """
-        # 初始化路由表。
-        RouterTable.__init__(self)
-
         # 初始化套接字。
         config = get_device_map(device_id)
         AbstractLayer.__init__(self, config["net"])
         self._phy = config["phy"]
-        self.initialize(get_router_env(device_id))
+
+        # 初始化路由表。
+        RouterTable.__init__(self, device_id)
 
     def __str__(self) -> str:
         """打印网络层信息。"""
-        return f"<Router Layer @{self._port}>"
+        return f"[Device {self._device_id}] <Router Layer @{self._port}>"
 
     def send_to_phy(self, binary: str, port: str) -> int:
         """

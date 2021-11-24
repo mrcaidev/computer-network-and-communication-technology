@@ -23,7 +23,7 @@ class AbstractLayer:
 
     def __str__(self) -> str:
         """打印抽象层信息。"""
-        return f"<Abstract Layer at 127.0.0.1:{self._port}>"
+        return f"<Abstract Layer @{self._port}>"
 
     def _send(self, message: str, port: str) -> int:
         """
