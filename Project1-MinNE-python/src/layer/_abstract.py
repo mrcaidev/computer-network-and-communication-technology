@@ -25,7 +25,7 @@ class AbstractLayer:
         try:
             self._socket.bind(("127.0.0.1", int(port)))
         except OSError:
-            print(f"[OS Error] Port {port} is currently occupied.")
+            print(f"[Error] Port {port} is currently occupied.")
             exit(-1)
 
         # 设置默认超时时间。
