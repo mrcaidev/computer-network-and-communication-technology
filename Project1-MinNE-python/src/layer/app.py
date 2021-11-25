@@ -41,7 +41,7 @@ class AppLayer(AbstractLayer):
         try:
             ports = (config["app"], config["net"])
         except KeyError:
-            print(f"[Config Error] Device {self._device_id} layer absence")
+            print(f"[Error] Device {self._device_id} layer absence")
             exit(-1)
         else:
             return ports

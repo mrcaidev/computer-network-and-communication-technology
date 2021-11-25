@@ -6,7 +6,7 @@ from utils import *
 if __name__ == "__main__":
     # 解析参数。
     if len(sys.argv) != 2:
-        print("[Error] Device ID expected.")
+        print("[Error] Device ID expected")
         exit(-1)
 
     # 创建主机应用层。

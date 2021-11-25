@@ -7,7 +7,7 @@ from utils import *
 if __name__ == "__main__":
     # 解析参数。
     if len(sys.argv) != 2:
-        print("[Error] Device ID expected.")
+        print("[Error] Device ID expected")
         exit(-1)
 
     # 创建主机网络层。
@@ -24,7 +24,7 @@ if __name__ == "__main__":
     while True:
         # 网元进入指定模式。
         mode = net.receive_from_app()
-        print(f"[Log] Current Mode: {mode}")
+        print(f"[Log] Current mode: {mode}")
 
         # 如果要退出程序。
         if mode == Mode.QUIT:

@@ -66,12 +66,12 @@ def get_device_map(device_id: str) -> dict:
             try:
                 config: dict = loads(fr.read())[device_id]
             except KeyError:
-                print(f"[Config Error] Device {device_id} absence")
+                print(f"[Error] Device {device_id} absence")
                 exit(-1)
             else:
                 return config
     except FileNotFoundError:
-        print(f"[Config Error] {filepath} not found")
+        print(f"[Error] {filepath} not found")
         exit(-1)
 
 
@@ -96,12 +96,12 @@ def get_router_env(device_id: str) -> dict[str, dict]:
             try:
                 env: dict = loads(fr.read())[device_id]
             except KeyError:
-                print(f"[Config Error] Device {device_id} absence")
+                print(f"[Error] Device {device_id} absence")
                 exit(-1)
             else:
                 return env
     except FileNotFoundError:
-        print(f"[Config Error] {filepath} not found")
+        print(f"[Error] {filepath} not found")
         exit(-1)
 
 
