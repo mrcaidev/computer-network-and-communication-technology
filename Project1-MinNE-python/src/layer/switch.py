@@ -178,7 +178,7 @@ class SwitchLayer(SwitchTable, AbstractLayer):
         """
         return self._send(string_to_bits(binary), port)
 
-    def broadcast(self, binary: str, port: str) -> str:
+    def broadcast_to_phys(self, binary: str, port: str) -> str:
         """向所有物理层广播消息，除了指定的端口。
 
         指定的端口一般是发来消息的端口。
