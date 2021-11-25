@@ -1,17 +1,18 @@
 import base64
 import re
 
+from utils.params import Constant
+
 
 def dec_to_bin(decimal: int, length: int) -> str:
-    """
-    将十进制转换为二进制。
+    """将十进制数转换为二进制原码。
 
     Args:
         decimal: 十进制整型数。
-        length: 转换后的二进制字符串长度。
+        length: 转换后的二进制原码长度。
 
     Returns:
-        二进制字符串。
+        二进制原码。
     """
     if decimal >= 0:
         return bin(decimal)[2:].zfill(length)
@@ -20,14 +21,13 @@ def dec_to_bin(decimal: int, length: int) -> str:
 
 
 def bin_to_dec(binary: str) -> int:
-    """
-    将二进制转换为十进制。
+    """将二进制原码转换为十进制数。
 
     Args:
-        binary: 二进制字符串。
+        binary: 二进制原码。
 
     Returns:
-        十进制整型数。
+        十进制整型数。如果转换出错，就返回0。
     """
     try:
         decimal = int(binary, 2)
@@ -38,8 +38,7 @@ def bin_to_dec(binary: str) -> int:
 
 
 def string_to_bits(string: str) -> str:
-    """
-    将01字符串转换为01比特流。
+    """将01字符串转换为01比特流。
 
     Args:
         string: 01字符串。
@@ -51,8 +50,7 @@ def string_to_bits(string: str) -> str:
 
 
 def bits_to_string(bits: str) -> str:
-    """
-    将01比特流转换为01字符串。
+    """将01比特流转换为01字符串。
 
     Args:
         bits: 01比特流。
@@ -64,8 +62,7 @@ def bits_to_string(bits: str) -> str:
 
 
 def encode_text(string: str) -> str:
-    """
-    将文本编码为01字符串。
+    """将文本编码为01字符串。
 
     Args:
         string: 要编码的文本。
@@ -73,12 +70,13 @@ def encode_text(string: str) -> str:
     Returns:
         编码所得的01字符串。
     """
-    return "".join(str(bin(ord(char)))[2:].zfill(16) for char in string)
+    return "".join(
+        str(bin(ord(char)))[2:].zfill(Constant.BITS_PER_UNICODE) for char in string
+    )
 
 
 def decode_text(binary: str) -> str:
-    """
-    将01字符串解码为文本。
+    """将01字符串解码为文本。
 
     Args:
         binary: 要解码的01字符串。
@@ -86,12 +84,16 @@ def decode_text(binary: str) -> str:
     Returns:
         解码所得的文本。
     """
-    return "".join([chr(int(char, 2)) for char in re.findall(".{16}", binary)])
+    return "".join(
+        [
+            chr(int(char, 2))
+            for char in re.findall(f".{{{Constant.BITS_PER_UNICODE}}}", binary)
+        ]
+    )
 
 
 def encode_file(filepath: str) -> str:
-    """
-    将文件编码为01字符串。
+    """将文件编码为01字符串。
 
     Args:
         filename: 要编码的文件的绝对路径。
@@ -101,12 +103,13 @@ def encode_file(filepath: str) -> str:
     """
     with open(filepath, mode="rb") as fr:
         secret = base64.b64encode(fr.read()).decode("utf-8")
-    return "".join(str(bin(ord(char)))[2:].zfill(8) for char in secret)
+    return "".join(
+        str(bin(ord(char)))[2:].zfill(Constant.BITS_PER_ASCII) for char in secret
+    )
 
 
 def decode_file(binary: str) -> tuple[bytes, bool]:
-    """
-    将01字符串解码为文件。
+    """将01字符串解码为文件。
 
     Args:
         binary: 要解码的01字符串。
@@ -114,13 +117,16 @@ def decode_file(binary: str) -> tuple[bytes, bool]:
     Returns:
         一个二元元组。
         - [0] 解码所得的文件的字节串。
-        - [1] 是否成功解码，成功为True，失败为False。
+        - [1] 是否成功解码，成功为`True`，失败为`False`。
     """
     try:
         data = base64.b64decode(
-            "".join([chr(int(char, 2)) for char in re.findall(".{8}", binary)]).encode(
-                "utf-8"
-            )
+            "".join(
+                [
+                    chr(int(char, 2))
+                    for char in re.findall(f".{{{Constant.BITS_PER_ASCII}}}", binary)
+                ]
+            ).encode("utf-8")
         )
     except Exception:
         return b"", False

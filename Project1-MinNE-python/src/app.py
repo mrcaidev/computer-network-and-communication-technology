@@ -41,7 +41,7 @@ if __name__ == "__main__":
                     print("[Warning] Failed to decode file")
                     continue
                 # 如果保存失败，就报错。
-                filepath, saved = save_file(file)
+                filepath, saved = save_rsc(file)
                 if not saved:
                     print("[Warning] Failed to save file")
                 else:

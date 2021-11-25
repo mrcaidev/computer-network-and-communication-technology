@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from json import loads
 
-from utils.constant import File
+from utils.params import File
 
 # 获取当前目录和上级目录。
 cwd = os.getcwd()
@@ -26,15 +26,14 @@ timezone(timedelta(hours=8))
 
 
 def log(src: str, message: str) -> bool:
-    """
-    记录日志。
+    """记录日志。
 
     Args:
         src: 发起记录请求的来源。
         message: 要记录的信息。
 
     Returns:
-        是否记录成功，成功为True，失败为False。
+        是否记录成功，成功为`True`，失败为`False`。
     """
     try:
         with open(
@@ -48,81 +47,66 @@ def log(src: str, message: str) -> bool:
 
 
 def get_device_map(device_id: str) -> dict:
-    """
-    获取配置文件内的设备端口配置。
+    """获取设备端口配置。
 
     Args:
         device_id: 设备号。
 
     Returns:
-        包含该设备配置的字典，键在下列三个字段中取：
+        设备配置，包括：
         - "app": 该设备的应用层端口号。
         - "net": 该设备的网络层端口号。
         - "phy": 该设备的物理层端口号。
     """
-    # 打开配置文件。
     filepath = os.path.join(config_dir, File.DEVICE_MAP)
+    # 打开配置文件。
     try:
         with open(filepath, "r", encoding="utf-8") as fr:
             # 读取该设备配置。
             try:
                 config: dict = loads(fr.read())[device_id]
-
-            # 如果配置读取出错，就报错退出。
             except KeyError:
-                print(f"[Error] Wrong device id: {device_id}.")
+                print(f"[Config Error] Device {device_id} absence")
                 exit(-1)
-
-            # 如果配置读取成功，就返回配置。
             else:
                 return config
-
-    # 如果找不到配置文件，就报错退出。
     except FileNotFoundError:
-        print(f"[Error] {filepath} not found.")
+        print(f"[Config Error] {filepath} not found")
         exit(-1)
 
 
 def get_router_env(device_id: str) -> dict[str, dict]:
-    """
-    获取配置文件内的初始路由表。
+    """获取路由表周围环境。
 
     Args:
         device_id: 路由器设备号。
 
     Returns:
-        包含路由表初始值的字典，键值对格式如下：
+        路由器周围环境，键值对格式如下：
         - 键：相邻路由器的网络层端口号。
         - 值：到达该路由器的路径信息，包含下列两个键：
-        - "exit": 要到达该路由器，消息应该从哪个本地物理层端口送出。
-        - "cost": 到达该路由器的费用。
+            - "exit": 要到达该路由器，消息应该从哪个本地物理层端口送出。
+            - "cost": 到达该路由器的费用。
     """
-    # 打开配置文件。
     filepath = os.path.join(config_dir, File.ROUTER_ENV)
+    # 打开配置文件。
     try:
         with open(filepath, "r", encoding="utf-8") as fr:
             # 读取初始路由表。
             try:
                 env: dict = loads(fr.read())[device_id]
-
-            # 如果配置读取出错，就报错退出。
             except KeyError:
-                print(f"[Error] Wrong device id: {device_id}.")
+                print(f"[Config Error] Device {device_id} absence")
                 exit(-1)
-
-            # 如果配置读取成功，就返回配置。
             else:
                 return env
-
-    # 如果找不到配置文件，就报错退出。
     except FileNotFoundError:
-        print(f"[Error] {filepath} not found.")
+        print(f"[Config Error] {filepath} not found")
         exit(-1)
 
 
 def search_rsc(filename: str) -> str:
-    """
-    在资源目录下寻找某文件。
+    """在资源目录下寻找某文件。
 
     Args:
         filename: 目标文件名。
@@ -131,18 +115,17 @@ def search_rsc(filename: str) -> str:
         如果存在，则返回该文件的绝对路径；如果不存在，则返回None。
     """
     filepath = os.path.join(rsc_dir, filename)
-    return filepath if os.path.exists(filepath) else None
+    return filepath if os.path.exists(filepath) else ""
 
 
-def save_file(data: bytes) -> tuple[str, bool]:
-    """
-    保存文件至资源目录。
+def save_rsc(data: bytes) -> tuple[str, bool]:
+    """保存文件至资源目录。
 
     Args:
         data: 字节形式的文件内容。
 
     Returns:
-        是否成功保存，成功为True，失败为False。
+        是否成功保存，成功为`True`，失败为`False`。
     """
     filepath = os.path.join(rsc_dir, f"received-{eval(File.ABBR_TIME)}.png")
     try:

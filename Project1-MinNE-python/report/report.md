@@ -161,7 +161,7 @@ Project                       项目一目录
   └─ utils                    自制模块
     ├─ __init__.py            生成模块
     ├─ coding.py              编解码模块
-    ├─ constant.py            常量模块
+    ├─ params.py            常量模块
     ├─ frame.py               帧模块
     └─ layer                  网元各层封装模块
       ├─ __init__.py          生成模块

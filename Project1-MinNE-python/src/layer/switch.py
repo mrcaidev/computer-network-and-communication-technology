@@ -2,21 +2,22 @@ from collections import defaultdict
 from select import select
 
 from utils.coding import bits_to_string, string_to_bits
-from utils.constant import Network, Topology
 from utils.io import get_device_map
+from utils.params import Network, Topology
 
 from layer._abstract import AbstractLayer
 
 
 class SwitchTable:
-    """
-    端口地址表。
+    """端口地址表。
 
-    内部是字典，键值对格式如下：
+    内部是`defaultdict`，键值对格式如下：
     - 键：本地物理层端口号。
-    - 值：远程端口字典，键值对格式如下。
+    - 值：远程端口状态，键值对格式如下：
         - 键：远程应用层端口号。
         - 值：该远程端口号在表内的剩余寿命。
+
+    实现了单播、广播、学习、清除。
     """
 
     def __init__(self) -> None:
@@ -46,15 +47,14 @@ class SwitchTable:
         return f"{head}\n{body}\n{'-'*24}"
 
     def update(self, local: str, remote: str) -> bool:
-        """
-        刷新端口地址表。
+        """更新端口地址表。
 
         Args:
             local: 当前激活的本地端口。
             remote: 当前激活的远程端口。
 
         Returns:
-            端口地址表是否有更新，有为True，没有为False。
+            端口地址表是否有更新，有更新为`True`，没有更新为`False`。
         """
         updated = False
 
@@ -75,7 +75,6 @@ class SwitchTable:
                 else:
                     remotes.update({port: life})
 
-        # 返回是否有端口关系更新。
         return updated
 
     def search_locals(self, remote: str) -> list[str]:
@@ -109,37 +108,69 @@ class SwitchTable:
 
 
 class SwitchLayer(SwitchTable, AbstractLayer):
-    """交换机网络层。"""
+    """交换机网络层。
+
+    实现了交换机网络层-交换机物理层的消息单播、广播和select。
+    """
 
     def __init__(self, device_id: str) -> None:
-        """
-        初始化网络层。
+        """初始化交换机网络层。
+
+        根据交换机设备号，初始化本层的套接字。
 
         Args:
-            device_id: 设备号。
+            device_id: 该交换机的设备号。
         """
         # 初始化套接字。
         self._device_id = device_id
-        config = get_device_map(device_id)
-        AbstractLayer.__init__(self, config["net"])
-        self._phy = config["phy"]
+        self.__port, self.__phys = self.__get_switch_map()
+        AbstractLayer.__init__(self, self.__port)
 
         # 初始化端口地址表。
         SwitchTable.__init__(self)
         self._table.update(
-            dict([port, {Topology.BROADCAST_PORT: float("inf")}] for port in self._phy)
+            dict([phy, {Topology.BROADCAST_PORT: float("inf")}] for phy in self.__phys)
         )
 
     def __str__(self) -> str:
-        """打印网络层信息。"""
-        return f"[Device {self._device_id}] <Switch Layer @{self._port}>"
+        """打印设备号与端口号。"""
+        return f"[Device {self._device_id}] <Switch Layer @{self.__port}>"
+
+    def __get_switch_map(self) -> tuple[str, list[str]]:
+        """获取端口号。
+
+        从配置文件内读取该交换机的网络层、物理层端口号。
+
+        Returns:
+            - [0] 网络层端口号。
+            - [1] 物理层端口号列表。
+        """
+        config = get_device_map(self._device_id)
+        try:
+            ports = (config["net"], config["phy"])
+        except KeyError:
+            print(f"[Config Error] Device {self._device_id} layer absence")
+            exit(-1)
+        else:
+            return ports
+
+    def receive_from_phys(self) -> tuple[str, str, bool]:
+        """接收来自交换机物理层的消息。
+
+        Returns:
+            - [0] 接收到的01字符串。
+            - [1] 发来消息的本地物理层端口。
+            - [2] 是否接收成功，成功为`True`，失败为`False`。
+        """
+        binary, port, success = self._receive()
+        binary = bits_to_string(binary) if success else binary
+        return binary, port, success
 
     def send_to_phy(self, binary: str, port: str) -> int:
-        """
-        向物理层发送消息。
+        """向指定物理层发送消息。
 
         Args:
-            binary: 要发的消息。（01字符串）
+            binary: 要发的01字符串。
             port: 信息要送到的本地物理层端口。
 
         Returns:
@@ -148,45 +179,33 @@ class SwitchLayer(SwitchTable, AbstractLayer):
         return self._send(string_to_bits(binary), port)
 
     def broadcast(self, binary: str, port: str) -> str:
-        """
-        向所有物理层发送消息，除了传入的特殊端口。
+        """向所有物理层广播消息，除了指定的端口。
+
+        指定的端口一般是发来消息的端口。
 
         Args:
-            binary: 要发的消息。（01字符串）
-            port: 该次不向其广播的端口号。
+            binary: 要发的01字符串。
+            port: 指定的端口号。
 
         Returns:
-            发送到的端口列表。
+            发送到的端口列表字符串。
         """
-        targets = list(filter(lambda phy: phy != port, self._phy))
-        for phy in targets:
-            self.send_to_phy(binary, phy)
-
-        return f"[{' '.join(targets)}]"
-
-    def receive_from_phy(self) -> tuple[str, str, bool]:
-        """
-        从物理层接收消息。
-
-        Returns:
-            一个三元元组。
-            - [0] 接收到的消息。
-            - [1] 消息来自的本地物理层端口。
-            - [2] 是否接收成功，成功为True，失败为False。
-        """
-        binary, port, success = self._receive()
-        binary = bits_to_string(binary) if success else binary
-        return binary, port, success
+        target_phys = list(filter(lambda phy: phy != port, self.__phys))
+        for phy in target_phys:
+            _ = self._send(string_to_bits(binary), phy)
+        return f"[{' '.join(target_phys)}]"
 
     def has_message(self) -> bool:
-        """
-        检测本层套接字是否有可读消息。
+        """检测是否有消息发到本层。
+
+        使用`select()`方法检测本层套接字可读性。
 
         Returns:
-            可读为True，不可读为False。
+            可读为`True`，不可读为`False`。
         """
         ready_sockets, _, _ = select([self._socket], [], [], Network.SELECT_TIMEOUT)
         return len(ready_sockets) != 0
 
-    def print_table(self) -> None:
+    def show_table(self) -> None:
+        """打印端口地址表。"""
         print(SwitchTable.__str__(self))

@@ -23,6 +23,6 @@ if __name__ == "__main__":
             continue
 
         # 读取消息。
-        binary, _ = router.receive_from_phy()
+        binary, _ = router.receive_from_phys()
         frame = Frame()
         frame.read(binary)

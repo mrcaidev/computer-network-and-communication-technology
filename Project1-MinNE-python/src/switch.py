@@ -21,13 +21,13 @@ if __name__ == "__main__":
             continue
 
         # 读取消息。
-        binary, in_port, _ = switch.receive_from_phy()
+        binary, in_port, _ = switch.receive_from_phys()
         frame = Frame()
         frame.read(binary)
 
         # 刷新端口地址表。
         if switch.update(local=in_port, remote=frame.src):
-            switch.print_table()
+            switch.show_table()
 
         # 查找应该从哪个端口送出。
         out_ports = switch.search_locals(frame.dst)

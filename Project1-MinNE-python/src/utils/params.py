@@ -1,3 +1,10 @@
+class Constant:
+    """常数。"""
+
+    BITS_PER_ASCII = 8
+    BITS_PER_UNICODE = 16
+
+
 class File:
     """目录与文件。"""
 
@@ -62,6 +69,7 @@ class Network:
 
     INTER_NE_BUFSIZE = 1024
     IN_NE_BUFSIZE = 8 * 1024 * 1024
+    MESSAGE_MAX_LEN = IN_NE_BUFSIZE // Constant.BITS_PER_UNICODE
 
     USER_TIMEOUT = 180
     SELECT_TIMEOUT = 0.5

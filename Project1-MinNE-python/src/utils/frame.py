@@ -1,5 +1,5 @@
 from utils.coding import bin_to_dec, dec_to_bin
-from utils.constant import FramePack
+from utils.params import FramePack
 
 
 class Frame:
@@ -56,8 +56,7 @@ class Frame:
         return self.__length
 
     def write(self, info: dict) -> None:
-        """
-        将信息写入帧。
+        """将信息写入帧。
 
         Args:
             info: 包含帧信息的字典，必须包含以下几个键：
@@ -84,11 +83,10 @@ class Frame:
         self.__length = len(self.__binary)
 
     def read(self, binary: str) -> None:
-        """
-        读入01字符串，解析为帧。
+        """读入01字符串，解析为帧。
 
         Args:
-            binary: 物理层中传输的01字符串字符串。
+            binary: 物理层中传输的01字符串。
         """
         message, extracted = Frame.__extract_message(binary)
 
@@ -114,8 +112,7 @@ class Frame:
         self.__length = len(message) + 2 * FramePack.LOCATOR_LEN
 
     def __extract_message(binary: str) -> tuple[str, bool]:
-        """
-        从有干扰的01字符串中提取帧序列。
+        """从有干扰的01字符串中提取帧序列。
 
         Args:
             binary: 物理层中传输的01字符串字符串。
@@ -123,7 +120,7 @@ class Frame:
         Returns:
             一个二元元组。
             - [0] 提取的帧序列。
-            - [1] 是否提取成功，成功为True，失败为False。
+            - [1] 是否提取成功，成功为`True`，失败为`False`。
         """
         message = ""
         start = binary.find(FramePack.LOCATOR)
@@ -157,8 +154,7 @@ class Frame:
         return FramePack.EMPTY_FRAME, False
 
     def __add_locator(binary: str) -> str:
-        """
-        变换01字符串，并加上定位串。
+        """变换01字符串，并加上定位串。
 
         Args:
             binary: 待操作的01字符串，包含帧内的所有信息。
@@ -175,8 +171,7 @@ class Frame:
         return f"{FramePack.LOCATOR}{binary}{FramePack.LOCATOR}"
 
     def __generate_crc(binary: str) -> int:
-        """
-        生成CRC校验码。
+        """生成CRC校验码。
 
         Args:
             binary: 要对其生成CRC校验码的01字符串。

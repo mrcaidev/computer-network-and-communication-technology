@@ -67,7 +67,7 @@ if __name__ == "__main__":
                 recv_frame.read(phy_message)
 
                 # 如果帧不是给自己的，就什么都不做，重新开始等待。
-                if recv_frame.dst not in (net._app, Topology.BROADCAST_PORT):
+                if recv_frame.dst not in (net.app, Topology.BROADCAST_PORT):
                     print(f"{recv_frame} (Not for me)")
                     continue
 
@@ -76,7 +76,7 @@ if __name__ == "__main__":
                     print(f"{recv_frame} (Repeated)")
                     ack.write(
                         {
-                            "src": net._app,
+                            "src": net.app,
                             "seq": seq,
                             "data": encode_text(FramePack.ACK),
                             "dst": recv_frame.src,
@@ -90,7 +90,7 @@ if __name__ == "__main__":
                     print(f"{recv_frame} (Invalid)")
                     nak.write(
                         {
-                            "src": net._app,
+                            "src": net.app,
                             "seq": seq + 1,
                             "data": encode_text(FramePack.NAK),
                             "dst": recv_frame.src,
@@ -113,7 +113,7 @@ if __name__ == "__main__":
                     print(f"{recv_frame} (Verified)")
                 ack.write(
                     {
-                        "src": net._app,
+                        "src": net.app,
                         "seq": seq,
                         "data": encode_text(FramePack.ACK),
                         "dst": recv_frame.src,
@@ -161,7 +161,7 @@ if __name__ == "__main__":
             request = Frame()
             request.write(
                 {
-                    "src": net._app,
+                    "src": net.app,
                     "seq": seq,
                     "data": f"{dec_to_bin(send_total, 16)}{dec_to_bin(int(msgtype), 16)}",
                     "dst": dst,
@@ -177,7 +177,7 @@ if __name__ == "__main__":
                 seq = (seq + 1) % (2 ** FramePack.SEQ_LEN)
                 send_frame = Frame()
                 send_frame.write(
-                    {"src": net._app, "seq": seq, "data": seal_message, "dst": dst}
+                    {"src": net.app, "seq": seq, "data": seal_message, "dst": dst}
                 )
                 send_frames.append(send_frame)
 
