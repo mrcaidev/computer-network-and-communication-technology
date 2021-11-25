@@ -201,13 +201,13 @@ class RouterTable:
             dst: 目的应用层端口号。
 
         Returns:
-            到达目的地的本地物理层出口。如果没找到，就返回`None`。
+            到达目的地的本地物理层出口。如果没找到，就返回""。
         """
         # 传入的端口号必须为5位。
         try:
             assert len(dst) == 5
         except AssertionError:
-            return None
+            return ""
 
         # 反映射查找路径。
         try:
@@ -218,11 +218,11 @@ class RouterTable:
                 )
             )[0]
         except IndexError:
-            return None
+            return ""
 
         # 如果目的下属于自己。
         if dst_router == self._device_id:
-            return None
+            return ""
 
         # 当且仅当目的地属于别的路由器，才返回出口值。
         else:
@@ -272,6 +272,11 @@ class RouterLayer(RouterTable, AbstractLayer):
             exit(-1)
         else:
             return ports
+
+    @property
+    def port(self) -> str:
+        """将路由器网络层端口号设为只读。"""
+        return self.__port
 
     def receive_from_phys(self) -> tuple[str, bool]:
         """
