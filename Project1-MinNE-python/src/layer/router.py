@@ -180,7 +180,7 @@ class RouterTable:
         # 排序路由表。
         self._table = dict(sorted(self._table.items(), key=lambda item: item[0]))
 
-    def search(self, app: str) -> Path:
+    def search(self, dst: str) -> Path:
         """
         在路由表中查询到达目的应用层的路径。
 
@@ -188,16 +188,32 @@ class RouterTable:
             dst: 目的应用层端口号。
 
         Returns:
-            到达目的地的路径。
+            到达目的地的本地物理层出口。
         """
+        # 传入的端口号必须为5位。
         try:
-            app_router = list(
-                filter(lambda router: app[:1] == router[:1], self._table.keys())
+            assert len(dst) == 5
+        except AssertionError:
+            return None
+
+        # 反映射查找路径。
+        try:
+            dst_router = list(
+                filter(
+                    lambda router: int(dst[1]) % Topology.ROUTER_NUM == int(router),
+                    self._table.keys(),
+                )
             )[0]
         except IndexError:
-            return Path(next=Topology.DEFAULT_ROUTER, exit="", cost=0, optimized=False)
+            return None
+
+        # 如果目的下属于自己。
+        if dst_router == self._device_id:
+            return None
+
+        # 当且仅当目的地属于别的路由器，才返回出口值。
         else:
-            return self[app_router]
+            return self._table[dst_router].exit
 
 
 class RouterLayer(RouterTable, AbstractLayer):

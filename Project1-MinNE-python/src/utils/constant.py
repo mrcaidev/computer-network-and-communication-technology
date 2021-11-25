@@ -79,3 +79,4 @@ class Topology:
     BROADCAST_RECVER_NUM = 1
     BROADCAST_PORT = "65535"
     DEFAULT_ROUTER = "1"
+    ROUTER_NUM = 3
