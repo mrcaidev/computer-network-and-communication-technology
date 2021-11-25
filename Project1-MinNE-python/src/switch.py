@@ -26,7 +26,7 @@ if __name__ == "__main__":
         frame.read(binary)
 
         # 刷新端口地址表。
-        if switch.refresh(local=in_port, remote=frame.src):
+        if switch.update(local=in_port, remote=frame.src):
             switch.print_table()
 
         # 查找应该从哪个端口送出。

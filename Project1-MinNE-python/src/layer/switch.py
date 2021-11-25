@@ -8,12 +8,20 @@ from utils.io import get_device_map
 from layer._abstract import AbstractLayer
 
 
-class SwitchTable(defaultdict):
-    """端口地址表。"""
+class SwitchTable:
+    """
+    端口地址表。
+
+    内部是字典，键值对格式如下：
+    - 键：本地物理层端口号。
+    - 值：远程端口字典，键值对格式如下。
+        - 键：远程应用层端口号。
+        - 值：该远程端口号在表内的剩余寿命。
+    """
 
     def __init__(self) -> None:
-        """初始化内部defaultdict。"""
-        super().__init__(dict[str, int])
+        """初始化内部字典。"""
+        self._table = defaultdict(dict[str, int])
 
     def __str__(self) -> None:
         """打印端口地址表。"""
@@ -31,13 +39,13 @@ class SwitchTable(defaultdict):
                     )
                     if len(remotes.items()) != 0
                     else None
-                    for local, remotes in self.items()
+                    for local, remotes in self._table.items()
                 ],
             )
         )
         return f"{head}\n{body}\n{'-'*24}"
 
-    def refresh(self, local: str, remote: str) -> bool:
+    def update(self, local: str, remote: str) -> bool:
         """
         刷新端口地址表。
 
@@ -48,28 +56,27 @@ class SwitchTable(defaultdict):
         Returns:
             端口地址表是否有更新，有为True，没有为False。
         """
-        refreshed = False
+        updated = False
 
         # 查询是否有该关系，没有就会迎来更新。
-        if remote not in self[local].keys():
-            refreshed = True
+        if remote not in self._table[local].keys():
+            updated = True
 
         # 不管之前有没有这对关系，它们的寿命都要重置为最大值+1。（后面的遍历会扣回最大值。）
-        self[local].update({remote: Network.REMOTE_MAX_LIFE + 1})
+        self._table[local].update({remote: Network.REMOTE_MAX_LIFE + 1})
 
         # 所有远程端口寿命-1。
-        for remotes in self.values():
-            remotes: dict[str, int]
+        for remotes in self._table.values():
             for port, life in remotes.copy().items():
                 life -= 1
                 if life == 0:
                     remotes.pop(port)
-                    refreshed = True
+                    updated = True
                 else:
                     remotes.update({port: life})
 
         # 返回是否有端口关系更新。
-        return refreshed
+        return updated
 
     def search_locals(self, remote: str) -> list[str]:
         """
@@ -83,8 +90,8 @@ class SwitchTable(defaultdict):
         """
         return list(
             filter(
-                lambda local: remote in self[local].keys(),
-                self.keys(),
+                lambda local: remote in self._table[local].keys(),
+                self._table.keys(),
             )
         )
 
@@ -98,7 +105,7 @@ class SwitchTable(defaultdict):
         Returns:
             对应的远程应用层端口号列表。
         """
-        return list(self.get(local, {}).keys())
+        return list(self._table.get(local, {}).keys())
 
 
 class SwitchLayer(SwitchTable, AbstractLayer):
@@ -119,7 +126,7 @@ class SwitchLayer(SwitchTable, AbstractLayer):
 
         # 初始化端口地址表。
         SwitchTable.__init__(self)
-        self.update(
+        self._table.update(
             dict([port, {Topology.BROADCAST_PORT: float("inf")}] for port in self._phy)
         )
 
