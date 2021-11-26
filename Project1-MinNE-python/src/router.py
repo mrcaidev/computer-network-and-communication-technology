@@ -1,6 +1,6 @@
 import sys
 
-from layer.router import RouterLayer, RouterTable
+from layer import RouterLayer
 from utils import *
 
 if __name__ == "__main__":
@@ -15,10 +15,8 @@ if __name__ == "__main__":
     print(router)
 
     # 合并其它路由器的路由表。
-    while router.next_merge:
-        new_table = RouterTable(router.next_merge)
-        router.merge(new_table.pack())
-        router.show_table()
+    router.static_merge()
+    router.show_table()
 
     # 开始运作。
     while True:
@@ -35,4 +33,4 @@ if __name__ == "__main__":
         if not exit_port:
             continue
         else:
-            router.send_to_phy(binary, exit_port)
+            router.unicast_to_phy(binary, exit_port)

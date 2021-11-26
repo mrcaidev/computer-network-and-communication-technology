@@ -56,12 +56,6 @@ if __name__ == "__main__":
                 # 一旦接收到了帧，就重置超时次数。
                 timeout_cnt = 0
 
-                # 如果这是第一个接收到的帧，就开始计时。
-                if start_timing_flag:
-                    start_time = time()
-                    start_timing_flag = False
-                    print(f"[Log] Started: {eval(File.FULL_TIME)}")
-
                 # 解析接收到的帧。
                 recv_frame = Frame()
                 recv_frame.read(phy_message)
@@ -71,6 +65,12 @@ if __name__ == "__main__":
                     print(f"{recv_frame} (Not for me)")
                     continue
 
+                # 如果这是第一个给自己的帧，就开始计时。
+                if start_timing_flag:
+                    start_time = time()
+                    start_timing_flag = False
+                    print(f"[Log] Started: {eval(File.FULL_TIME)}")
+
                 # 如果序号重复，就丢弃这帧，再发一遍ACK。
                 if seq == recv_frame.seq:
                     print(f"{recv_frame} (Repeated)")
@@ -78,7 +78,7 @@ if __name__ == "__main__":
                         {
                             "src": net.app,
                             "seq": seq,
-                            "data": encode_text(FramePack.ACK),
+                            "data": encode_ascii(FramePack.ACK),
                             "dst": recv_frame.src,
                         }
                     )
@@ -92,7 +92,7 @@ if __name__ == "__main__":
                         {
                             "src": net.app,
                             "seq": seq + 1,
-                            "data": encode_text(FramePack.NAK),
+                            "data": encode_ascii(FramePack.NAK),
                             "dst": recv_frame.src,
                         }
                     )
@@ -103,9 +103,7 @@ if __name__ == "__main__":
                 seq = recv_frame.seq
                 if recv_cnt == 0:
                     recv_total = bin_to_dec(recv_frame.data[: FramePack.DATA_LEN // 2])
-                    msgtype = str(
-                        bin_to_dec(recv_frame.data[FramePack.DATA_LEN // 2 :])
-                    )
+                    msgtype = decode_ascii(recv_frame.data[FramePack.DATA_LEN // 2 :])
                     msgtype_name = "text" if msgtype == MessageType.TEXT else "image"
                     print(f"[Frame {seq}] {recv_total} frame(s) of {msgtype_name}")
                 else:
@@ -115,7 +113,7 @@ if __name__ == "__main__":
                     {
                         "src": net.app,
                         "seq": seq,
-                        "data": encode_text(FramePack.ACK),
+                        "data": encode_ascii(FramePack.ACK),
                         "dst": recv_frame.src,
                     }
                 )
@@ -163,7 +161,7 @@ if __name__ == "__main__":
                 {
                     "src": net.app,
                     "seq": seq,
-                    "data": f"{dec_to_bin(send_total, 16)}{dec_to_bin(int(msgtype), 16)}",
+                    "data": f"{dec_to_bin(send_total, 16)}{encode_ascii(msgtype)}",
                     "dst": dst,
                 }
             )
@@ -214,7 +212,7 @@ if __name__ == "__main__":
                     # 解包读取回复，如果是ACK，ACK次数就+1。
                     resp_frame = Frame()
                     resp_frame.read(resp_binary)
-                    resp_message = decode_text(resp_frame.data)
+                    resp_message = decode_ascii(resp_frame.data)
                     if resp_message == FramePack.ACK:
                         print(f"[Frame {resp_frame.seq}] ACK")
                         ack_cnt += 1

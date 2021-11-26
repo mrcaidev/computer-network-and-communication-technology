@@ -40,7 +40,7 @@ def log(src: str, message: str) -> bool:
             os.path.join(log_dir, f"{src}.log"), mode="a", encoding="utf-8"
         ) as fa:
             fa.write(f"[{eval(File.FULL_TIME)}] {message}\n")
-    except FileNotFoundError:
+    except Exception:
         return False
     else:
         return True

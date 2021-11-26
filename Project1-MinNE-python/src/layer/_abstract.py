@@ -57,7 +57,7 @@ class AbstractLayer:
         try:
             message, (_, port) = self._socket.recvfrom(bufsize)
         except socket.timeout:
-            result = ("", "-1", False)
+            pass
         else:
             result = (message.decode("utf-8"), str(port), True)
         finally:

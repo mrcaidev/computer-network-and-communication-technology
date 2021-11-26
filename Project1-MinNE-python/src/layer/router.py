@@ -1,11 +1,18 @@
+from base64 import decode
 from dataclasses import dataclass
 from select import select
 from time import time
 
-from utils.coding import bits_to_string, encode_text, string_to_bits
+from utils.coding import (
+    bits_to_string,
+    decode_ascii,
+    encode_ascii,
+    encode_unicode,
+    string_to_bits,
+)
 from utils.frame import Frame
 from utils.io import get_device_map, get_router_env
-from utils.params import FramePack, Network, Topology
+from utils.params import Constant, FramePack, Network, Topology
 
 from layer._abstract import AbstractLayer
 
@@ -47,12 +54,10 @@ class RouterTable:
     def __init__(self, device_id: str) -> None:
         """初始化路由表。
 
-        根据路由器设备号，初始化路由表周围环境。
-
         Args:
             device_id: 该路由器的设备号。
         """
-        self._device_id = device_id
+        self.__device_id = device_id
         self._table: dict[str, Path] = {}
         self.__init_env(get_router_env(device_id))
 
@@ -63,7 +68,7 @@ class RouterTable:
             [
                 f"|{dst.center(13)}|{path.next.center(10)}|{path.exit.center(11)}|{str(path.cost).center(6)}|"
                 for dst, path in filter(
-                    lambda item: item[0] != self._device_id, self._table.items()
+                    lambda item: item[0] != self.__device_id, self._table.items()
                 )
             ]
         )
@@ -82,7 +87,7 @@ class RouterTable:
                 - cost: 到达该路由器的费用。
         """
         # 到自己的费用始终为0。
-        self._table[self._device_id] = Path(next="", exit="", cost=0, optimized=True)
+        self._table[self.__device_id] = Path(next="", exit="", cost=0, optimized=True)
 
         # 依传入的字典逐项初始化。
         min_cost, min_dst = float("inf"), ""
@@ -98,9 +103,10 @@ class RouterTable:
                 min_dst = dst
 
         # 记录当前费用最低的路由器端口号。
-        self.next_merge = min_dst
+        self._next_merge = min_dst
 
-    def pack(self) -> str:
+    @property
+    def package(self) -> str:
         """打包路由表。
 
         将路由表中的下一跳与费用（除了到达自身的）打包为字符串。
@@ -108,31 +114,31 @@ class RouterTable:
         Returns:
             路由表包，格式为"device:dst-cost|dst-cost|...|dst-cost:$"。
         """
-        return f"{self._device_id}:{'|'.join(f'{dst}-{cost}' for dst, cost in filter(lambda item: item[0] != self._device_id, [(dst, str(path.cost)) for dst, path in self._table.items()]))}:$"
+        return f"{self.__device_id}:{'|'.join(f'{dst}-{cost}' for dst, cost in filter(lambda item: item[0] != self.__device_id, [(dst, str(path.cost)) for dst, path in self._table.items()]))}:$"
 
     @staticmethod
-    def unpack(string: str) -> tuple[str, dict[str, int]]:
-        """将字符串解包为路由表。
+    def __unpack(package: str) -> tuple[str, dict[str, int]]:
+        """将路由表包解包为路由表。
 
         Args:
-            string: 包含路由表信息的字符串。
+            package: 路由表包。
 
         Returns:
-            - [0] 发来路径包的设备号。
+            - [0] 发来路由表包的设备号。
             - [1] 新路由表，键值对格式如下：
                 - 键：目的路由器网络层端口号。
                 - 值：到达该路由器的费用。
         """
         # 解包源设备号。
-        src_id, string, _ = string.split(":")
+        src_device, body, _ = package.split(":")
 
         # 解包路径信息。
-        new_table: dict[str, int] = {}
-        for path in string.split("|"):
+        table: dict[str, int] = {}
+        for path in body.split("|"):
             dst, cost = path.split("-")
-            new_table[dst] = int(cost)
+            table[dst] = int(cost)
 
-        return src_id, new_table
+        return src_device, table
 
     def merge(self, package: str) -> None:
         """合并外部路由表与本地路由表。
@@ -143,10 +149,10 @@ class RouterTable:
             package: 发来的路由表包。
         """
         # 解包字符串为路由表。
-        src, table = RouterTable.unpack(package)
+        src_device, table = RouterTable.__unpack(package)
 
         # 标记到达该来源的路径为最优化。
-        self._table[src].optimized = True
+        self._table[src_device].optimized = True
 
         # 创建本地路由表的一份浅拷贝。
         local_copy = self._table.copy()
@@ -157,14 +163,14 @@ class RouterTable:
             # 比对两表内，关于该目的地的数据。
             local_path = self._table.get(dst, None)
             new_path = Path(
-                next=src,
-                exit=self._table[src].exit,
-                cost=new_cost + self._table[src].cost,
+                next=src_device,
+                exit=self._table[src_device].exit,
+                cost=new_cost + self._table[src_device].cost,
                 optimized=False,
             )
 
             # 如果表里没有这条记录，就追加进表。
-            if local_path == None:
+            if not local_path:
                 self._table[dst] = new_path
                 cur_cost = new_cost
 
@@ -200,7 +206,7 @@ class RouterTable:
                 min_dst = min_item[0]
 
         # 记录最小值对应的端口。
-        self.next_merge = min_dst
+        self._next_merge = min_dst
 
         # 排序路由表。
         self._table = dict(sorted(self._table.items(), key=lambda item: item[0]))
@@ -229,11 +235,13 @@ class RouterTable:
                     self._table.keys(),
                 )
             )[0]
+
+        # 如果没找到上级路由器。
         except IndexError:
             return ""
 
-        # 如果目的下属于自己。
-        if dst_router == self._device_id:
+        # 如果上级路由器是自己。
+        if dst_router == self.__device_id:
             return ""
 
         # 当且仅当目的地属于别的路由器，才返回出口值。
@@ -250,24 +258,22 @@ class RouterLayer(RouterTable, AbstractLayer):
     def __init__(self, device_id: str) -> None:
         """初始化路由器网络层。
 
-        根据路由器设备号，初始化本层的套接字。
-
         Args:
             device_id: 该路由器的设备号。
         """
         # 初始化套接字。
-        self._device_id = device_id
+        self.__device_id = device_id
         self.__port, self.__phys = self.__get_router_map()
         AbstractLayer.__init__(self, self.__port)
 
         # 初始化路由表。
         RouterTable.__init__(self, device_id)
-        self._cache: dict[str, TableCache] = {}
-        self.broadcast_time = time()
+        self.__cache: dict[str, TableCache] = {}
+        self.__broadcast_tick = time()
 
     def __str__(self) -> str:
         """打印网络层信息。"""
-        return f"[Device {self._device_id}] <Router Layer @{self.__port}>"
+        return f"[Device {self.__device_id}] <Router Layer @{self.__port}>"
 
     def __get_router_map(self) -> tuple[str, list[str]]:
         """获取端口号。
@@ -278,11 +284,11 @@ class RouterLayer(RouterTable, AbstractLayer):
             - [0] 网络层端口号。
             - [1] 物理层端口号列表。
         """
-        config = get_device_map(self._device_id)
+        config = get_device_map(self.__device_id)
         try:
             ports = (config["net"], config["phy"])
         except KeyError:
-            print(f"[Error] Device {self._device_id} layer absence")
+            print(f"[Error] Device {self.__device_id} port absence in config")
             exit(-1)
         else:
             return ports
@@ -293,8 +299,7 @@ class RouterLayer(RouterTable, AbstractLayer):
         return self.__port
 
     def receive_from_phys(self) -> tuple[str, bool]:
-        """
-        接收来自路由器物理层的消息。
+        """接收来自路由器物理层的消息。
 
         Returns:
             - [0] 接收到的01字符串。
@@ -304,8 +309,8 @@ class RouterLayer(RouterTable, AbstractLayer):
         binary = bits_to_string(binary) if success else binary
         return binary, success
 
-    def send_to_phy(self, binary: str, port: str) -> int:
-        """向指定物理层发送消息。
+    def unicast_to_phy(self, binary: str, port: str) -> int:
+        """向指定物理层单播消息。
 
         Args:
             binary: 要发的01字符串。
@@ -316,27 +321,27 @@ class RouterLayer(RouterTable, AbstractLayer):
         """
         return self._send(string_to_bits(binary), port)
 
-    def broadcast_to_routers(self, binary: str, port: str = None) -> str:
+    def broadcast_to_routers(self, binary: str, port: str = "") -> str:
         """向所有路由器广播消息，除了指定的端口。
 
-        指定的端口一般是发来消息的端口。
+        仅用于扩散路由表；指定的端口一般是当次收到路由表的端口。
 
         Args:
             binary: 要发的01字符串。
-            port: 指定的端口号。
+            port: 可选，指定不发消息的端口号，默认为""。
 
         Returns:
             发送到的端口列表字符串。
         """
-        target_phys = list(
+        target_exits = list(
             filter(
-                lambda phy: phy != port and phy != "",
+                lambda exit: exit != port and exit != "",
                 [path.exit for path in self._table.values()],
             )
         )
-        for phy in target_phys:
-            _ = self._send(string_to_bits(binary), phy)
-        return f"[{' '.join(target_phys)}]"
+        for exit in target_exits:
+            self.unicast_to_phy(binary, exit)
+        return f"[{' '.join(target_exits)}]"
 
     def has_message(self) -> bool:
         """检测是否有消息发到本层。
@@ -354,12 +359,12 @@ class RouterLayer(RouterTable, AbstractLayer):
         print(RouterTable.__str__(self))
 
     def broadcast_table(self) -> None:
-        """向所有路由器出口扩散自己的路由表。"""
-        if time() - self.broadcast_time < Network.ROUTER_SPREAD_INTERVAL:
+        """向所有路由器扩散自己的路由表。"""
+        if time() - self.__broadcast_tick < Network.ROUTER_SPREAD_INTERVAL:
             return
-        self.broadcast_time = time()
+        self.__broadcast_tick = time()
 
-        table = self.pack()
+        table = self.package
         send_total = Frame.calc_frame_num(table)
         for i in range(send_total):
             seal_message = table[i * FramePack.DATA_LEN : (i + 1) * FramePack.DATA_LEN]
@@ -368,35 +373,52 @@ class RouterLayer(RouterTable, AbstractLayer):
                 {
                     "src": self.__port,
                     "seq": i,
-                    "data": encode_text(seal_message),
+                    "data": encode_ascii(seal_message),
                     "dst": Topology.BROADCAST_PORT,
                 }
             )
             self.broadcast_to_routers(send_frame.binary)
 
-    def receive_table(self, src: str, part: str) -> bool:
-        """接收别的路由器扩散的路由表。"""
+    def receive_table(self, src: str, binary: str) -> bool:
+        """接收别的路由器扩散的路由表。
+
+        Args:
+            src: 源路由器设备号。
+            binary: 本次发来的路由表部分的01字符串。
+
+        Returns:
+            是否全部接收完毕，是为`True`，不是为`False`。
+        """
+        # 预处理。
         src_device = src[1]
+        part = decode_ascii(binary)
 
         # 如果该键之前没有记录，就为其创建默认值。
-        if not self._cache.get(src_device, None):
-            self._cache[src_device] = TableCache(string="", completed=False)
+        if not self.__cache.get(src_device, None):
+            self.__cache[src_device] = TableCache(string="", completed=False)
 
         # 如果该键之前被标记为接收完毕，则重新开始接收。
-        if self._cache[src_device].completed:
-            self._cache[src_device].string = ""
-            self._cache[src_device].completed = False
+        if self.__cache[src_device].completed:
+            self.__cache[src_device].string = ""
+            self.__cache[src_device].completed = False
 
         # 拼接本次接收的部分。
-        self._cache[src_device].string += part
+        self.__cache[src_device].string += part
 
         # 如果路由表字符串完整了，就标记该键为接收完毕。
-        if self._cache[src_device].string.endswith("$"):
-            self._cache[src_device].completed = True
+        if self.__cache[src_device].string.endswith("$"):
+            self.__cache[src_device].completed = True
 
         # 返回是否所有键都接收完毕。
-        return all([cache.completed for cache in self._cache.values()])
+        return all([cache.completed for cache in self.__cache.values()])
 
-    def merge_all(self) -> None:
-        while self.next_merge != "":
-            self.merge(self._cache[self.next_merge].string)
+    def dynamic_merge(self) -> None:
+        """动态合并路由表，将缓存内的路由表包全部合并。"""
+        while self._next_merge:
+            self.merge(self.__cache[self._next_merge].string)
+
+    def static_merge(self) -> None:
+        """静态合并路由表，与配置文件内的其它路由表合并。"""
+        while self._next_merge:
+            table = RouterTable(self._next_merge)
+            self.merge(table.package)

@@ -15,18 +15,16 @@ class AppLayer(AbstractLayer):
     def __init__(self, device_id: str) -> None:
         """初始化主机应用层。
 
-        根据主机设备号，初始化本层的套接字。
-
         Args:
             device_id: 该主机的设备号。
         """
-        self._device_id = device_id
-        self.__port, self.__net_port = self.__get_app_map()
+        self.__device_id = device_id
+        self.__port, self.__net = self.__get_app_map()
         super().__init__(self.__port)
 
     def __str__(self) -> str:
         """打印设备号与端口号。"""
-        return f"[Device {self._device_id}] <App Layer @{self.__port}>"
+        return f"[Device {self.__device_id}] <App Layer @{self.__port}>"
 
     def __get_app_map(self) -> tuple[str, str]:
         """获取端口号。
@@ -37,11 +35,11 @@ class AppLayer(AbstractLayer):
             - [0] 应用层端口号。
             - [1] 网络层端口号。
         """
-        config = get_device_map(self._device_id)
+        config = get_device_map(self.__device_id)
         try:
             ports = (config["app"], config["net"])
         except KeyError:
-            print(f"[Error] Device {self._device_id} layer absence")
+            print(f"[Error] Device {self.__device_id} port absence in config")
             exit(-1)
         else:
             return ports
@@ -52,9 +50,8 @@ class AppLayer(AbstractLayer):
         Returns:
             接收到的消息。
         """
-        # 保证消息来自网络层。
         port = ""
-        while port != self.__net_port:
+        while port != self.__net:
             message, port, _ = self._receive(bufsize=Network.IN_NE_BUFSIZE)
         return message
 
@@ -67,7 +64,7 @@ class AppLayer(AbstractLayer):
         Returns:
             总共发送的字节数。
         """
-        return self._send(message, self.__net_port)
+        return self._send(message, self.__net)
 
     def receive_from_user(self, input_type: InputType) -> str:
         """从用户键盘输入接收消息。
@@ -75,7 +72,7 @@ class AppLayer(AbstractLayer):
         Args:
             input_type: 用户输入的类型，包括：
             - `utils.params.InputType.MODE`：网元模式。
-            - `utils.params.InputType.DST`：目标设备号。
+            - `utils.params.InputType.DST`：目标端口号。
             - `utils.params.InputType.MSGTYPE`：消息类型。
             - `utils.params.InputType.TEXT`：文本。
             - `utils.params.InputType.FILE`：文件名。
@@ -134,7 +131,7 @@ class AppLayer(AbstractLayer):
                 pass
             if not fullmatch(r"[1-9]", dst_device_id):
                 print("[Warning] ID should be an integer between 1 and 9")
-            elif dst_device_id == self._device_id:
+            elif dst_device_id == self.__device_id:
                 print("[Warning] This is my ID")
             else:
                 return f"1{dst_device_id}300"

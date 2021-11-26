@@ -36,7 +36,7 @@ if __name__ == "__main__":
         if len(out_ports) == 1:
             out_port = out_ports[0]
             print(f"[Log] {frame.src}-{in_port}-{out_port}-{frame.dst}")
-            switch.send_to_phy(binary, out_port)
+            switch.unicast_to_phy(binary, out_port)
 
         # 如果没查到或者是广播，就向所有端口发送。
         else:

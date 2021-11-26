@@ -29,21 +29,23 @@ if __name__ == "__main__":
             # 接收消息类型和消息本体。
             msgtype = app.receive_from_net()
             message = app.receive_from_net()
+
             # 如果收到的是文本。
             if msgtype == MessageType.TEXT:
-                text = decode_text(message)
+                text = decode_unicode(message)
                 print(f"[Log] Received text: {text}")
+
             # 如果收到的是文件。
             elif msgtype == MessageType.FILE:
-                # 如果解码失败，就报错。
+                # 如果解码失败。
                 file, decoded = decode_file(message)
                 if not decoded:
-                    print("[Warning] Failed to decode file")
+                    print("[Warning] Decoding failed")
                     continue
-                # 如果保存失败，就报错。
+                # 如果保存失败。
                 filepath, saved = save_rsc(file)
                 if not saved:
-                    print("[Warning] Failed to save file")
+                    print("[Warning] Saving failed")
                 else:
                     print(f"[Log] File Saved as {filepath}")
 
@@ -53,13 +55,16 @@ if __name__ == "__main__":
             if mode == Mode.UNICAST:
                 dst = app.receive_from_user(InputType.DST)
                 app.send_to_net(dst)
+
             # 发送消息类型。
             msgtype = app.receive_from_user(InputType.MSGTYPE)
             app.send_to_net(msgtype)
+
             # 如果发送的是文本。
             if msgtype == MessageType.TEXT:
                 text = app.receive_from_user(InputType.TEXT)
-                app.send_to_net(encode_text(text))
+                app.send_to_net(encode_unicode(text))
+
             # 如果发送的是图片。
             else:
                 file = app.receive_from_user(InputType.FILE)

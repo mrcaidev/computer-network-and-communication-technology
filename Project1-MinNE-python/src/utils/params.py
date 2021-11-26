@@ -80,6 +80,8 @@ class Network:
 
     REMOTE_MAX_LIFE = 100
 
+    ROUTER_SPREAD_INTERVAL = 10
+
 
 class Topology:
     """网络拓扑。"""

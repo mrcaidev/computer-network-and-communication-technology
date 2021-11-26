@@ -116,13 +116,11 @@ class SwitchLayer(SwitchTable, AbstractLayer):
     def __init__(self, device_id: str) -> None:
         """初始化交换机网络层。
 
-        根据交换机设备号，初始化本层的套接字。
-
         Args:
             device_id: 该交换机的设备号。
         """
         # 初始化套接字。
-        self._device_id = device_id
+        self.__device_id = device_id
         self.__port, self.__phys = self.__get_switch_map()
         AbstractLayer.__init__(self, self.__port)
 
@@ -134,7 +132,7 @@ class SwitchLayer(SwitchTable, AbstractLayer):
 
     def __str__(self) -> str:
         """打印设备号与端口号。"""
-        return f"[Device {self._device_id}] <Switch Layer @{self.__port}>"
+        return f"[Device {self.__device_id}] <Switch Layer @{self.__port}>"
 
     def __get_switch_map(self) -> tuple[str, list[str]]:
         """获取端口号。
@@ -145,11 +143,11 @@ class SwitchLayer(SwitchTable, AbstractLayer):
             - [0] 网络层端口号。
             - [1] 物理层端口号列表。
         """
-        config = get_device_map(self._device_id)
+        config = get_device_map(self.__device_id)
         try:
             ports = (config["net"], config["phy"])
         except KeyError:
-            print(f"[Error] Device {self._device_id} layer absence")
+            print(f"[Error] Device {self.__device_id} port absence in config")
             exit(-1)
         else:
             return ports
@@ -166,8 +164,8 @@ class SwitchLayer(SwitchTable, AbstractLayer):
         binary = bits_to_string(binary) if success else binary
         return binary, port, success
 
-    def send_to_phy(self, binary: str, port: str) -> int:
-        """向指定物理层发送消息。
+    def unicast_to_phy(self, binary: str, port: str) -> int:
+        """向指定物理层单播消息。
 
         Args:
             binary: 要发的01字符串。
@@ -192,7 +190,7 @@ class SwitchLayer(SwitchTable, AbstractLayer):
         """
         target_phys = list(filter(lambda phy: phy != port, self.__phys))
         for phy in target_phys:
-            _ = self._send(string_to_bits(binary), phy)
+            self.unicast_to_phy(binary, phy)
         return f"[{' '.join(target_phys)}]"
 
     def has_message(self) -> bool:

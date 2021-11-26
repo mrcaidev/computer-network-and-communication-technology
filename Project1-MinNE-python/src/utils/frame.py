@@ -111,6 +111,7 @@ class Frame:
         self.__binary = binary
         self.__length = len(message) + 2 * FramePack.LOCATOR_LEN
 
+    @staticmethod
     def __extract_message(binary: str) -> tuple[str, bool]:
         """从有干扰的01字符串中提取帧序列。
 
@@ -118,7 +119,6 @@ class Frame:
             binary: 物理层中传输的01字符串字符串。
 
         Returns:
-            一个二元元组。
             - [0] 提取的帧序列。
             - [1] 是否提取成功，成功为`True`，失败为`False`。
         """
@@ -153,6 +153,7 @@ class Frame:
         # 如果只找到了1个定位串，也返回空帧。
         return FramePack.EMPTY_FRAME, False
 
+    @staticmethod
     def __add_locator(binary: str) -> str:
         """变换01字符串，并加上定位串。
 
@@ -170,6 +171,7 @@ class Frame:
 
         return f"{FramePack.LOCATOR}{binary}{FramePack.LOCATOR}"
 
+    @staticmethod
     def __generate_crc(binary: str) -> int:
         """生成CRC校验码。
 
@@ -194,9 +196,9 @@ class Frame:
                     poly >>= 1
         return ((poly & 0xFF) << 8) + (poly >> 8)
 
+    @staticmethod
     def calc_frame_num(message: str) -> int:
-        """
-        计算消息需要分几帧发送。
+        """计算消息需要分几帧发送。
 
         Args:
             message: 当前要发送的消息。
