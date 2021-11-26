@@ -11,7 +11,7 @@ class File:
     CONFIG_DIR = "config"
     LOG_DIR = "log"
     RSC_DIR = "resource"
-    DEVICE_MAP = "device_map.json"
+    DEVICE_MAP = "device_map_4.json"
     ROUTER_ENV = "router_env.json"
     LOG = "log.txt"
     FULL_TIME = "datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]"
