@@ -193,41 +193,47 @@ if __name__ == "__main__":
                 else:
                     print(f"{send_frames[send_cnt]} (Sent)")
 
-                # 每个接收端的回复都要接收，即使已经知道要重传。
-                dst_num = 1 if mode == Mode.UNICAST else Topology.BROADCAST_RECVER_NUM
-                ack_cnt = 0
-                for _ in range(dst_num):
+                # 持续等待回复，如果没人回复了，就默认这一帧全收到了。
+                this_frame_resp_cnt = 0
+                should_resend = False
+                while True:
                     # 从物理层接收回复。
                     resp_binary, success = net.receive_from_phy()
 
-                    # 如果超时了，说明之后没有信息会发来了，直接跳出循环，同时超时次数+1。
+                    # 如果超时了，说明之后没有信息会发来了，直接开始发下一帧。
                     if not success:
                         print(f"[Frame {send_frames[send_cnt].seq}] Timeout")
-                        timeout_cnt += 1
+
+                        # 如果一次回复都没收到，说明这帧超时了，超时次数+1。
+                        if this_frame_resp_cnt == 0:
+                            timeout_cnt += 1
                         break
 
                     # 一旦有回复，就重置超时次数。
                     timeout_cnt = 0
+                    this_frame_resp_cnt += 1
 
-                    # 解包读取回复，如果是ACK，ACK次数就+1。
+                    # 解包读取回复。
                     resp_frame = Frame()
                     resp_frame.read(resp_binary)
                     resp_message = decode_ascii(resp_frame.data)
+
+                    # 如果是ACK。
                     if resp_message == FramePack.ACK:
                         print(f"[Frame {resp_frame.seq}] ACK")
-                        ack_cnt += 1
                     elif resp_message == FramePack.NAK:
                         print(f"[Frame {resp_frame.seq}] NAK")
+                        should_resend = True
                     else:
                         print(f"[Frame {resp_frame.seq}] Unknown response")
+                        should_resend = True
 
                 # 如果连续多次超时，就停止重传。
                 if timeout_cnt == Network.KEEPALIVE_MAX_RETRY:
                     print("[Warning] Keepalive max retries")
                     break
 
-                # 如果每个接收端都ACK了，发送的帧数就+1。
-                if ack_cnt == dst_num:
+                if not should_resend:
                     send_cnt += 1
 
                 # 如果这是发送的最后一帧，就跳出循环。
