@@ -9,11 +9,17 @@ class File:
     """目录与文件。"""
 
     CONFIG_DIR = "config"
-    LOG_DIR = "log"
     RSC_DIR = "resource"
-    DEVICE_MAP = "devicemap.json"
-    ROUTER_ENV = "routerenv.json"
-    LOG = "log.txt"
+
+    BATCH_DIR = "batch-backup"
+    DEVICEMAP_DIR = "devicemap-backup"
+    NE_DIR = "ne-backup"
+
+    BATCH = "batch"
+    DEVICEMAP = "devicemap"
+    NE = "ne"
+    ROUTERENV = "routerenv"
+
     FULL_TIME = "datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]"
     ABBR_TIME = "datetime.now().strftime('%H-%M-%S')"
 

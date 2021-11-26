@@ -2,7 +2,7 @@ from collections import defaultdict
 from select import select
 
 from utils.coding import bits_to_string, string_to_bits
-from utils.io import get_device_map
+from utils.io import get_devicemap
 from utils.params import Network, Topology
 
 from layer._abstract import AbstractLayer
@@ -143,7 +143,7 @@ class SwitchLayer(SwitchTable, AbstractLayer):
             - [0] 网络层端口号。
             - [1] 物理层端口号列表。
         """
-        config = get_device_map(self.__device_id)
+        config = get_devicemap(self.__device_id)
         try:
             ports = (config["net"], config["phy"])
         except KeyError:

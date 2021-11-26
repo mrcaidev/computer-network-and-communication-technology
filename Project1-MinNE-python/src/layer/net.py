@@ -1,7 +1,7 @@
 from time import sleep
 
 from utils.coding import bits_to_string, string_to_bits
-from utils.io import get_device_map
+from utils.io import get_devicemap
 from utils.params import Network
 
 from layer._abstract import AbstractLayer
@@ -42,7 +42,7 @@ class NetLayer(AbstractLayer):
             - [1] 网络层端口号。
             - [2] 物理层端口号。
         """
-        config = get_device_map(self.__device_id)
+        config = get_devicemap(self.__device_id)
         try:
             ports = (config["app"], config["net"], config["phy"])
         except KeyError:

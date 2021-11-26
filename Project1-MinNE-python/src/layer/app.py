@@ -1,6 +1,6 @@
 from re import fullmatch
 
-from utils.io import get_device_map, search_rsc
+from utils.io import get_devicemap, search_rsc
 from utils.params import InputType, MessageType, Mode, Network
 
 from layer._abstract import AbstractLayer
@@ -35,7 +35,7 @@ class AppLayer(AbstractLayer):
             - [0] 应用层端口号。
             - [1] 网络层端口号。
         """
-        config = get_device_map(self.__device_id)
+        config = get_devicemap(self.__device_id)
         try:
             ports = (config["app"], config["net"])
         except KeyError:

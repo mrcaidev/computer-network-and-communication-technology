@@ -16,37 +16,82 @@ if os.path.exists(os.path.join(parent_dir, File.CONFIG_DIR)):
 elif os.path.exists(os.path.join(cwd, File.CONFIG_DIR)):
     rootdir = cwd
 
-# 定位重要目录。
+# 定位config目录与文件。
 config_dir = os.path.join(rootdir, File.CONFIG_DIR)
-log_dir = os.path.join(rootdir, File.LOG_DIR)
+
+batch_dir = os.path.join(config_dir, File.BATCH_DIR)
+devicemap_dir = os.path.join(config_dir, File.DEVICEMAP_DIR)
+ne_dir = os.path.join(config_dir, File.NE_DIR)
+
+formal_batch = os.path.join(config_dir, f"{File.BATCH}.bat")
+formal_devicemap = os.path.join(config_dir, f"{File.DEVICEMAP}.json")
+formal_ne = os.path.join(config_dir, f"{File.NE}.txt")
+formal_routerenv = os.path.join(config_dir, f"{File.ROUTERENV}.json")
+
+# 定位rsc目录。
 rsc_dir = os.path.join(rootdir, File.RSC_DIR)
 
 # 时区设置。
 timezone(timedelta(hours=8))
 
 
-def log(src: str, message: str) -> bool:
-    """记录日志。
+def cover_batch(stage: str) -> None:
+    """将一键启动文件改为阶段对应配置。
 
     Args:
-        src: 发起记录请求的来源。
-        message: 要记录的信息。
-
-    Returns:
-        是否记录成功，成功为`True`，失败为`False`。
+        stage: 指定阶段。
     """
-    try:
-        with open(
-            os.path.join(log_dir, f"{src}.log"), mode="a", encoding="utf-8"
-        ) as fa:
-            fa.write(f"[{eval(File.FULL_TIME)}] {message}\n")
-    except Exception:
-        return False
-    else:
-        return True
+    src = os.path.join(batch_dir, f"{stage}.bat")
+
+    # 读取阶段配置。
+    with open(src, "r", encoding="utf-8") as fr:
+        config = fr.read()
+
+    # 写入正式配置。
+    with open(formal_batch, "w", encoding="utf-8") as fw:
+        fw.write(config)
 
 
-def get_device_map(device_id: str) -> dict:
+def cover_devicemap(stage: str) -> None:
+    """将端口映射文件改为阶段对应配置。
+
+    Args:
+        stage: 指定阶段。
+    """
+    src = os.path.join(devicemap_dir, f"{stage}.json")
+
+    # 读取阶段配置。
+    with open(src, "r", encoding="utf-8") as fr:
+        config = fr.read()
+
+    # 写入正式配置。
+    with open(formal_devicemap, "w", encoding="utf-8") as fw:
+        fw.write(config)
+
+
+def cover_ne(stage: str) -> None:
+    """将物理层配置文件改为阶段对应配置。
+
+    Args:
+        stage: 指定阶段。
+    """
+    src = os.path.join(ne_dir, f"{stage}.txt")
+
+    # 读取阶段配置。
+    with open(src, "r", encoding="utf-8") as fr:
+        config = fr.read()
+
+    # 写入正式配置。
+    with open(formal_ne, "w", encoding="utf-8") as fw:
+        fw.write(config)
+
+
+def run_batch() -> None:
+    """运行一键启动文件。"""
+    os.system(formal_batch)
+
+
+def get_devicemap(device_id: str) -> dict:
     """获取设备端口配置。
 
     Args:
@@ -58,10 +103,9 @@ def get_device_map(device_id: str) -> dict:
         - "net": 该设备的网络层端口号。
         - "phy": 该设备的物理层端口号。
     """
-    filepath = os.path.join(config_dir, File.DEVICE_MAP)
     # 打开配置文件。
     try:
-        with open(filepath, "r", encoding="utf-8") as fr:
+        with open(formal_devicemap, "r", encoding="utf-8") as fr:
             # 读取该设备配置。
             try:
                 config: dict = loads(fr.read())[device_id]
@@ -71,7 +115,7 @@ def get_device_map(device_id: str) -> dict:
             else:
                 return config
     except FileNotFoundError:
-        print(f"[Error] {filepath} not found")
+        print(f"[Error] {formal_devicemap} not found")
         exit(-1)
 
 
@@ -88,10 +132,9 @@ def get_router_env(device_id: str) -> dict[str, dict]:
             - "exit": 要到达该路由器，消息应该从哪个本地物理层端口送出。
             - "cost": 到达该路由器的费用。
     """
-    filepath = os.path.join(config_dir, File.ROUTER_ENV)
     # 打开配置文件。
     try:
-        with open(filepath, "r", encoding="utf-8") as fr:
+        with open(formal_routerenv, "r", encoding="utf-8") as fr:
             # 读取初始路由表。
             try:
                 env: dict = loads(fr.read())[device_id]
@@ -101,7 +144,7 @@ def get_router_env(device_id: str) -> dict[str, dict]:
             else:
                 return env
     except FileNotFoundError:
-        print(f"[Error] {filepath} not found")
+        print(f"[Error] {formal_routerenv} not found")
         exit(-1)
 
 

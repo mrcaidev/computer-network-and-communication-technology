@@ -11,7 +11,7 @@ from utils.coding import (
     string_to_bits,
 )
 from utils.frame import Frame
-from utils.io import get_device_map, get_router_env
+from utils.io import get_devicemap, get_router_env
 from utils.params import Constant, FramePack, Network, Topology
 
 from layer._abstract import AbstractLayer
@@ -284,7 +284,7 @@ class RouterLayer(RouterTable, AbstractLayer):
             - [0] 网络层端口号。
             - [1] 物理层端口号列表。
         """
-        config = get_device_map(self.__device_id)
+        config = get_devicemap(self.__device_id)
         try:
             ports = (config["net"], config["phy"])
         except KeyError:
