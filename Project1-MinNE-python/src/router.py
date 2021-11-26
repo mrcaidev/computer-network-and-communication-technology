@@ -1,6 +1,6 @@
 import sys
 
-from layer import RouterLayer
+from layer.router import RouterLayer, RouterTable
 from utils import *
 
 if __name__ == "__main__":
@@ -14,6 +14,12 @@ if __name__ == "__main__":
     router = RouterLayer(device_id)
     print(router)
 
+    # 合并其它路由器的路由表。
+    while router.next_merge:
+        new_table = RouterTable(router.next_merge)
+        router.merge(new_table.pack())
+        router.show_table()
+
     # 开始运作。
     while True:
         # 如果没有消息到达，就继续select。
@@ -25,14 +31,8 @@ if __name__ == "__main__":
         frame = Frame()
         frame.read(binary)
 
-        # 如果帧目的地是自己，说明是别的路由器发来的路由表。
-        if frame.dst == router.port:
-            pass
-
-        # 如果帧目的地不是自己，就寻找目的地所属的路由器。
+        exit_port = router.search(frame.dst)
+        if not exit_port:
+            continue
         else:
-            exit_port = router.search(frame.dst)
-            if not exit_port:
-                continue
-            else:
-                router.send_to_phy(binary, exit_port)
+            router.send_to_phy(binary, exit_port)

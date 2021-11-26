@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from select import select
+from time import time
 
-from utils.coding import bits_to_string, string_to_bits
+from utils.coding import bits_to_string, encode_text, string_to_bits
+from utils.frame import Frame
 from utils.io import get_device_map, get_router_env
-from utils.params import Network, Topology
+from utils.params import FramePack, Network, Topology
 
 from layer._abstract import AbstractLayer
 
@@ -20,6 +22,16 @@ class Path:
     cost: int
     # 当前是否已经最优化。
     optimized: bool
+
+
+@dataclass
+class TableCache:
+    """路由表缓存。"""
+
+    # 目前接收到的路由表字符串。
+    string: str
+    # 是否接收完毕。
+    completed: bool
 
 
 class RouterTable:
@@ -94,9 +106,9 @@ class RouterTable:
         将路由表中的下一跳与费用（除了到达自身的）打包为字符串。
 
         Returns:
-            路由表包，格式为"device_id:dst,cost|dst,cost|..."。
+            路由表包，格式为"device:dst-cost|dst-cost|...|dst-cost:$"。
         """
-        return f"{self._device_id}:{'|'.join(f'{dst}-{cost}' for dst, cost in filter(lambda item: item[0] != self._device_id, [(dst, str(path.cost)) for dst, path in self._table.items()]))}"
+        return f"{self._device_id}:{'|'.join(f'{dst}-{cost}' for dst, cost in filter(lambda item: item[0] != self._device_id, [(dst, str(path.cost)) for dst, path in self._table.items()]))}:$"
 
     @staticmethod
     def unpack(string: str) -> tuple[str, dict[str, int]]:
@@ -112,7 +124,7 @@ class RouterTable:
                 - 值：到达该路由器的费用。
         """
         # 解包源设备号。
-        src_id, string = string.split(":")
+        src_id, string, _ = string.split(":")
 
         # 解包路径信息。
         new_table: dict[str, int] = {}
@@ -250,6 +262,8 @@ class RouterLayer(RouterTable, AbstractLayer):
 
         # 初始化路由表。
         RouterTable.__init__(self, device_id)
+        self._cache: dict[str, TableCache] = {}
+        self.broadcast_time = time()
 
     def __str__(self) -> str:
         """打印网络层信息。"""
@@ -302,6 +316,28 @@ class RouterLayer(RouterTable, AbstractLayer):
         """
         return self._send(string_to_bits(binary), port)
 
+    def broadcast_to_routers(self, binary: str, port: str = None) -> str:
+        """向所有路由器广播消息，除了指定的端口。
+
+        指定的端口一般是发来消息的端口。
+
+        Args:
+            binary: 要发的01字符串。
+            port: 指定的端口号。
+
+        Returns:
+            发送到的端口列表字符串。
+        """
+        target_phys = list(
+            filter(
+                lambda phy: phy != port and phy != "",
+                [path.exit for path in self._table.values()],
+            )
+        )
+        for phy in target_phys:
+            _ = self._send(string_to_bits(binary), phy)
+        return f"[{' '.join(target_phys)}]"
+
     def has_message(self) -> bool:
         """检测是否有消息发到本层。
 
@@ -316,3 +352,51 @@ class RouterLayer(RouterTable, AbstractLayer):
     def show_table(self) -> None:
         """打印路由表。"""
         print(RouterTable.__str__(self))
+
+    def broadcast_table(self) -> None:
+        """向所有路由器出口扩散自己的路由表。"""
+        if time() - self.broadcast_time < Network.ROUTER_SPREAD_INTERVAL:
+            return
+        self.broadcast_time = time()
+
+        table = self.pack()
+        send_total = Frame.calc_frame_num(table)
+        for i in range(send_total):
+            seal_message = table[i * FramePack.DATA_LEN : (i + 1) * FramePack.DATA_LEN]
+            send_frame = Frame()
+            send_frame.write(
+                {
+                    "src": self.__port,
+                    "seq": i,
+                    "data": encode_text(seal_message),
+                    "dst": Topology.BROADCAST_PORT,
+                }
+            )
+            self.broadcast_to_routers(send_frame.binary)
+
+    def receive_table(self, src: str, part: str) -> bool:
+        """接收别的路由器扩散的路由表。"""
+        src_device = src[1]
+
+        # 如果该键之前没有记录，就为其创建默认值。
+        if not self._cache.get(src_device, None):
+            self._cache[src_device] = TableCache(string="", completed=False)
+
+        # 如果该键之前被标记为接收完毕，则重新开始接收。
+        if self._cache[src_device].completed:
+            self._cache[src_device].string = ""
+            self._cache[src_device].completed = False
+
+        # 拼接本次接收的部分。
+        self._cache[src_device].string += part
+
+        # 如果路由表字符串完整了，就标记该键为接收完毕。
+        if self._cache[src_device].string.endswith("$"):
+            self._cache[src_device].completed = True
+
+        # 返回是否所有键都接收完毕。
+        return all([cache.completed for cache in self._cache.values()])
+
+    def merge_all(self) -> None:
+        while self.next_merge != "":
+            self.merge(self._cache[self.next_merge].string)
