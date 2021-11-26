@@ -1,7 +1,7 @@
 from time import sleep
 
 from utils.coding import bits_to_string, string_to_bits
-from utils.io import get_devicemap
+from utils.io import get_phynum
 from utils.params import Network
 
 from layer._abstract import AbstractLayer
@@ -20,7 +20,9 @@ class NetLayer(AbstractLayer):
             device_id: 该主机的设备号。
         """
         self.__device_id = device_id
-        self.__app, self.__port, self.__phy = self.__get_net_map()
+        self.__app = f"1{device_id}300"
+        self.__port = f"1{device_id}200"
+        self.__phy = f"1{device_id}100"
         super().__init__(self.__port)
 
     def __str__(self) -> str:
@@ -31,25 +33,6 @@ class NetLayer(AbstractLayer):
     def app(self) -> str:
         """将本机的应用层端口号设为只读。"""
         return self.__app
-
-    def __get_net_map(self) -> tuple[str, str, str]:
-        """获取端口号。
-
-        从配置文件内读取该主机的应用层、网络层、物理层端口号。
-
-        Returns:
-            - [0] 应用层端口号。
-            - [1] 网络层端口号。
-            - [2] 物理层端口号。
-        """
-        config = get_devicemap(self.__device_id)
-        try:
-            ports = (config["app"], config["net"], config["phy"])
-        except KeyError:
-            print(f"[Error] Device {self.__device_id} port absence in config")
-            exit(-1)
-        else:
-            return ports
 
     def receive_from_app(self) -> str:
         """接收来自主机应用层的消息。

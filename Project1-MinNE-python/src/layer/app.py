@@ -1,6 +1,6 @@
 from re import fullmatch
 
-from utils.io import get_devicemap, search_rsc
+from utils.io import get_phynum, search_rsc
 from utils.params import InputType, MessageType, Mode, Network
 
 from layer._abstract import AbstractLayer
@@ -19,30 +19,13 @@ class AppLayer(AbstractLayer):
             device_id: 该主机的设备号。
         """
         self.__device_id = device_id
-        self.__port, self.__net = self.__get_app_map()
+        self.__port = f"1{device_id}300"
+        self.__net = f"1{device_id}200"
         super().__init__(self.__port)
 
     def __str__(self) -> str:
         """打印设备号与端口号。"""
         return f"[Device {self.__device_id}] <App Layer @{self.__port}>"
-
-    def __get_app_map(self) -> tuple[str, str]:
-        """获取端口号。
-
-        从配置文件内读取该主机的应用层、网络层端口号。
-
-        Returns:
-            - [0] 应用层端口号。
-            - [1] 网络层端口号。
-        """
-        config = get_devicemap(self.__device_id)
-        try:
-            ports = (config["app"], config["net"])
-        except KeyError:
-            print(f"[Error] Device {self.__device_id} port absence in config")
-            exit(-1)
-        else:
-            return ports
 
     def receive_from_net(self) -> str:
         """从主机网络层接收消息。

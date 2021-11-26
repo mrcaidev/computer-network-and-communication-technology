@@ -1,18 +1,11 @@
-from base64 import decode
 from dataclasses import dataclass
 from select import select
 from time import time
 
-from utils.coding import (
-    bits_to_string,
-    decode_ascii,
-    encode_ascii,
-    encode_unicode,
-    string_to_bits,
-)
+from utils.coding import bits_to_string, decode_ascii, encode_ascii, string_to_bits
 from utils.frame import Frame
-from utils.io import get_devicemap, get_router_env
-from utils.params import Constant, FramePack, Network, Topology
+from utils.io import get_phynum, get_routerenv
+from utils.params import FramePack, Network, Topology
 
 from layer._abstract import AbstractLayer
 
@@ -59,7 +52,7 @@ class RouterTable:
         """
         self.__device_id = device_id
         self._table: dict[str, Path] = {}
-        self.__init_env(get_router_env(device_id))
+        self.__init_env(get_routerenv(device_id))
 
     def __str__(self) -> str:
         """打印路由表。"""
@@ -211,7 +204,7 @@ class RouterTable:
         # 排序路由表。
         self._table = dict(sorted(self._table.items(), key=lambda item: item[0]))
 
-    def search(self, dst: str) -> Path:
+    def search(self, dst: str) -> str:
         """
         在路由表中查询到达目的应用层的路径。
 
@@ -263,7 +256,8 @@ class RouterLayer(RouterTable, AbstractLayer):
         """
         # 初始化套接字。
         self.__device_id = device_id
-        self.__port, self.__phys = self.__get_router_map()
+        self.__port = f"1{device_id}200"
+        self.__local_phys = [f"1{device_id}10{i}" for i in range(get_phynum(device_id))]
         AbstractLayer.__init__(self, self.__port)
 
         # 初始化路由表。
@@ -274,24 +268,6 @@ class RouterLayer(RouterTable, AbstractLayer):
     def __str__(self) -> str:
         """打印网络层信息。"""
         return f"[Device {self.__device_id}] <Router Layer @{self.__port}>"
-
-    def __get_router_map(self) -> tuple[str, list[str]]:
-        """获取端口号。
-
-        从配置文件内读取该路由器的网络层、物理层端口号。
-
-        Returns:
-            - [0] 网络层端口号。
-            - [1] 物理层端口号列表。
-        """
-        config = get_devicemap(self.__device_id)
-        try:
-            ports = (config["net"], config["phy"])
-        except KeyError:
-            print(f"[Error] Device {self.__device_id} port absence in config")
-            exit(-1)
-        else:
-            return ports
 
     @property
     def port(self) -> str:
@@ -320,6 +296,23 @@ class RouterLayer(RouterTable, AbstractLayer):
             总共发送的字节数。
         """
         return self._send(string_to_bits(binary), port)
+
+    def broadcast_to_subnet(self, binary: str, port: str = "") -> str:
+        """向所有内网设备广播消息，除了指定的端口。
+
+        用于多主机间的消息交换；指定的端口一般是当次收到消息的端口。
+
+        Args:
+            binary: 要发的01字符串。
+            port: 可选，指定不发消息的端口号，默认为""。
+
+        Returns:
+            发送到的端口列表字符串。
+        """
+        target_phys = list(filter(lambda phy: phy != port, self.__local_phys))
+        for phy in target_phys:
+            self.unicast_to_phy(binary, phy)
+        return f"[{' '.join(target_phys)}]"
 
     def broadcast_to_routers(self, binary: str, port: str = "") -> str:
         """向所有路由器广播消息，除了指定的端口。

@@ -12,12 +12,12 @@ class File:
     RSC_DIR = "resource"
 
     BATCH_DIR = "batch-backup"
-    DEVICEMAP_DIR = "devicemap-backup"
     NE_DIR = "ne-backup"
+    PHYNUM_DIR = "phynum-backup"
 
     BATCH = "batch"
-    DEVICEMAP = "devicemap"
     NE = "ne"
+    PHYNUM = "phynum"
     ROUTERENV = "routerenv"
 
     FULL_TIME = "datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]"
@@ -96,3 +96,4 @@ class Topology:
     BROADCAST_PORT = "65535"
     DEFAULT_ROUTER = "1"
     ROUTER_NUM = 3
+    SWITCH_PER_ROUTER = 2

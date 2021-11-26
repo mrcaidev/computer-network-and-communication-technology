@@ -16,16 +16,16 @@ if os.path.exists(os.path.join(parent_dir, File.CONFIG_DIR)):
 elif os.path.exists(os.path.join(cwd, File.CONFIG_DIR)):
     rootdir = cwd
 
-# 定位config目录与文件。
+# 定位config目录与配置文件。
 config_dir = os.path.join(rootdir, File.CONFIG_DIR)
 
 batch_dir = os.path.join(config_dir, File.BATCH_DIR)
-devicemap_dir = os.path.join(config_dir, File.DEVICEMAP_DIR)
 ne_dir = os.path.join(config_dir, File.NE_DIR)
+phynum_dir = os.path.join(config_dir, File.PHYNUM_DIR)
 
 formal_batch = os.path.join(config_dir, f"{File.BATCH}.bat")
-formal_devicemap = os.path.join(config_dir, f"{File.DEVICEMAP}.json")
 formal_ne = os.path.join(config_dir, f"{File.NE}.txt")
+formal_phynum = os.path.join(config_dir, f"{File.PHYNUM}.json")
 formal_routerenv = os.path.join(config_dir, f"{File.ROUTERENV}.json")
 
 # 定位rsc目录。
@@ -52,23 +52,6 @@ def cover_batch(stage: str) -> None:
         fw.write(config)
 
 
-def cover_devicemap(stage: str) -> None:
-    """将端口映射文件改为阶段对应配置。
-
-    Args:
-        stage: 指定阶段。
-    """
-    src = os.path.join(devicemap_dir, f"{stage}.json")
-
-    # 读取阶段配置。
-    with open(src, "r", encoding="utf-8") as fr:
-        config = fr.read()
-
-    # 写入正式配置。
-    with open(formal_devicemap, "w", encoding="utf-8") as fw:
-        fw.write(config)
-
-
 def cover_ne(stage: str) -> None:
     """将物理层配置文件改为阶段对应配置。
 
@@ -86,40 +69,54 @@ def cover_ne(stage: str) -> None:
         fw.write(config)
 
 
+def cover_phynum(stage: str) -> None:
+    """将物理层数量文件改为阶段对应配置。
+
+    Args:
+        stage: 指定阶段。
+    """
+    src = os.path.join(phynum_dir, f"{stage}.json")
+
+    # 读取阶段配置。
+    with open(src, "r", encoding="utf-8") as fr:
+        config = fr.read()
+
+    # 写入正式配置。
+    with open(formal_phynum, "w", encoding="utf-8") as fw:
+        fw.write(config)
+
+
 def run_batch() -> None:
     """运行一键启动文件。"""
     os.system(formal_batch)
 
 
-def get_devicemap(device_id: str) -> dict:
-    """获取设备端口配置。
+def get_phynum(device_id: str) -> int:
+    """获取设备（对内网开放的）物理层数量。
 
     Args:
         device_id: 设备号。
 
     Returns:
-        设备配置，包括：
-        - "app": 该设备的应用层端口号。
-        - "net": 该设备的网络层端口号。
-        - "phy": 该设备的物理层端口号。
+        物理层数量。
     """
     # 打开配置文件。
     try:
-        with open(formal_devicemap, "r", encoding="utf-8") as fr:
+        with open(formal_phynum, "r", encoding="utf-8") as fr:
             # 读取该设备配置。
             try:
-                config: dict = loads(fr.read())[device_id]
+                num = loads(fr.read())[device_id]
             except KeyError:
                 print(f"[Error] Device {device_id} absence")
                 exit(-1)
             else:
-                return config
+                return num
     except FileNotFoundError:
-        print(f"[Error] {formal_devicemap} not found")
+        print(f"[Error] {formal_phynum} not found")
         exit(-1)
 
 
-def get_router_env(device_id: str) -> dict[str, dict]:
+def get_routerenv(device_id: str) -> dict[str, dict]:
     """获取路由表周围环境。
 
     Args:

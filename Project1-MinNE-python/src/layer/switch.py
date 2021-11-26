@@ -2,7 +2,7 @@ from collections import defaultdict
 from select import select
 
 from utils.coding import bits_to_string, string_to_bits
-from utils.io import get_devicemap
+from utils.io import get_phynum
 from utils.params import Network, Topology
 
 from layer._abstract import AbstractLayer
@@ -121,7 +121,8 @@ class SwitchLayer(SwitchTable, AbstractLayer):
         """
         # 初始化套接字。
         self.__device_id = device_id
-        self.__port, self.__phys = self.__get_switch_map()
+        self.__port = f"1{device_id}200"
+        self.__phys = [f"1{device_id}10{i}" for i in range(get_phynum(device_id))]
         AbstractLayer.__init__(self, self.__port)
 
         # 初始化端口地址表。
@@ -133,24 +134,6 @@ class SwitchLayer(SwitchTable, AbstractLayer):
     def __str__(self) -> str:
         """打印设备号与端口号。"""
         return f"[Device {self.__device_id}] <Switch Layer @{self.__port}>"
-
-    def __get_switch_map(self) -> tuple[str, list[str]]:
-        """获取端口号。
-
-        从配置文件内读取该交换机的网络层、物理层端口号。
-
-        Returns:
-            - [0] 网络层端口号。
-            - [1] 物理层端口号列表。
-        """
-        config = get_devicemap(self.__device_id)
-        try:
-            ports = (config["net"], config["phy"])
-        except KeyError:
-            print(f"[Error] Device {self.__device_id} port absence in config")
-            exit(-1)
-        else:
-            return ports
 
     def receive_from_phys(self) -> tuple[str, str, bool]:
         """接收来自交换机物理层的消息。
