@@ -4,8 +4,8 @@ from time import time
 
 from utils.coding import bits_to_string, decode_ascii, encode_ascii, string_to_bits
 from utils.frame import Frame
-from utils.io import get_phynum, get_routerenv
-from utils.params import FramePack, Network, Topology
+from utils.io import get_phynum, get_router_LAN, get_router_WAN
+from utils.params import File, FramePack, Network, Topology
 
 from layer._abstract import AbstractLayer
 
@@ -51,8 +51,8 @@ class RouterTable:
             device_id: 该路由器的设备号。
         """
         self.__device_id = device_id
-        self._table: dict[str, Path] = {}
-        self.__init_env(get_routerenv(device_id))
+        self.__init_WAN()
+        self._LAN = get_router_LAN(self.__device_id)
 
     def __str__(self) -> str:
         """打印路由表。"""
@@ -61,33 +61,29 @@ class RouterTable:
             [
                 f"|{dst.center(13)}|{path.next.center(10)}|{path.exit.center(11)}|{str(path.cost).center(6)}|"
                 for dst, path in filter(
-                    lambda item: item[0] != self.__device_id, self._table.items()
+                    lambda item: item[0] != self.__device_id, self._WAN.items()
                 )
             ]
         )
         return f"{head}\n{body}\n{'-'*45}"
 
-    def __init_env(self, environment: dict[str, dict]) -> None:
+    def __init_WAN(self) -> None:
         """初始化路由表周围环境。
 
         读取配置文件，记录下相邻的路由器设备号，以及到达它们的本地物理层端口号、费用。
-
-        Args:
-            environment: 路由器周围环境，键值对格式如下：
-            - 键：相邻路由器网络层端口号。
-            - 值：一个字典，包括：
-                - exit: 要到达该路由器，要走哪个本地物理层端口。
-                - cost: 到达该路由器的费用。
         """
+        self._WAN: dict[str, Path] = {}
+        env = get_router_WAN(self.__device_id)
+
         # 到自己的费用始终为0。
-        self._table[self.__device_id] = Path(next="", exit="", cost=0, optimized=True)
+        self._WAN[self.__device_id] = Path(next="", exit="", cost=0, optimized=True)
 
         # 依传入的字典逐项初始化。
         min_cost, min_dst = float("inf"), ""
-        for dst, dic in environment.items():
+        for dst, dic in env.items():
             # 记录到达周围路由器的路径。
             cur_cost = dic["cost"]
-            self._table[dst] = Path(
+            self._WAN[dst] = Path(
                 next=dst, exit=dic["exit"], cost=cur_cost, optimized=False
             )
             # 顺便找到费用最小值。
@@ -107,7 +103,7 @@ class RouterTable:
         Returns:
             路由表包，格式为"device:dst-cost|dst-cost|...|dst-cost:$"。
         """
-        return f"{self.__device_id}:{'|'.join(f'{dst}-{cost}' for dst, cost in filter(lambda item: item[0] != self.__device_id, [(dst, str(path.cost)) for dst, path in self._table.items()]))}:$"
+        return f"{self.__device_id}:{'|'.join(f'{dst}-{cost}' for dst, cost in filter(lambda item: item[0] != self.__device_id, [(dst, str(path.cost)) for dst, path in self._WAN.items()]))}:$"
 
     @staticmethod
     def __unpack(package: str) -> tuple[str, dict[str, int]]:
@@ -145,26 +141,26 @@ class RouterTable:
         src_device, table = RouterTable.__unpack(package)
 
         # 标记到达该来源的路径为最优化。
-        self._table[src_device].optimized = True
+        self._WAN[src_device].optimized = True
 
         # 创建本地路由表的一份浅拷贝。
-        local_copy = self._table.copy()
+        local_copy = self._WAN.copy()
 
         # 遍历更新本地路由表。
         min_cost, min_dst = float("inf"), ""
         for dst, new_cost in table.items():
             # 比对两表内，关于该目的地的数据。
-            local_path = self._table.get(dst, None)
+            local_path = self._WAN.get(dst, None)
             new_path = Path(
                 next=src_device,
-                exit=self._table[src_device].exit,
-                cost=new_cost + self._table[src_device].cost,
+                exit=self._WAN[src_device].exit,
+                cost=new_cost + self._WAN[src_device].cost,
                 optimized=False,
             )
 
             # 如果表里没有这条记录，就追加进表。
             if not local_path:
-                self._table[dst] = new_path
+                self._WAN[dst] = new_path
                 cur_cost = new_cost
 
             # 如果这条记录已经是最优化的，就跳过。
@@ -177,7 +173,7 @@ class RouterTable:
 
             # 如果新记录费用低，就更新路径。
             else:
-                self._table[dst] = new_path
+                self._WAN[dst] = new_path
                 cur_cost = new_cost
 
             # 更新当前非最优化路径集的费用最小值。
@@ -202,7 +198,7 @@ class RouterTable:
         self._next_merge = min_dst
 
         # 排序路由表。
-        self._table = dict(sorted(self._table.items(), key=lambda item: item[0]))
+        self._WAN = dict(sorted(self._WAN.items(), key=lambda item: item[0]))
 
     def search(self, dst: str) -> str:
         """
@@ -222,24 +218,30 @@ class RouterTable:
 
         # 反映射查找路径。
         try:
-            dst_router = list(
-                filter(
-                    lambda router: int(dst[1]) % Topology.ROUTER_NUM == int(router),
-                    self._table.keys(),
-                )
-            )[0]
+            dst_router = min(
+                filter(lambda nominee: nominee >= dst[1], self._WAN.keys())
+            )
 
-        # 如果没找到上级路由器。
-        except IndexError:
+        # 如果找不到上级路由器。
+        except Exception:
             return ""
 
         # 如果上级路由器是自己。
         if dst_router == self.__device_id:
-            return ""
+            try:
+                dst_exit = list(
+                    filter(lambda item: item[0] == dst[1], self._LAN.items())
+                )[0][1]
 
-        # 当且仅当目的地属于别的路由器，才返回出口值。
+            # 如果找不到对应的本地物理层出口。
+            except IndexError:
+                return ""
+            else:
+                return dst_exit
+
+        # 如果目的地不在子网内，就返回出口。
         else:
-            return self._table[dst_router].exit
+            return self._WAN[dst_router].exit
 
 
 class RouterLayer(RouterTable, AbstractLayer):
@@ -257,7 +259,6 @@ class RouterLayer(RouterTable, AbstractLayer):
         # 初始化套接字。
         self.__device_id = device_id
         self.__port = f"1{device_id}200"
-        self.__local_phys = [f"1{device_id}10{i}" for i in range(get_phynum(device_id))]
         AbstractLayer.__init__(self, self.__port)
 
         # 初始化路由表。
@@ -274,16 +275,17 @@ class RouterLayer(RouterTable, AbstractLayer):
         """将路由器网络层端口号设为只读。"""
         return self.__port
 
-    def receive_from_phys(self) -> tuple[str, bool]:
+    def receive_from_phys(self) -> tuple[str, str, bool]:
         """接收来自路由器物理层的消息。
 
         Returns:
             - [0] 接收到的01字符串。
-            - [1] 是否接收成功，成功为`True`，失败为`False`。
+            - [1] 发来该消息的本地物理层端口。
+            - [2] 是否接收成功，成功为`True`，失败为`False`。
         """
-        binary, _, success = self._receive()
+        binary, port, success = self._receive()
         binary = bits_to_string(binary) if success else binary
-        return binary, success
+        return binary, port, success
 
     def unicast_to_phy(self, binary: str, port: str) -> int:
         """向指定物理层单播消息。
@@ -297,7 +299,7 @@ class RouterLayer(RouterTable, AbstractLayer):
         """
         return self._send(string_to_bits(binary), port)
 
-    def broadcast_to_subnet(self, binary: str, port: str = "") -> str:
+    def broadcast_to_LAN(self, binary: str, port: str = "") -> str:
         """向所有内网设备广播消息，除了指定的端口。
 
         用于多主机间的消息交换；指定的端口一般是当次收到消息的端口。
@@ -309,12 +311,12 @@ class RouterLayer(RouterTable, AbstractLayer):
         Returns:
             发送到的端口列表字符串。
         """
-        target_phys = list(filter(lambda phy: phy != port, self.__local_phys))
+        target_phys = list(filter(lambda phy: phy != port, self._LAN.values()))
         for phy in target_phys:
             self.unicast_to_phy(binary, phy)
         return f"[{' '.join(target_phys)}]"
 
-    def broadcast_to_routers(self, binary: str, port: str = "") -> str:
+    def broadcast_to_WAN(self, binary: str, port: str = "") -> str:
         """向所有路由器广播消息，除了指定的端口。
 
         仅用于扩散路由表；指定的端口一般是当次收到路由表的端口。
@@ -329,7 +331,7 @@ class RouterLayer(RouterTable, AbstractLayer):
         target_exits = list(
             filter(
                 lambda exit: exit != port and exit != "",
-                [path.exit for path in self._table.values()],
+                [path.exit for path in self._WAN.values()],
             )
         )
         for exit in target_exits:
@@ -370,7 +372,7 @@ class RouterLayer(RouterTable, AbstractLayer):
                     "dst": Topology.BROADCAST_PORT,
                 }
             )
-            self.broadcast_to_routers(send_frame.binary)
+            self.broadcast_to_WAN(send_frame.binary)
 
     def receive_table(self, src: str, binary: str) -> bool:
         """接收别的路由器扩散的路由表。

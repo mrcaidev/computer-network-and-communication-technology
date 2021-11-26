@@ -25,12 +25,15 @@ if __name__ == "__main__":
             continue
 
         # 读取消息。
-        binary, _ = router.receive_from_phys()
+        binary, in_port, _ = router.receive_from_phys()
         frame = Frame()
         frame.read(binary)
 
-        exit_port = router.search(frame.dst)
-        if not exit_port:
-            continue
+        if frame.dst == Topology.BROADCAST_PORT:
+            router.broadcast_to_LAN(binary, in_port)
         else:
-            router.unicast_to_phy(binary, exit_port)
+            exit_port = router.search(frame.dst)
+            if not exit_port:
+                continue
+            else:
+                router.unicast_to_phy(binary, exit_port)

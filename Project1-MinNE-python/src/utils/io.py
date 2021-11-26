@@ -116,7 +116,7 @@ def get_phynum(device_id: str) -> int:
         exit(-1)
 
 
-def get_routerenv(device_id: str) -> dict[str, dict]:
+def get_router_WAN(device_id: str) -> dict[str, dict]:
     """获取路由表周围环境。
 
     Args:
@@ -134,7 +134,34 @@ def get_routerenv(device_id: str) -> dict[str, dict]:
         with open(formal_routerenv, "r", encoding="utf-8") as fr:
             # 读取初始路由表。
             try:
-                env: dict = loads(fr.read())[device_id]
+                env: dict = loads(fr.read())[device_id]["WAN"]
+            except KeyError:
+                print(f"[Error] Device {device_id} absence")
+                exit(-1)
+            else:
+                return env
+    except FileNotFoundError:
+        print(f"[Error] {formal_routerenv} not found")
+        exit(-1)
+
+
+def get_router_LAN(device_id: str) -> dict[str, str]:
+    """获取路由表内网环境。
+
+    Args:
+        device_id: 路由器设备号。
+
+    Returns:
+        路由器内网环境，键值对格式如下：
+        - 键：所属主机的设备号。
+        - 值：到达该主机的本地物理层端口号。
+    """
+    # 打开配置文件。
+    try:
+        with open(formal_routerenv, "r", encoding="utf-8") as fr:
+            # 读取初始路由表。
+            try:
+                env: dict = loads(fr.read())[device_id]["LAN"]
             except KeyError:
                 print(f"[Error] Device {device_id} absence")
                 exit(-1)
