@@ -194,7 +194,7 @@ if __name__ == "__main__":
                     print(f"{send_frames[send_cnt]} (Sent)")
 
                 if mode == Mode.UNICAST:
-                    should_resend = False
+                    resend_flag = True
                     resp_binary, success = net.receive_from_phy()
                     if not success:
                         print(f"[Frame {send_frames[send_cnt].seq}] Timeout")
@@ -211,17 +211,16 @@ if __name__ == "__main__":
                         # 如果是ACK。
                         if resp_message == FramePack.ACK:
                             print(f"[Frame {resp_frame.seq}] ACK")
+                            resend_flag = False
                         elif resp_message == FramePack.NAK:
                             print(f"[Frame {resp_frame.seq}] NAK")
-                            should_resend = True
                         else:
                             print(f"[Frame {resp_frame.seq}] Unknown response")
-                            should_resend = True
 
                 else:
                     # 持续等待回复，如果没人回复了，就默认这一帧全收到了。
                     this_frame_resp_cnt = 0
-                    should_resend = False
+                    resend_flag = False
                     while True:
                         # 从物理层接收回复。
                         resp_binary, success = net.receive_from_phy()
@@ -249,17 +248,17 @@ if __name__ == "__main__":
                             print(f"[Frame {resp_frame.seq}] ACK")
                         elif resp_message == FramePack.NAK:
                             print(f"[Frame {resp_frame.seq}] NAK")
-                            should_resend = True
+                            resend_flag = True
                         else:
                             print(f"[Frame {resp_frame.seq}] Unknown response")
-                            should_resend = True
+                            resend_flag = True
 
                 # 如果连续多次超时，就停止重传。
                 if timeout_cnt == Network.KEEPALIVE_MAX_RETRY:
                     print("[Warning] Keepalive max retries")
                     break
 
-                if not should_resend:
+                if not resend_flag:
                     send_cnt += 1
 
                 # 如果这是发送的最后一帧，就跳出循环。
