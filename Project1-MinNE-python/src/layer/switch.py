@@ -26,7 +26,7 @@ class SwitchTable:
 
     def __str__(self) -> None:
         """打印端口地址表。"""
-        head = f"{'-'*24}\n|{'-'*7}|{'Remote'.center(14)}|\n|{'Local'.center(7)}|{'-'*14}|\n|{'-'*7}|{'Port'.center(7)}|{'Life'.center(6)}|"
+        head = f"{'-'*24}\n|{' '*7}|{'Remote'.center(14)}|\n|{'Local'.center(7)}|{'-'*14}|\n|{' '*7}|{'Port'.center(7)}|{'Life'.center(6)}|"
         body = "\n".join(
             filter(
                 None,

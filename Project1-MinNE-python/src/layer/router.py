@@ -56,16 +56,16 @@ class RouterTable:
 
     def __str__(self) -> str:
         """打印路由表。"""
-        head = f"{'-'*45}\n| Destination | Next hop | Exit port | Cost |\n|{'-'*13}|{'-'*10}|{'-'*11}|{'-'*6}|"
+        head = f"{'-'*36}\n| Destination | Next | Exit | Cost |\n|{'-'*13}|{'-'*6}|{'-'*6}|{'-'*6}|"
         body = "\n".join(
             [
-                f"|{dst.center(13)}|{path.next.center(10)}|{path.exit.center(11)}|{str(path.cost).center(6)}|"
+                f"|{dst.center(13)}|{path.next.center(6)}|{path.exit.center(6)}|{str(path.cost).center(6)}|"
                 for dst, path in filter(
                     lambda item: item[0] != self.__device_id, self._WAN.items()
                 )
             ]
         )
-        return f"{head}\n{body}\n{'-'*45}"
+        return f"{head}\n{body}\n{'-'*36}"
 
     def __init_WAN(self) -> None:
         """初始化路由表周围环境。

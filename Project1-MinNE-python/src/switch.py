@@ -40,6 +40,6 @@ if __name__ == "__main__":
 
         # 如果没查到或者是广播，就向所有端口发送。
         else:
-            print(f"{frame.src}-{in_port}-", end="")
+            print(f"[Log] {frame.src}-{in_port}-", end="")
             print(switch.broadcast_to_phys(binary, in_port), end="")
             print(f"-{frame.dst}")
