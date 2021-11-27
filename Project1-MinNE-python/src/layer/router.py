@@ -200,6 +200,12 @@ class RouterTable:
         # 排序路由表。
         self._WAN = dict(sorted(self._WAN.items(), key=lambda item: item[0]))
 
+    def static_merge(self) -> None:
+        """静态合并路由表，与配置文件内的其它路由表合并。"""
+        while self._next_merge:
+            table = RouterTable(self._next_merge)
+            self.merge(table.package)
+
     def search(self, dst: str) -> str:
         """
         在路由表中查询到达目的应用层的路径。
@@ -411,9 +417,3 @@ class RouterLayer(RouterTable, AbstractLayer):
         """动态合并路由表，将缓存内的路由表包全部合并。"""
         while self._next_merge:
             self.merge(self.__cache[self._next_merge].string)
-
-    def static_merge(self) -> None:
-        """静态合并路由表，与配置文件内的其它路由表合并。"""
-        while self._next_merge:
-            table = RouterTable(self._next_merge)
-            self.merge(table.package)
