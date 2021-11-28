@@ -1,5 +1,4 @@
 from collections import defaultdict
-from select import select
 
 from utils.coding import bits_to_string, string_to_bits
 from utils.io import get_phynum
@@ -175,17 +174,6 @@ class SwitchLayer(SwitchTable, AbstractLayer):
         for phy in target_phys:
             self.unicast_to_phy(binary, phy)
         return f"[{' '.join(target_phys)}]"
-
-    def has_message(self) -> bool:
-        """检测是否有消息发到本层。
-
-        使用`select()`方法检测本层套接字可读性。
-
-        Returns:
-            可读为`True`，不可读为`False`。
-        """
-        ready_sockets, _, _ = select([self._socket], [], [], Network.SELECT_TIMEOUT)
-        return len(ready_sockets) != 0
 
     def show_table(self) -> None:
         """打印端口地址表。"""

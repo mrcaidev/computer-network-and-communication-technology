@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from select import select
 from time import time
 
 from utils.coding import bits_to_string, decode_ascii, encode_ascii, string_to_bits
@@ -343,17 +342,6 @@ class RouterLayer(RouterTable, AbstractLayer):
         for exit in target_exits:
             self.unicast_to_phy(binary, exit)
         return f"[{' '.join(target_exits)}]"
-
-    def has_message(self) -> bool:
-        """检测是否有消息发到本层。
-
-        使用`select()`方法检测本层套接字可读性。
-
-        Returns:
-            可读为`True`，不可读为`False`。
-        """
-        ready_sockets, _, _ = select([self._socket], [], [], Network.SELECT_TIMEOUT)
-        return len(ready_sockets) != 0
 
     def show_table(self) -> None:
         """打印路由表。"""

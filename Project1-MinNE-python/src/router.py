@@ -21,7 +21,7 @@ if __name__ == "__main__":
     # 开始运作。
     while True:
         # 如果没有消息到达，就继续select。
-        if not router.has_message():
+        if not router.readable:
             continue
 
         # 读取消息。
