@@ -273,7 +273,7 @@ class RouterLayer(RouterTable, AbstractLayer):
 
     def __str__(self) -> str:
         """打印网络层信息。"""
-        return f"[Device {self.__device_id}] <Router Layer @{self.__port}>"
+        return f"[Device {self.__device_id}] <Router Layer @{self.__port}>\n{'-'*30}"
 
     @property
     def port(self) -> str:

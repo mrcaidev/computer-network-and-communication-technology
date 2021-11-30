@@ -23,30 +23,38 @@ if __name__ == "__main__":
 
         # 如果消息来自控制台，说明本机成为发送端。
         if is_from_cmd:
-            send_data: dict = eval(first_message)
-            # 将字典中的消息编码。
-            text = send_data.pop("text")
-            file = send_data.pop("file")
-            if send_data["msgtype"] == MessageType.TEXT:
-                print(f"[Send] {text}")
-                send_data["message"] = encode_unicode(text)
+            # 解析控制台传来的数据。
+            data: dict = eval(first_message)
+            if data["dst"] == Topology.BROADCAST_PORT:
+                print("[Broadcast]", end=" ")
             else:
-                print(f"[Send] {file}")
-                send_data["message"] = encode_file(file)
+                print(f"[Unicast to {data['dst'][1]}]", end=" ")
+            text = data.pop("text")
+            file = data.pop("file")
+            # 如果消息类型是文本。
+            if data["msgtype"] == MessageType.TEXT:
+                print(text)
+                data["message"] = encode_unicode(text)
+            # 如果消息类型是图片。
+            else:
+                print(file)
+                data["message"] = encode_file(file)
             # 发送给本机网络层。
-            app.send_to_net(str(send_data))
+            app.send_to_net(str(data))
 
         # 如果消息来自本机网络层，说明本机成为接收端。
         else:
-            recv_data = eval(first_message)
+            # 解析本机网络层传来的数据。
+            data: dict = eval(first_message)
+            print(f"[Receive from {data['src'][1]}]", end=" ")
             # 如果消息类型是文本。
-            if recv_data["msgtype"] == MessageType.TEXT:
-                text = decode_unicode(recv_data["message"])
-                print(f"[Recv] {text}")
+            if data["msgtype"] == MessageType.TEXT:
+                text = decode_unicode(data["message"])
+                print(text)
             # 如果消息类型是文件。
             else:
                 # 如果解码失败。
-                file, decoded = decode_file(recv_data["message"])
+                file, decoded = decode_file(data["message"])
                 if not decoded:
                     print("[Warning] Decoding failed")
                     continue
@@ -55,4 +63,4 @@ if __name__ == "__main__":
                 if not saved:
                     print("[Warning] Saving failed")
                 else:
-                    print(f"[Recv] {filepath}")
+                    print(filepath)

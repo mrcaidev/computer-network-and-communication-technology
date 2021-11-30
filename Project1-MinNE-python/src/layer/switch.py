@@ -134,7 +134,7 @@ class SwitchLayer(SwitchTable, AbstractLayer):
 
     def __str__(self) -> str:
         """打印设备号与端口号。"""
-        return f"[Device {self.__device_id}] <Switch Layer @{self.__port}>"
+        return f"[Device {self.__device_id}] <Switch Layer @{self.__port}>\n{'-'*30}"
 
     def receive_from_phys(self) -> tuple[str, str, bool]:
         """接收来自交换机物理层的消息。

@@ -27,7 +27,7 @@ class NetLayer(AbstractLayer):
 
     def __str__(self) -> str:
         """打印设备号与端口号。"""
-        return f"[Device {self.__device_id}] <Net Layer @{self.__port}>"
+        return f"[Device {self.__device_id}] <Net Layer @{self.__port}>\n{'-'*30}"
 
     def receive_all(self) -> tuple[str, bool]:
         """接收发到本层的消息。

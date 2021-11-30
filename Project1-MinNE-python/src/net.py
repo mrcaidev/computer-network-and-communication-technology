@@ -30,26 +30,25 @@ if __name__ == "__main__":
         # 如果消息来自本机应用层，说明本机成为发送端。
         if is_from_app:
             # 逐帧封装。
-            user_input: dict = eval(first_message)
-            send_frames = net.pack(user_input)
+            send_data: dict = eval(first_message)
+            send_frames = net.pack(send_data)
             send_total = len(send_frames) - 1
             print(f"[Log] Total: {send_total}")
             # 逐帧发送。
             cur_seq = keepalive_cnt = 0
-            print(f"[Log] Start time: {eval(File.FULL_TIME)}")
+            print(f"[Log] Start: {eval(File.FULL_TIME)}")
             start_tick = time()
             while True:
                 # 向物理层发送消息。
                 net.send_to_phy(send_frames[cur_seq].binary)
-                print(f"{send_frames[cur_seq]} | Sent")
+                print(f"{send_frames[cur_seq]} | Sent, ", end="")
 
                 # 如果是单播，只有接收到ACK才发下一帧。
-                if user_input["dst"] != Topology.BROADCAST_PORT:
+                if send_data["dst"] != Topology.BROADCAST_PORT:
                     resend_flag = True
                     resp_binary, success = net.receive_from_phy()
                     # 如果超时，就累加1次超时次数。
                     if not success:
-                        print("[Log] Timeout")
                         keepalive_cnt += 1
                     # 如果有回复。
                     else:
@@ -59,12 +58,12 @@ if __name__ == "__main__":
                         resp_frame.read(resp_binary)
                         resp_message = decode_ascii(resp_frame.data)
                         if resp_message == FramePack.ACK:
-                            print(f"{resp_frame} | ACK")
+                            print("ACK")
                             resend_flag = False
                         elif resp_message == FramePack.NAK:
-                            print(f"{resp_frame} | NAK")
+                            print("NAK")
                         else:
-                            print(f"{resp_frame} | Garbled")
+                            print("Garbled")
 
                 # 如果是广播，只要至少有一次ACK就发下一帧，不检查ACK数量。
                 else:
@@ -95,11 +94,7 @@ if __name__ == "__main__":
                         else:
                             garble_cnt += 1
                             resend_flag = True
-                    # 打印等待回复过程的信息。
-                    if not has_at_least_one_response:
-                        print("[Log] Timeout")
-                    else:
-                        print(f"{ack_cnt} ACK, {nak_cnt} NAK, {garble_cnt} garbled")
+                    print(f"{ack_cnt} ACK, {nak_cnt} NAK, {garble_cnt} garbled")
 
                 # 如果连续多次超时，就停止重传。
                 if keepalive_cnt == Network.KEEPALIVE_MAX_RETRY:
@@ -115,11 +110,11 @@ if __name__ == "__main__":
             # 释放这些帧的空间。
             del send_frames
             # 计算网速。
-            print(f"[Log] Finish time: {eval(File.FULL_TIME)}")
+            print(f"[Log] Finish: {eval(File.FULL_TIME)}")
             end_tick = time()
             speed = (
                 Constant.BITS_PER_UNICODE
-                * len(user_input["message"])
+                * len(send_data["message"])
                 / (end_tick - start_tick)
             )
             print(f"[Log] Sending speed: {round(speed, 1)}bps")
@@ -130,7 +125,7 @@ if __name__ == "__main__":
             recv_msgtype = recv_message = ""
             is_first_recv = True
             start_tick = time()
-            print(f"[Log] Start time: {eval(File.FULL_TIME)}")
+            print(f"[Log] Start: {eval(File.FULL_TIME)}")
             # 持续接收消息。
             while True:
                 # 从物理层接收消息。
@@ -179,7 +174,6 @@ if __name__ == "__main__":
                         recv_msgtype = decode_ascii(
                             recv_frame.data[FramePack.DATA_LEN // 2 :]
                         )
-                        print(f"[Log] Message type: {recv_msgtype}")
                         print(f"[Log] Total: {recv_total}")
                     else:
                         recv_message += recv_frame.data
@@ -200,10 +194,18 @@ if __name__ == "__main__":
                 continue
 
             # 如果接收到了消息，就将消息传给应用层。
-            net.send_to_app(str({"msgtype": recv_msgtype, "message": recv_message}))
+            net.send_to_app(
+                str(
+                    {
+                        "msgtype": recv_msgtype,
+                        "message": recv_message,
+                        "src": recv_frame.src,
+                    }
+                )
+            )
 
             # 计算网速。
-            print(f"[Log] Finish time: {eval(File.FULL_TIME)}")
+            print(f"[Log] Finish: {eval(File.FULL_TIME)}")
             end_tick = time()
             speed = (
                 Constant.BITS_PER_UNICODE * len(recv_message) / (end_tick - start_tick)

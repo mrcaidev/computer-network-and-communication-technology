@@ -14,7 +14,7 @@ class CommandLayer(AbstractLayer, CommandUI):
 
     def __str__(self) -> str:
         """打印控制台信息。"""
-        return f"[CMD] <Cmd layer @{Topology.CMD_PORT}>"
+        return f"[CMD] <Cmd layer @{Topology.CMD_PORT}>\n{'-'*30}"
 
     def _onclick_send_btn(self) -> None:
         super()._onclick_send_btn()
