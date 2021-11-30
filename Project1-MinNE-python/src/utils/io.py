@@ -93,6 +93,28 @@ def run_batch() -> None:
     os.system(formal_batch)
 
 
+def get_hosts() -> list[str]:
+    """获取主机列表。
+
+    Returns:
+        拓扑内的主机设备号列表。
+    """
+    # 打开配置文件。
+    try:
+        with open(formal_devicemap, "r", encoding="utf-8") as fr:
+            # 读取该设备配置。
+            try:
+                hosts = loads(fr.read())["host"]
+            except KeyError:
+                print(f"[Error] Hosts absence")
+                exit(-1)
+            else:
+                return hosts
+    except FileNotFoundError:
+        print(f"[Error] {formal_devicemap} not found")
+        exit(-1)
+
+
 def get_switch_phynum(device_id: str) -> int:
     """获取交换机物理层数量。
 
