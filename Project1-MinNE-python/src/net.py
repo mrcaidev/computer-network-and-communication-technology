@@ -138,8 +138,10 @@ if __name__ == "__main__":
         # 如果消息来自本机物理层，说明本机成为接收端。
         else:
             cur_seq, recv_total, keepalive_cnt = -1, 0, 0
-            msgtype, recv_message = "1", ""
-            start_ticking_flag = is_first_recv = True
+            recv_msgtype = recv_message = ""
+            is_first_recv = True
+            start_tick = time()
+            print(f"[Log] Started: {eval(File.FULL_TIME)}")
             # 持续接收消息。
             while True:
                 # 从物理层接收消息。
@@ -166,12 +168,6 @@ if __name__ == "__main__":
                         print(f"{recv_frame} | Not for me")
                         continue
 
-                    # 如果这是第一个给自己的帧，就开始计时。
-                    if start_ticking_flag:
-                        start_tick = time()
-                        start_ticking_flag = False
-                        print(f"[Log] Started: {eval(File.FULL_TIME)}")
-
                     # 如果序号重复，就丢弃这帧，再回复一遍ACK。
                     if cur_seq == recv_frame.seq:
                         print(f"{recv_frame} | Repeated")
@@ -192,10 +188,10 @@ if __name__ == "__main__":
                         recv_total = bin_to_dec(
                             recv_frame.data[: FramePack.DATA_LEN // 2]
                         )
-                        msgtype = decode_ascii(
+                        recv_msgtype = decode_ascii(
                             recv_frame.data[FramePack.DATA_LEN // 2 :]
                         )
-                        print(f"[Log] Message type: {msgtype}")
+                        print(f"[Log] Message type: {recv_msgtype}")
                         print(f"[Log] Total: {recv_total}")
                     else:
                         recv_message += recv_frame.data
@@ -211,8 +207,12 @@ if __name__ == "__main__":
                 if cur_seq == recv_total:
                     break
 
-            # 将消息传给应用层。
-            net.send_to_app(msgtype)
+            # 如果什么都没收到，就继续开始等待双端消息。
+            if not recv_message:
+                continue
+
+            # 如果接收到了消息，就将消息传给应用层。
+            net.send_to_app(recv_msgtype)
             net.send_to_app(recv_message)
 
             # 计算网速。
