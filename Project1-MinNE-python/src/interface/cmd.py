@@ -11,16 +11,16 @@ class CommandUI(QMainWindow):
     def __init__(self) -> None:
         """初始化窗口与属性。"""
         super().__init__()
-        self.mode = Mode.UNICAST
-        self.src = ""
-        self.dst = ""
-        self.msgtype = MessageType.TEXT
-        self.text = ""
-        self.filepath = ""
-        self.hosts = get_hosts()
-        self.init_ui()
+        self.__mode = Mode.UNICAST
+        self.__src = ""
+        self.__dst = ""
+        self.__msgtype = MessageType.TEXT
+        self.__text = ""
+        self.__filepath = ""
+        self.__hosts = get_hosts()
+        self.__init_ui()
 
-    def init_ui(self):
+    def __init_ui(self):
         """初始化UI。"""
         # 窗口外观。
         self.setFixedSize(300, 200)
@@ -34,171 +34,172 @@ class CommandUI(QMainWindow):
         self.move(size.topLeft())
 
         # 窗口布局。
-        self.central = QWidget()
-        self.setCentralWidget(self.central)
-        self.Hwidget_1 = QWidget(self.central)
-        self.Hwidget_1.setGeometry(QRect(140, 0, 150, 40))
-        self.Hlayout_1 = QHBoxLayout(self.Hwidget_1)
-        self.Hlayout_1.setContentsMargins(0, 0, 0, 0)
-        self.Hwidget_2 = QWidget(self.central)
-        self.Hwidget_2.setGeometry(QRect(10, 40, 280, 40))
-        self.Hlayout_2 = QHBoxLayout(self.Hwidget_2)
-        self.Hlayout_2.setContentsMargins(0, 0, 0, 0)
-        self.Vwidget = QWidget(self.central)
-        self.Vwidget.setGeometry(QRect(10, 80, 60, 80))
-        self.Vlayout = QVBoxLayout(self.Vwidget)
-        self.Vlayout.setContentsMargins(0, 0, 0, 0)
+        self.__central = QWidget()
+        self.setCentralWidget(self.__central)
+        self.__Hwidget_1 = QWidget(self.__central)
+        self.__Hwidget_1.setGeometry(QRect(140, 0, 150, 40))
+        self.__Hlayout_1 = QHBoxLayout(self.__Hwidget_1)
+        self.__Hlayout_1.setContentsMargins(0, 0, 0, 0)
+        self.__Hwidget_2 = QWidget(self.__central)
+        self.__Hwidget_2.setGeometry(QRect(10, 40, 280, 40))
+        self.__Hlayout_2 = QHBoxLayout(self.__Hwidget_2)
+        self.__Hlayout_2.setContentsMargins(0, 0, 0, 0)
+        self.__Vwidget = QWidget(self.__central)
+        self.__Vwidget.setGeometry(QRect(10, 80, 60, 80))
+        self.__Vlayout = QVBoxLayout(self.__Vwidget)
+        self.__Vlayout.setContentsMargins(0, 0, 0, 0)
 
         # 标题标签。
-        self.title = QLabel(self.central)
-        self.title.setGeometry(QRect(10, 0, 130, 40))
-        self.title.setFont(QFont("Microsoft YaHei UI", pointSize=12, weight=75))
-        self.title.setText("💻 控制台")
+        self.__title = QLabel(self.__central)
+        self.__title.setGeometry(QRect(10, 0, 130, 40))
+        self.__title.setFont(QFont("Microsoft YaHei UI", pointSize=12, weight=75))
+        self.__title.setText("💻 控制台")
 
         # 单播单选按钮。
-        self.unicast_radio = QRadioButton(self.Hwidget_1)
-        self.unicast_radio.setText("单播")
-        self.unicast_radio.setChecked(True)
-        self.unicast_radio.clicked.connect(self.onclick_unicast_radio)
+        self.__unicast_radio = QRadioButton(self.__Hwidget_1)
+        self.__unicast_radio.setText("单播")
+        self.__unicast_radio.setChecked(True)
+        self.__unicast_radio.clicked.connect(self.__onclick_unicast_radio)
 
         # 广播单选按钮。
-        self.broadcast_radio = QRadioButton(self.Hwidget_1)
-        self.broadcast_radio.setText("广播")
-        self.broadcast_radio.clicked.connect(self.onclick_broadcast_radio)
+        self.__broadcast_radio = QRadioButton(self.__Hwidget_1)
+        self.__broadcast_radio.setText("广播")
+        self.__broadcast_radio.clicked.connect(self.__onclick_broadcast_radio)
 
         # 源标签。
-        self.src_label = QLabel(self.Hwidget_2)
-        self.src_label.setAlignment(Qt.AlignCenter)
-        self.src_label.setText("源")
+        self.__src_label = QLabel(self.__Hwidget_2)
+        self.__src_label.setAlignment(Qt.AlignCenter)
+        self.__src_label.setText("源")
 
         # 源下拉框。
-        self.src_combo = QComboBox(self.Hwidget_2)
-        self.src_combo.addItems(self.hosts)
-        self.src_combo.setCurrentIndex(-1)
-        self.src_combo.activated.connect(self.onactivate_src_combo)
+        self.__src_combo = QComboBox(self.__Hwidget_2)
+        self.__src_combo.addItems(self.__hosts)
+        self.__src_combo.setCurrentIndex(-1)
+        self.__src_combo.activated.connect(self.__onactivate_src_combo)
 
         # 目的标签。
-        self.dst_label = QLabel(self.Hwidget_2)
-        self.dst_label.setAlignment(Qt.AlignCenter)
-        self.dst_label.setText("目标")
+        self.__dst_label = QLabel(self.__Hwidget_2)
+        self.__dst_label.setAlignment(Qt.AlignCenter)
+        self.__dst_label.setText("目标")
 
         # 目的下拉框。
-        self.dst_combo = QComboBox(self.Hwidget_2)
-        self.dst_combo.addItems(self.hosts)
-        self.dst_combo.setCurrentIndex(-1)
-        self.dst_combo.activated.connect(self.onactivate_dst_combo)
+        self.__dst_combo = QComboBox(self.__Hwidget_2)
+        self.__dst_combo.addItems(self.__hosts)
+        self.__dst_combo.setCurrentIndex(-1)
+        self.__dst_combo.activated.connect(self.__onactivate_dst_combo)
 
         # 文本单选按钮。
-        self.text_radio = QRadioButton(self.Vwidget)
-        self.text_radio.setText("文本")
-        self.text_radio.setChecked(True)
-        self.text_radio.clicked.connect(self.onclick_text_radio)
+        self.__text_radio = QRadioButton(self.__Vwidget)
+        self.__text_radio.setText("文本")
+        self.__text_radio.setChecked(True)
+        self.__text_radio.clicked.connect(self.__onclick_text_radio)
 
         # 文本编辑框。
-        self.text_edit = QLineEdit(self.central)
-        self.text_edit.setGeometry(QRect(80, 85, 210, 30))
-        self.text_edit.textChanged.connect(self.onedit_text_edit)
+        self.__text_edit = QLineEdit(self.__central)
+        self.__text_edit.setGeometry(QRect(80, 85, 210, 30))
+        self.__text_edit.textChanged.connect(self.__onedit_text_edit)
 
         # 文件单选按钮。
-        self.file_radio = QRadioButton(self.Vwidget)
-        self.file_radio.setText("图片")
-        self.file_radio.clicked.connect(self.onclick_file_radio)
+        self.__file_radio = QRadioButton(self.__Vwidget)
+        self.__file_radio.setText("图片")
+        self.__file_radio.clicked.connect(self.__onclick_file_radio)
 
         # 文件按钮。
-        self.file_btn = QPushButton(self.central)
-        self.file_btn.setGeometry(QRect(80, 125, 210, 30))
-        self.file_btn.setText("选择文件")
-        self.file_btn.clicked.connect(self.onclick_file_btn)
+        self.__file_btn = QPushButton(self.__central)
+        self.__file_btn.setGeometry(QRect(80, 125, 210, 30))
+        self.__file_btn.setText("选择文件")
+        self.__file_btn.clicked.connect(self.__onclick_file_btn)
 
         # 发送按钮。
-        self.send_btn = QPushButton(self.central)
-        self.send_btn.setGeometry(QRect(10, 160, 280, 35))
-        self.send_btn.setText("发送")
-        self.send_btn.clicked.connect(self.onclick_send_btn)
+        self.__send_btn = QPushButton(self.__central)
+        self.__send_btn.setGeometry(QRect(10, 160, 280, 35))
+        self.__send_btn.setText("发送")
+        self.__send_btn.clicked.connect(self._onclick_send_btn)
 
         # 将组件添加进布局。
-        self.Hlayout_1.addWidget(self.unicast_radio)
-        self.Hlayout_1.addWidget(self.broadcast_radio)
-        self.Hlayout_2.addWidget(self.src_label)
-        self.Hlayout_2.addWidget(self.src_combo)
-        self.Hlayout_2.addWidget(self.dst_label)
-        self.Hlayout_2.addWidget(self.dst_combo)
-        self.Vlayout.addWidget(self.text_radio)
-        self.Vlayout.addWidget(self.file_radio)
+        self.__Hlayout_1.addWidget(self.__unicast_radio)
+        self.__Hlayout_1.addWidget(self.__broadcast_radio)
+        self.__Hlayout_2.addWidget(self.__src_label)
+        self.__Hlayout_2.addWidget(self.__src_combo)
+        self.__Hlayout_2.addWidget(self.__dst_label)
+        self.__Hlayout_2.addWidget(self.__dst_combo)
+        self.__Vlayout.addWidget(self.__text_radio)
+        self.__Vlayout.addWidget(self.__file_radio)
 
-    def onclick_unicast_radio(self) -> None:
-        self.mode = Mode.UNICAST
-        if not self.dst_combo.isEnabled():
-            self.dst_combo.setEnabled(True)
+    def __onclick_unicast_radio(self) -> None:
+        self.__mode = Mode.UNICAST
+        if not self.__dst_combo.isEnabled():
+            self.__dst_combo.setEnabled(True)
 
-    def onclick_broadcast_radio(self) -> None:
-        self.mode = Mode.BROADCAST
-        if self.dst_combo.isEnabled():
-            self.dst_combo.setEnabled(False)
+    def __onclick_broadcast_radio(self) -> None:
+        self.__mode = Mode.BROADCAST
+        if self.__dst_combo.isEnabled():
+            self.__dst_combo.setEnabled(False)
 
-    def onactivate_src_combo(self) -> None:
-        self.src = self.src_combo.currentText()
+    def __onactivate_src_combo(self) -> None:
+        self.__src = self.__src_combo.currentText()
 
-    def onactivate_dst_combo(self) -> None:
-        self.dst = self.dst_combo.currentText()
+    def __onactivate_dst_combo(self) -> None:
+        self.__dst = self.__dst_combo.currentText()
 
-    def onclick_text_radio(self) -> None:
-        self.msgtype = MessageType.TEXT
+    def __onclick_text_radio(self) -> None:
+        self.__msgtype = MessageType.TEXT
 
-    def onclick_file_radio(self) -> None:
-        self.msgtype = MessageType.FILE
+    def __onclick_file_radio(self) -> None:
+        self.__msgtype = MessageType.FILE
 
-    def onedit_text_edit(self) -> None:
-        self.text = self.text_edit.text()
-        if not self.text_radio.isChecked():
-            self.text_radio.setChecked(True)
-            self.msgtype = MessageType.TEXT
+    def __onedit_text_edit(self) -> None:
+        self.__text = self.__text_edit.text()
+        if not self.__text_radio.isChecked():
+            self.__text_radio.setChecked(True)
+            self.__msgtype = MessageType.TEXT
 
-    def onclick_file_btn(self) -> None:
+    def __onclick_file_btn(self) -> None:
         filename = QFileDialog.getOpenFileName(
             self, "打开", "", "Image files (*.jpg *.png)"
         )
         imgname = filename[0].split("/")[-1]
         if imgname:
-            self.filepath = filename[0]
-            self.file_btn.setText(imgname)
-            self.file_radio.setChecked(True)
-            self.msgtype = MessageType.FILE
+            self.__filepath = filename[0]
+            self.__file_btn.setText(imgname)
+            self.__file_radio.setChecked(True)
+            self.__msgtype = MessageType.FILE
 
-    def validate(self) -> bool:
-        if not self.mode:
-            CommandUI.raise_critical("请选择发送模式！")
-        elif self.src_combo.currentIndex() == -1:
-            CommandUI.raise_critical("请选择源设备号！")
-        elif self.dst_combo.currentIndex() == -1:
-            CommandUI.raise_critical("请选择目标设备号！")
-        elif self.src_combo.currentText() == self.dst_combo.currentText():
-            CommandUI.raise_critical("源与目标不能相同！")
-        elif not self.msgtype:
-            CommandUI.raise_critical("请选择消息类型！")
-        elif self.msgtype == MessageType.TEXT and not self.text:
-            CommandUI.raise_critical("请输入文本！")
-        elif self.msgtype == MessageType.FILE and not self.filepath:
-            CommandUI.raise_critical("请选择文件！")
+    def __is_valid(self) -> bool:
+        if not self.__mode:
+            CommandUI.__raise_critical("请选择发送模式！")
+        elif self.__src_combo.currentIndex() == -1:
+            CommandUI.__raise_critical("请选择源设备号！")
+        elif self.__mode != Mode.BROADCAST and self.__dst_combo.currentIndex() == -1:
+            CommandUI.__raise_critical("请选择目标设备号！")
+        elif self.__src_combo.currentText() == self.__dst_combo.currentText():
+            CommandUI.__raise_critical("源与目标不能相同！")
+        elif not self.__msgtype:
+            CommandUI.__raise_critical("请选择消息类型！")
+        elif self.__msgtype == MessageType.TEXT and not self.__text:
+            CommandUI.__raise_critical("请输入文本！")
+        elif self.__msgtype == MessageType.FILE and not self.__filepath:
+            CommandUI.__raise_critical("请选择文件！")
         else:
             return True
         return False
 
-    def onclick_send_btn(self) -> None:
-        if not self.validate():
+    def _onclick_send_btn(self) -> None:
+        if not self.__is_valid():
             return
-        data = {
-            "mode": self.mode,
-            "src": self.src,
-            "dst": self.dst,
-            "msgtype": self.msgtype,
-            "text": self.text,
-            "filepath": self.filepath,
+        self._user_input = {
+            "src": f"1{self.__src}300",
+            "dst": f"1{self.__dst}300"
+            if self.__mode == Mode.UNICAST
+            else Topology.BROADCAST_PORT,
+            "msgtype": self.__msgtype,
+            "text": self.__text,
+            "file": self.__filepath,
         }
-        print(data)
+        print(self._user_input)
 
     @staticmethod
-    def raise_critical(message: str):
+    def __raise_critical(message: str):
         """弹出错误窗口。
 
         Args:

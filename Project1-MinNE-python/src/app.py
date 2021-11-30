@@ -16,47 +16,37 @@ if __name__ == "__main__":
 
     # 开始运作。
     while True:
-        # 如果没有消息可读，就继续等待。
+        # 持续等待，直到有消息可读。
         if not app.readable:
             continue
-        # 如果有消息可读，就接收消息。
         first_message, is_from_cmd = app.receive_all()
 
         # 如果消息来自控制台，说明本机成为发送端。
         if is_from_cmd:
-            # 接收发送模式，并通知本机网络层。
-            mode = first_message
-            app.send_to_net(mode)
-            # 接收目标端口，并通知本机网络层。
-            dst = app.receive_from_cmd()
-            app.send_to_net(dst)
-            # 接收消息类型，并通知本机网络层。
-            send_msgtype = app.receive_from_cmd()
-            app.send_to_net(send_msgtype)
-            # 接收消息内容，并通知本机网络层。
-            send_message = app.receive_from_cmd()
-            if send_msgtype == MessageType.TEXT:
-                print(f"[Send] {send_message}")
-                app.send_to_net(encode_unicode(send_message))
+            send_data: dict = eval(first_message)
+            # 将字典中的消息编码。
+            text = send_data.pop("text")
+            file = send_data.pop("file")
+            if send_data["msgtype"] == MessageType.TEXT:
+                print(f"[Send] {text}")
+                send_data["message"] = encode_unicode(text)
             else:
-                print(f"[Send] {send_message}")
-                app.send_to_net(encode_file(send_message))
+                print(f"[Send] {file}")
+                send_data["message"] = encode_file(file)
+            # 发送给本机网络层。
+            app.send_to_net(str(send_data))
 
         # 如果消息来自本机网络层，说明本机成为接收端。
         else:
-            # 接收消息类型和消息内容。
-            recv_msgtype = first_message
-            recv_message = app.receive_from_net()
-
+            recv_data = eval(first_message)
             # 如果消息类型是文本。
-            if recv_msgtype == MessageType.TEXT:
-                text = decode_unicode(recv_message)
+            if recv_data["msgtype"] == MessageType.TEXT:
+                text = decode_unicode(recv_data["message"])
                 print(f"[Recv] {text}")
-
             # 如果消息类型是文件。
             else:
                 # 如果解码失败。
-                file, decoded = decode_file(recv_message)
+                file, decoded = decode_file(recv_data["message"])
                 if not decoded:
                     print("[Warning] Decoding failed")
                     continue
@@ -65,4 +55,4 @@ if __name__ == "__main__":
                 if not saved:
                     print("[Warning] Saving failed")
                 else:
-                    print(f"[Recv] File Saved: {filepath}")
+                    print(f"[Recv] {filepath}")

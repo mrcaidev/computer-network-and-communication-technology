@@ -96,17 +96,20 @@ class NetLayer(AbstractLayer):
         sleep(Network.FLOW_INTERVAL)
         return self._send(string_to_bits(binary), self.__phy)
 
-    def pack(self, msgtype: str, message: str, dst: str) -> list[Frame]:
+    def pack(self, info: dict) -> list[Frame]:
         """将消息打包为帧。
 
         Args:
-            msgtype: 消息类型。
-            message: 要发送的消息。
-            dst: 目标端口号。
+            info: 本机应用层传来的消息数据。
 
         Returns:
             帧列表。
         """
+        # 解析传入的字典。
+        message = info["message"]
+        msgtype = info["msgtype"]
+        dst = info["dst"]
+
         # 计算总共发送的帧数。
         send_total = Frame.calc_frame_num(message)
 

@@ -16,8 +16,6 @@ if __name__ == "__main__":
     print(net)
 
     # 全局变量。
-    ack = Frame()
-    nak = Frame()
     recv_frame = Frame()
     resp_frame = Frame()
 
@@ -31,20 +29,9 @@ if __name__ == "__main__":
 
         # 如果消息来自本机应用层，说明本机成为发送端。
         if is_from_app:
-            # 接收发送模式。
-            mode = first_message
-            print(f"[Log] Current mode: {mode}")
-            # 接收目标端口。
-            dst = net.receive_from_app()
-            print(f"[Log] Destination: {dst}")
-            # 接收消息类型。
-            send_msgtype = net.receive_from_app()
-            print(f"[Log] Message type: {send_msgtype}")
-            # 接收消息内容。
-            send_message = net.receive_from_app()
-
             # 逐帧封装。
-            send_frames = net.pack(msgtype=send_msgtype, message=send_message, dst=dst)
+            user_input: dict = eval(first_message)
+            send_frames = net.pack(user_input)
             send_total = len(send_frames) - 1
             print(f"[Log] Total: {send_total}")
             # 逐帧发送。
@@ -57,7 +44,7 @@ if __name__ == "__main__":
                 print(f"{send_frames[cur_seq]} | Sent")
 
                 # 如果是单播，只有接收到ACK才发下一帧。
-                if mode == Mode.UNICAST:
+                if user_input["dst"] != Topology.BROADCAST_PORT:
                     resend_flag = True
                     resp_binary, success = net.receive_from_phy()
                     # 如果超时，就累加1次超时次数。
@@ -131,7 +118,9 @@ if __name__ == "__main__":
             print(f"[Log] Finish time: {eval(File.FULL_TIME)}")
             end_tick = time()
             speed = (
-                Constant.BITS_PER_UNICODE * len(send_message) / (end_tick - start_tick)
+                Constant.BITS_PER_UNICODE
+                * len(user_input["message"])
+                / (end_tick - start_tick)
             )
             print(f"[Log] Sending speed: {round(speed, 1)}bps")
 
@@ -211,8 +200,7 @@ if __name__ == "__main__":
                 continue
 
             # 如果接收到了消息，就将消息传给应用层。
-            net.send_to_app(recv_msgtype)
-            net.send_to_app(recv_message)
+            net.send_to_app(str({"msgtype": recv_msgtype, "message": recv_message}))
 
             # 计算网速。
             print(f"[Log] Finish time: {eval(File.FULL_TIME)}")
