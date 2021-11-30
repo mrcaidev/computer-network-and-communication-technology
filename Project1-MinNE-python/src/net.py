@@ -49,7 +49,7 @@ if __name__ == "__main__":
             print(f"[Log] Total: {send_total}")
             # 逐帧发送。
             cur_seq = keepalive_cnt = 0
-            print(f"[Log] Started: {eval(File.FULL_TIME)}")
+            print(f"[Log] Start time: {eval(File.FULL_TIME)}")
             start_tick = time()
             while True:
                 # 向物理层发送消息。
@@ -128,7 +128,7 @@ if __name__ == "__main__":
             # 释放这些帧的空间。
             del send_frames
             # 计算网速。
-            print(f"[Log] Finished: {eval(File.FULL_TIME)}")
+            print(f"[Log] Finish time: {eval(File.FULL_TIME)}")
             end_tick = time()
             speed = (
                 Constant.BITS_PER_UNICODE * len(send_message) / (end_tick - start_tick)
@@ -141,7 +141,7 @@ if __name__ == "__main__":
             recv_msgtype = recv_message = ""
             is_first_recv = True
             start_tick = time()
-            print(f"[Log] Started: {eval(File.FULL_TIME)}")
+            print(f"[Log] Start time: {eval(File.FULL_TIME)}")
             # 持续接收消息。
             while True:
                 # 从物理层接收消息。
@@ -153,7 +153,6 @@ if __name__ == "__main__":
 
                 # 如果超时，就累加1次超时次数。
                 if not success:
-                    print("[Log] Timeout")
                     keepalive_cnt += 1
 
                 # 如果有消息。
@@ -216,7 +215,7 @@ if __name__ == "__main__":
             net.send_to_app(recv_message)
 
             # 计算网速。
-            print(f"[Log] Finished: {eval(File.FULL_TIME)}")
+            print(f"[Log] Finish time: {eval(File.FULL_TIME)}")
             end_tick = time()
             speed = (
                 Constant.BITS_PER_UNICODE * len(recv_message) / (end_tick - start_tick)

@@ -26,23 +26,20 @@ if __name__ == "__main__":
         if is_from_cmd:
             # 接收发送模式，并通知本机网络层。
             mode = first_message
-            print(f"[Log] Current mode: {mode}")
             app.send_to_net(mode)
             # 接收目标端口，并通知本机网络层。
             dst = app.receive_from_cmd()
-            print(f"[Log] Destination: {dst}")
             app.send_to_net(dst)
             # 接收消息类型，并通知本机网络层。
             send_msgtype = app.receive_from_cmd()
-            print(f"[Log] Message type: {send_msgtype}")
             app.send_to_net(send_msgtype)
             # 接收消息内容，并通知本机网络层。
             send_message = app.receive_from_cmd()
             if send_msgtype == MessageType.TEXT:
-                print(f"[Log] Text content: {send_message}")
+                print(f"[Send] {send_message}")
                 app.send_to_net(encode_unicode(send_message))
             else:
-                print(f"[Log] File path: {send_message}")
+                print(f"[Send] {send_message}")
                 app.send_to_net(encode_file(send_message))
 
         # 如果消息来自本机网络层，说明本机成为接收端。
@@ -54,7 +51,7 @@ if __name__ == "__main__":
             # 如果消息类型是文本。
             if recv_msgtype == MessageType.TEXT:
                 text = decode_unicode(recv_message)
-                print(f"[Log] Received text: {text}")
+                print(f"[Recv] {text}")
 
             # 如果消息类型是文件。
             else:
@@ -68,4 +65,4 @@ if __name__ == "__main__":
                 if not saved:
                     print("[Warning] Saving failed")
                 else:
-                    print(f"[Log] File Saved: {filepath}")
+                    print(f"[Recv] File Saved: {filepath}")
