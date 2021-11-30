@@ -16,29 +16,50 @@ if __name__ == "__main__":
 
     # 开始运作。
     while True:
-        # 网元进入指定模式。
-        mode = app.receive_from_user(InputType.MODE)
-        app.send_to_net(mode)
+        # 如果没有消息可读，就继续等待。
+        if not app.readable:
+            continue
+        # 如果有消息可读，就接收消息。
+        first_message, is_from_cmd = app.receive_all()
 
-        # 如果要退出程序。
-        if mode == Mode.QUIT:
-            break
+        # 如果消息来自控制台，说明本机成为发送端。
+        if is_from_cmd:
+            # 接收发送模式，并通知本机网络层。
+            mode = first_message
+            print(f"[Log] Current mode: {mode}")
+            app.send_to_net(mode)
+            # 接收目标端口，并通知本机网络层。
+            dst = app.receive_from_cmd()
+            print(f"[Log] Destination: {dst}")
+            app.send_to_net(dst)
+            # 接收消息类型，并通知本机网络层。
+            send_msgtype = app.receive_from_cmd()
+            print(f"[Log] Message type: {send_msgtype}")
+            app.send_to_net(send_msgtype)
+            # 接收消息内容，并通知本机网络层。
+            send_message = app.receive_from_cmd()
+            if send_msgtype == MessageType.TEXT:
+                print(f"[Log] Text content: {send_message}")
+                app.send_to_net(encode_unicode(send_message))
+            else:
+                print(f"[Log] File path: {send_message}")
+                app.send_to_net(encode_file(send_message))
 
-        # 如果要接收消息。
-        elif mode == Mode.RECEIVE:
-            # 接收消息类型和消息本体。
-            msgtype = app.receive_from_net()
-            message = app.receive_from_net()
+        # 如果消息来自本机网络层，说明本机成为接收端。
+        else:
+            # 接收消息类型和消息内容。
+            recv_msgtype = first_message
+            recv_message = app.receive_from_net()
 
-            # 如果收到的是文本。
-            if msgtype == MessageType.TEXT:
-                text = decode_unicode(message)
+            # 如果消息类型是文本。
+            if recv_msgtype == MessageType.TEXT:
+                text = decode_unicode(recv_message)
                 print(f"[Log] Received text: {text}")
 
-            # 如果收到的是文件。
-            elif msgtype == MessageType.FILE:
+            # 如果消息类型是文件。
+            else:
                 # 如果解码失败。
-                file, decoded = decode_file(message)
+                file, decoded = decode_file(recv_message)
                 if not decoded:
                     print("[Warning] Decoding failed")
                     continue
@@ -47,25 +68,4 @@ if __name__ == "__main__":
                 if not saved:
                     print("[Warning] Saving failed")
                 else:
-                    print(f"[Log] File Saved as {filepath}")
-
-        # 如果要发送消息。
-        else:
-            # 如果要单播，就要额外输入并发送目的端口。
-            if mode == Mode.UNICAST:
-                dst = app.receive_from_user(InputType.DST)
-                app.send_to_net(dst)
-
-            # 发送消息类型。
-            msgtype = app.receive_from_user(InputType.MSGTYPE)
-            app.send_to_net(msgtype)
-
-            # 如果发送的是文本。
-            if msgtype == MessageType.TEXT:
-                text = app.receive_from_user(InputType.TEXT)
-                app.send_to_net(encode_unicode(text))
-
-            # 如果发送的是图片。
-            else:
-                file = app.receive_from_user(InputType.FILE)
-                app.send_to_net(encode_file(file))
+                    print(f"[Log] File Saved: {filepath}")

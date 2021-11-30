@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 from utils.coding import bits_to_string, string_to_bits
-from utils.io import get_phynum
+from utils.io import get_switch_phynum
 from utils.params import Network, Topology
 
 from layer._abstract import AbstractLayer
@@ -121,7 +121,9 @@ class SwitchLayer(SwitchTable, AbstractLayer):
         # 初始化套接字。
         self.__device_id = device_id
         self.__port = f"1{device_id}200"
-        self.__phys = [f"1{device_id}10{i}" for i in range(get_phynum(device_id))]
+        self.__phys = [
+            f"1{device_id}10{i}" for i in range(get_switch_phynum(device_id))
+        ]
         AbstractLayer.__init__(self, self.__port)
 
         # 初始化端口地址表。

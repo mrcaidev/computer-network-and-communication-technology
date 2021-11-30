@@ -3,8 +3,8 @@ from time import time
 
 from utils.coding import bits_to_string, decode_ascii, encode_ascii, string_to_bits
 from utils.frame import Frame
-from utils.io import get_phynum, get_router_LAN, get_router_WAN
-from utils.params import File, FramePack, Network, Topology
+from utils.io import get_router_LAN, get_router_WAN
+from utils.params import FramePack, Network, Topology
 
 from layer._abstract import AbstractLayer
 

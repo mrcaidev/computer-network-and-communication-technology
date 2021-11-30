@@ -1,8 +1,8 @@
 from time import sleep
 
-from utils.coding import bits_to_string, string_to_bits
-from utils.io import get_phynum
-from utils.params import Network
+from utils.coding import *
+from utils.frame import Frame
+from utils.params import FramePack, Network, Topology
 
 from layer._abstract import AbstractLayer
 
@@ -29,10 +29,23 @@ class NetLayer(AbstractLayer):
         """打印设备号与端口号。"""
         return f"[Device {self.__device_id}] <Net Layer @{self.__port}>"
 
-    @property
-    def app(self) -> str:
-        """将本机的应用层端口号设为只读。"""
-        return self.__app
+    def receive_all(self) -> tuple[str, bool]:
+        """接收发到本层的消息。
+
+        只对本机应用层与物理层开放。
+
+        Returns:
+            - [0] 接收到的消息。
+            - [1] 本机应用层发来为`True`，本机物理层发来为`False`。
+        """
+        while True:
+            message, port, _ = self._receive(bufsize=Network.IN_NE_BUFSIZE)
+            if port == self.__app:
+                return message, True
+            elif port == self.__phy:
+                return bits_to_string(message), False
+            else:
+                continue
 
     def receive_from_app(self) -> str:
         """接收来自主机应用层的消息。
@@ -82,3 +95,100 @@ class NetLayer(AbstractLayer):
         # 流量控制。
         sleep(Network.FLOW_INTERVAL)
         return self._send(string_to_bits(binary), self.__phy)
+
+    def pack(self, msgtype: str, message: str, dst: str) -> list[Frame]:
+        """将消息打包为帧。
+
+        Args:
+            msgtype: 消息类型。
+            message: 要发送的消息。
+            dst: 目标端口号。
+
+        Returns:
+            帧列表。
+        """
+        # 计算总共发送的帧数。
+        send_total = Frame.calc_frame_num(message)
+
+        # 请求帧。
+        request = Frame()
+        request.write(
+            {
+                "src": self.__app,
+                "seq": 0,
+                "data": f"{dec_to_bin(send_total, FramePack.DATA_LEN//2)}{encode_ascii(msgtype)}",
+                "dst": dst,
+            }
+        )
+        send_frames = [request]
+
+        # 消息帧。
+        for frame in range(0, send_total):
+            cur_message = message[
+                frame * FramePack.DATA_LEN : (frame + 1) * FramePack.DATA_LEN
+            ]
+            send_frame = Frame()
+            send_frame.write(
+                {
+                    "src": self.__app,
+                    "seq": (frame + 1) % (2 ** FramePack.SEQ_LEN),
+                    "data": cur_message,
+                    "dst": dst,
+                }
+            )
+            send_frames.append(send_frame)
+
+        return send_frames
+
+    def should_receive(self, port: str) -> bool:
+        """判断本层是否应该接收某帧。
+
+        Args:
+            发来的帧的目的端口号。
+
+        Returns:
+            应该接收为`True`，不应该接收为`False`。
+        """
+        return port in (self.__app, Topology.BROADCAST_PORT)
+
+    def generate_ack(self, seq: int, dst: str) -> str:
+        """生成ACK帧。
+
+        Args:
+            seq: 要ACK的序号。
+            dst: ACK帧的目的地，即原消息的源。
+
+        Returns:
+            ACK帧的01字符串。
+        """
+        ack = Frame()
+        ack.write(
+            {
+                "src": self.__app,
+                "seq": seq,
+                "data": encode_ascii(FramePack.ACK),
+                "dst": dst,
+            }
+        )
+        return ack.binary
+
+    def generate_nak(self, seq: int, dst: str) -> str:
+        """生成NAK帧。
+
+        Args:
+            seq: 要NAK的序号。
+            dst: NAK帧的目的地，即原消息的源。
+
+        Returns:
+            NAK帧的01字符串。
+        """
+        nak = Frame()
+        nak.write(
+            {
+                "src": self.__app,
+                "seq": seq,
+                "data": encode_ascii(FramePack.NAK),
+                "dst": dst,
+            }
+        )
+        return nak.binary

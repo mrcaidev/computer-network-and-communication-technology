@@ -12,15 +12,17 @@ class File:
     RSC_DIR = "resource"
 
     BATCH_DIR = "batch-backup"
+    DEVICEMAP_DIR = "devicemap-backup"
     NE_DIR = "ne-backup"
     PHYNUM_DIR = "phynum-backup"
 
     BATCH = "batch"
+    DEVICEMAP = "devicemap"
     NE = "ne"
     PHYNUM = "phynum"
     ROUTERENV = "routerenv"
 
-    FULL_TIME = "datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]"
+    FULL_TIME = "datetime.now().strftime('%H:%M:%S.%f')[:-3]"
     ABBR_TIME = "datetime.now().strftime('%H-%M-%S')"
 
 
@@ -46,7 +48,7 @@ class InputType:
     """用户输入类型。"""
 
     MODE = 1
-    DST = 2
+    PORT = 2
     MSGTYPE = 3
     TEXT = 4
     FILE = 5
@@ -61,13 +63,11 @@ class MessageType:
 
 
 class Mode:
-    """网元模式。"""
+    """发送模式。"""
 
-    RECEIVE = "1"
-    UNICAST = "2"
-    BROADCAST = "3"
-    QUIT = "4"
-    LIST = (RECEIVE, UNICAST, BROADCAST, QUIT)
+    UNICAST = "1"
+    BROADCAST = "2"
+    LIST = (UNICAST, BROADCAST)
 
 
 class Network:
@@ -79,8 +79,8 @@ class Network:
 
     USER_TIMEOUT = 180
     SELECT_TIMEOUT = 0.5
-    RECV_TIMEOUT = 0.15
-    FLOW_INTERVAL = 0.03
+    RECV_TIMEOUT = 0.5
+    FLOW_INTERVAL = 0.05
 
     KEEPALIVE_MAX_RETRY = 8
 
@@ -92,6 +92,7 @@ class Network:
 class Topology:
     """网络拓扑。"""
 
+    CMD_PORT = "20000"
     BROADCAST_PORT = "65535"
     ROUTER_NUM = 3
     SWITCH_PER_ROUTER = 2

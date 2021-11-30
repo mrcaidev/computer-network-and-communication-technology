@@ -6,11 +6,11 @@ from utils.params import File
 
 # 获取当前目录和上级目录。
 cwd = os.getcwd()
-parent_dir = os.path.dirname(cwd)
+cwd_parent = os.path.dirname(cwd)
 
 # 如果配置目录在上级目录下，那么根目录是上级目录。
-if os.path.exists(os.path.join(parent_dir, File.CONFIG_DIR)):
-    rootdir = parent_dir
+if os.path.exists(os.path.join(cwd_parent, File.CONFIG_DIR)):
+    rootdir = cwd_parent
 
 # 如果配置目录在当前目录下，那么当前目录为根目录。
 elif os.path.exists(os.path.join(cwd, File.CONFIG_DIR)):
@@ -20,10 +20,12 @@ elif os.path.exists(os.path.join(cwd, File.CONFIG_DIR)):
 config_dir = os.path.join(rootdir, File.CONFIG_DIR)
 
 batch_dir = os.path.join(config_dir, File.BATCH_DIR)
+devicemap_dir = os.path.join(config_dir, File.DEVICEMAP_DIR)
 ne_dir = os.path.join(config_dir, File.NE_DIR)
 phynum_dir = os.path.join(config_dir, File.PHYNUM_DIR)
 
 formal_batch = os.path.join(config_dir, f"{File.BATCH}.bat")
+formal_devicemap = os.path.join(config_dir, f"{File.DEVICEMAP}.json")
 formal_ne = os.path.join(config_dir, f"{File.NE}.txt")
 formal_phynum = os.path.join(config_dir, f"{File.PHYNUM}.json")
 formal_routerenv = os.path.join(config_dir, f"{File.ROUTERENV}.json")
@@ -69,20 +71,20 @@ def cover_ne(stage: str) -> None:
         fw.write(config)
 
 
-def cover_phynum(stage: str) -> None:
-    """将物理层数量文件改为阶段对应配置。
+def cover_devicemap(stage: str) -> None:
+    """将设备拓扑文件改为阶段对应配置。
 
     Args:
         stage: 指定阶段。
     """
-    src = os.path.join(phynum_dir, f"{stage}.json")
+    src = os.path.join(devicemap_dir, f"{stage}.json")
 
     # 读取阶段配置。
     with open(src, "r", encoding="utf-8") as fr:
         config = fr.read()
 
     # 写入正式配置。
-    with open(formal_phynum, "w", encoding="utf-8") as fw:
+    with open(formal_devicemap, "w", encoding="utf-8") as fw:
         fw.write(config)
 
 
@@ -91,8 +93,8 @@ def run_batch() -> None:
     os.system(formal_batch)
 
 
-def get_phynum(device_id: str) -> int:
-    """获取设备（对内网开放的）物理层数量。
+def get_switch_phynum(device_id: str) -> int:
+    """获取交换机物理层数量。
 
     Args:
         device_id: 设备号。
@@ -102,17 +104,17 @@ def get_phynum(device_id: str) -> int:
     """
     # 打开配置文件。
     try:
-        with open(formal_phynum, "r", encoding="utf-8") as fr:
+        with open(formal_devicemap, "r", encoding="utf-8") as fr:
             # 读取该设备配置。
             try:
-                num = loads(fr.read())[device_id]
+                num = loads(fr.read())["switch"][device_id]["phynum"]
             except KeyError:
                 print(f"[Error] Device {device_id} absence")
                 exit(-1)
             else:
                 return num
     except FileNotFoundError:
-        print(f"[Error] {formal_phynum} not found")
+        print(f"[Error] {formal_devicemap} not found")
         exit(-1)
 
 
@@ -131,17 +133,17 @@ def get_router_WAN(device_id: str) -> dict[str, dict]:
     """
     # 打开配置文件。
     try:
-        with open(formal_routerenv, "r", encoding="utf-8") as fr:
+        with open(formal_devicemap, "r", encoding="utf-8") as fr:
             # 读取初始路由表。
             try:
-                env: dict = loads(fr.read())[device_id]["WAN"]
+                WAN_env: dict = loads(fr.read())["router"][device_id]["WAN"]
             except KeyError:
                 print(f"[Error] Device {device_id} absence")
                 exit(-1)
             else:
-                return env
+                return WAN_env
     except FileNotFoundError:
-        print(f"[Error] {formal_routerenv} not found")
+        print(f"[Error] {formal_devicemap} not found")
         exit(-1)
 
 
@@ -158,17 +160,17 @@ def get_router_LAN(device_id: str) -> dict[str, str]:
     """
     # 打开配置文件。
     try:
-        with open(formal_routerenv, "r", encoding="utf-8") as fr:
+        with open(formal_devicemap, "r", encoding="utf-8") as fr:
             # 读取初始路由表。
             try:
-                env: dict = loads(fr.read())[device_id]["LAN"]
+                LAN_env: dict = loads(fr.read())["router"][device_id]["LAN"]
             except KeyError:
                 print(f"[Error] Device {device_id} absence")
                 exit(-1)
             else:
-                return env
+                return LAN_env
     except FileNotFoundError:
-        print(f"[Error] {formal_routerenv} not found")
+        print(f"[Error] {formal_devicemap} not found")
         exit(-1)
 
 

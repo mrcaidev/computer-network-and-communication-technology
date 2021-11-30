@@ -1,5 +1,7 @@
 @REM ------------------------------ cd to /config
 cd %~dp0
+@REM ------------------------------ CMD
+start python ../src/cmd.py
 @REM ------------------------------ Host 1
 start python ../src/app.py 1
 start python ../src/net.py 1
