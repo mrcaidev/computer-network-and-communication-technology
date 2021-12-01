@@ -29,9 +29,28 @@ formal_ne = os.path.join(config_dir, f"{File.NE}.txt")
 
 # 定位rsc目录。
 rsc_dir = os.path.join(rootdir, File.RSC_DIR)
+if not os.path.exists(rsc_dir):
+    os.mkdir(rsc_dir)
+
+# 定位log目录。
+log_dir = os.path.join(rootdir, File.LOG_DIR)
+if not os.path.exists(log_dir):
+    os.mkdir(log_dir)
 
 # 时区设置。
 timezone(timedelta(hours=8))
+
+
+def write_log(device_id: str, message: str) -> None:
+    """记录日志。
+
+    Args:
+        device_id: 发起记录请求的设备号。
+        message: 要记录的日志消息。
+    """
+    log_path = os.path.join(log_dir, f"{device_id}.log")
+    with open(log_path, "a", encoding="utf-8") as fa:
+        fa.write(f"[{eval(File.FULL_TIME)}] {message}\n")
 
 
 def cover_batch(stage: str) -> None:

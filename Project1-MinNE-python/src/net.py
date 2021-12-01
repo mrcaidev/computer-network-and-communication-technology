@@ -31,10 +31,9 @@ if __name__ == "__main__":
             send_data: dict = eval(first_message)
             send_frames = net.pack(send_data)
             send_total = len(send_frames) - 1
-            print(f"[Log] Total: {send_total}")
             # 逐帧发送。
             cur_seq = keepalive_cnt = 0
-            print(f"[Log] Start: {eval(File.FULL_TIME)}")
+            write_log(device_id, "Send start")
             start_tick = time()
             while True:
                 # 向物理层发送消息。
@@ -108,15 +107,15 @@ if __name__ == "__main__":
 
             # 释放这些帧的空间。
             del send_frames
+
             # 计算网速。
-            print(f"[Log] Finish: {eval(File.FULL_TIME)}")
             end_tick = time()
             speed = (
                 Constant.BITS_PER_UNICODE
                 * len(send_data["message"])
                 / (end_tick - start_tick)
             )
-            print(f"[Log] Sending speed: {round(speed, 1)}bps")
+            write_log(device_id, f"Send finish: {round(speed, 1)}bps")
 
         # 如果消息来自本机物理层，说明本机成为接收端。
         else:
@@ -124,7 +123,7 @@ if __name__ == "__main__":
             recv_msgtype = recv_message = ""
             is_first_recv = True
             start_tick = time()
-            print(f"[Log] Start: {eval(File.FULL_TIME)}")
+            write_log(device_id, "Recv start")
             # 持续接收消息。
             while True:
                 # 从物理层接收消息。
@@ -173,7 +172,6 @@ if __name__ == "__main__":
                         recv_msgtype = decode_ascii(
                             recv_frame.content[FramePack.DATA_LEN // 2 :]
                         )
-                        print(f"[Log] Total: {recv_total}")
                     else:
                         recv_message += recv_frame.content
                     print(f"{recv_frame} | Verified")
@@ -204,9 +202,8 @@ if __name__ == "__main__":
             )
 
             # 计算网速。
-            print(f"[Log] Finish: {eval(File.FULL_TIME)}")
             end_tick = time()
             speed = (
                 Constant.BITS_PER_UNICODE * len(recv_message) / (end_tick - start_tick)
             )
-            print(f"[Log] Receiving speed: {round(speed, 1)}bps")
+            write_log(device_id, f"Recv finish: {round(speed, 1)}bps")

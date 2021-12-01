@@ -10,6 +10,7 @@ class File:
 
     CONFIG_DIR = "config"
     RSC_DIR = "resource"
+    LOG_DIR = "log"
 
     BATCH_DIR = "batch-backup"
     DEVICEMAP_DIR = "devicemap-backup"
