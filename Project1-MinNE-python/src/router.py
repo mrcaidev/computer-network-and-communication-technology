@@ -40,6 +40,10 @@ if __name__ == "__main__":
             if not exit_port:
                 print("Abandon", end="")
                 continue
+            # 如果找到的和发来的是一个端口，就不用再发一遍了。
+            elif exit_port == in_port:
+                print("Abandon", end="")
+                continue
             # 如果找到了，就向其单播。
             else:
                 print(exit_port, end="")
