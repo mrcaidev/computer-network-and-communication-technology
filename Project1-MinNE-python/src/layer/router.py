@@ -348,7 +348,7 @@ class RouterLayer(AbstractLayer, RouterTable):
         self.__broadcast_tick = time()
 
         table = self.package
-        send_total = Frame.calc_frame_num(table)
+        send_total = Frame.calc_total(table)
         for i in range(send_total):
             seal_message = table[i * FramePack.DATA_LEN : (i + 1) * FramePack.DATA_LEN]
             send_frame = Frame()

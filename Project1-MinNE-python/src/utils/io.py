@@ -22,13 +22,10 @@ config_dir = os.path.join(rootdir, File.CONFIG_DIR)
 batch_dir = os.path.join(config_dir, File.BATCH_DIR)
 devicemap_dir = os.path.join(config_dir, File.DEVICEMAP_DIR)
 ne_dir = os.path.join(config_dir, File.NE_DIR)
-phynum_dir = os.path.join(config_dir, File.PHYNUM_DIR)
 
 formal_batch = os.path.join(config_dir, f"{File.BATCH}.bat")
 formal_devicemap = os.path.join(config_dir, f"{File.DEVICEMAP}.json")
 formal_ne = os.path.join(config_dir, f"{File.NE}.txt")
-formal_phynum = os.path.join(config_dir, f"{File.PHYNUM}.json")
-formal_routerenv = os.path.join(config_dir, f"{File.ROUTERENV}.json")
 
 # 定位rsc目录。
 rsc_dir = os.path.join(rootdir, File.RSC_DIR)
@@ -141,13 +138,13 @@ def get_switch_phynum(device_id: str) -> int:
 
 
 def get_router_WAN(device_id: str) -> dict[str, dict]:
-    """获取路由表周围环境。
+    """获取路由表广域网环境。
 
     Args:
         device_id: 路由器设备号。
 
     Returns:
-        路由器周围环境，键值对格式如下：
+        路由器广域网环境，键值对格式如下：
         - 键：相邻路由器的网络层端口号。
         - 值：到达该路由器的路径信息，包含下列两个键：
             - "exit": 要到达该路由器，消息应该从哪个本地物理层端口送出。
@@ -170,13 +167,13 @@ def get_router_WAN(device_id: str) -> dict[str, dict]:
 
 
 def get_router_LAN(device_id: str) -> dict[str, str]:
-    """获取路由表内网环境。
+    """获取路由表局域网环境。
 
     Args:
         device_id: 路由器设备号。
 
     Returns:
-        路由器内网环境，键值对格式如下：
+        路由器局域网环境，键值对格式如下：
         - 键：所属主机的设备号。
         - 值：到达该主机的本地物理层端口号。
     """
@@ -196,19 +193,6 @@ def get_router_LAN(device_id: str) -> dict[str, str]:
         exit(-1)
 
 
-def search_rsc(filename: str) -> str:
-    """在资源目录下寻找某文件。
-
-    Args:
-        filename: 目标文件名。
-
-    Returns:
-        如果存在，则返回该文件的绝对路径；如果不存在，则返回None。
-    """
-    filepath = os.path.join(rsc_dir, filename)
-    return filepath if os.path.exists(filepath) else ""
-
-
 def save_rsc(data: bytes) -> tuple[str, bool]:
     """保存文件至资源目录。
 
@@ -216,7 +200,7 @@ def save_rsc(data: bytes) -> tuple[str, bool]:
         data: 字节形式的文件内容。
 
     Returns:
-        是否成功保存，成功为`True`，失败为`False`。
+        保存成功为`True`，保存失败为`False`。
     """
     filepath = os.path.join(rsc_dir, f"received-{eval(File.ABBR_TIME)}.png")
     try:

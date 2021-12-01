@@ -14,13 +14,10 @@ class File:
     BATCH_DIR = "batch-backup"
     DEVICEMAP_DIR = "devicemap-backup"
     NE_DIR = "ne-backup"
-    PHYNUM_DIR = "phynum-backup"
 
     BATCH = "batch"
     DEVICEMAP = "devicemap"
     NE = "ne"
-    PHYNUM = "phynum"
-    ROUTERENV = "routerenv"
 
     FULL_TIME = "datetime.now().strftime('%H:%M:%S.%f')[:-3]"
     ABBR_TIME = "datetime.now().strftime('%H-%M-%S')"
@@ -44,22 +41,11 @@ class FramePack:
     EMPTY_FRAME = "0" * 88
 
 
-class InputType:
-    """用户输入类型。"""
-
-    MODE = 1
-    PORT = 2
-    MSGTYPE = 3
-    TEXT = 4
-    FILE = 5
-
-
 class MessageType:
     """消息类型。"""
 
     TEXT = "1"
     FILE = "2"
-    LIST = (TEXT, FILE)
 
 
 class Mode:
@@ -67,7 +53,6 @@ class Mode:
 
     UNICAST = "1"
     BROADCAST = "2"
-    LIST = (UNICAST, BROADCAST)
 
 
 class Network:
@@ -94,5 +79,3 @@ class Topology:
 
     CMD_PORT = "20000"
     BROADCAST_PORT = "65535"
-    ROUTER_NUM = 3
-    SWITCH_PER_ROUTER = 2

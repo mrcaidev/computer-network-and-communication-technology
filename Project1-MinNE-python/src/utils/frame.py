@@ -3,7 +3,10 @@ from utils.params import FramePack
 
 
 class Frame:
-    """报文帧。"""
+    """报文帧。
+
+    实现了帧的封装与解封。
+    """
 
     def __init__(self) -> None:
         """初始化帧属性为默认值。"""
@@ -197,7 +200,7 @@ class Frame:
         return ((poly & 0xFF) << 8) + (poly >> 8)
 
     @staticmethod
-    def calc_frame_num(message: str) -> int:
+    def calc_total(message: str) -> int:
         """计算消息需要分几帧发送。
 
         Args:

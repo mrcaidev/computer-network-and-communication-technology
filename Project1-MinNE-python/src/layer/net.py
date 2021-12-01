@@ -109,7 +109,7 @@ class NetLayer(AbstractLayer):
         dst = message_data["dst"]
 
         # 计算总共发送的帧数。
-        total = Frame.calc_frame_num(message)
+        total = Frame.calc_total(message)
 
         # 请求帧。
         request = Frame()
