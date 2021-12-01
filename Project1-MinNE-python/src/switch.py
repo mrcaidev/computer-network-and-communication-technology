@@ -15,14 +15,12 @@ if __name__ == "__main__":
     print(switch)
 
     # 开始运作。
+    frame = Frame()
     while True:
-        # 如果没有消息到达，就继续select。
+        # 持续等待，直到有消息可读。
         if not switch.readable:
             continue
-
-        # 读取消息。
         binary, in_port = switch.receive_from_phys()
-        frame = Frame()
         frame.read(binary)
 
         # 刷新端口地址表。
@@ -32,14 +30,15 @@ if __name__ == "__main__":
         # 查找应该从哪个端口送出。
         out_ports = switch.search_locals(frame.dst)
 
+        print(f"[Log] {frame.src}-{in_port}-", end="")
         # 如果查出是单播，就直接向端口发送。
         if len(out_ports) == 1:
             out_port = out_ports[0]
-            print(f"[Log] {frame.src}-{in_port}-{out_port}-{frame.dst}")
             switch.unicast_to_phy(binary, out_port)
+            print(out_port, end="")
 
         # 如果没查到或者是广播，就向所有端口发送。
         else:
-            print(f"[Log] {frame.src}-{in_port}-", end="")
             print(switch.broadcast_to_phys(binary, in_port), end="")
-            print(f"-{frame.dst}")
+
+        print(f"-{frame.dst}")

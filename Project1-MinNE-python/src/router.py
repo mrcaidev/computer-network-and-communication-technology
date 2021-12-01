@@ -19,21 +19,30 @@ if __name__ == "__main__":
     router.show_table()
 
     # 开始运作。
+    frame = Frame()
     while True:
-        # 如果没有消息到达，就继续select。
+        # 持续等待，直到有消息可读。
         if not router.readable:
             continue
-
-        # 读取消息。
         binary, in_port = router.receive_from_phys()
-        frame = Frame()
         frame.read(binary)
 
+        print(f"[Log] {frame.src}-{in_port}-", end="")
+        # 如果是局域网广播帧，就向局域网广播。
         if frame.dst == Topology.BROADCAST_PORT:
-            router.broadcast_to_LAN(binary, in_port)
+            print(router.broadcast_to_LAN(binary, in_port), end="")
+
+        # 如果是单播帧。
         else:
+            # 寻找本地物理层出口。
             exit_port = router.search(frame.dst)
+            # 如果没找到，说明目的地没有上级路由器，或者不知道给哪个交换机。
             if not exit_port:
+                print("Abandon", end="")
                 continue
+            # 如果找到了，就向其单播。
             else:
+                print(exit_port, end="")
                 router.unicast_to_phy(binary, exit_port)
+
+        print(f"-{frame.dst}")

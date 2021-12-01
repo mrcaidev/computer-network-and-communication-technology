@@ -56,11 +56,11 @@ if __name__ == "__main__":
                 # 如果解码失败。
                 file, decoded = decode_file(data["message"])
                 if not decoded:
-                    print("[Warning] Decoding failed")
+                    print("File decoding failed")
                     continue
                 # 如果保存失败。
                 filepath, saved = save_rsc(file)
                 if not saved:
-                    print("[Warning] Saving failed")
+                    print("File saving failed")
                 else:
                     print(filepath)

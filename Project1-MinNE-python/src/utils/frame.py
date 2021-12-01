@@ -12,7 +12,7 @@ class Frame:
         """初始化帧属性为默认值。"""
         self.__src = ""
         self.__seq = 0
-        self.__data = ""
+        self.__content = ""
         self.__dst = ""
         self.__crc = 0
         self.__verified = True
@@ -21,7 +21,7 @@ class Frame:
 
     def __str__(self) -> str:
         """打印帧信息。"""
-        return f"[Frame {self.__seq}] ({self.__src}→{self.__dst}) {self.__data}"
+        return f"[Frame {self.__seq}] ({self.__src}→{self.__dst}) {self.__content}"
 
     @property
     def src(self) -> str:
@@ -34,9 +34,9 @@ class Frame:
         return self.__seq
 
     @property
-    def data(self) -> str:
+    def content(self) -> str:
         """将封装数据设为只读。"""
-        return self.__data
+        return self.__content
 
     @property
     def dst(self) -> str:
@@ -71,11 +71,11 @@ class Frame:
         # 存储参数。
         self.__src = info["src"]
         self.__seq = info["seq"]
-        self.__data = info["data"]
+        self.__content = info["data"]
         self.__dst = info["dst"]
 
         # 生成CRC码。
-        crc_target = f"{dec_to_bin(int(self.__src), FramePack.PORT_LEN)}{dec_to_bin(self.__seq, FramePack.SEQ_LEN)}{self.__data}{dec_to_bin(int(self.__dst), FramePack.PORT_LEN)}"
+        crc_target = f"{dec_to_bin(int(self.__src), FramePack.PORT_LEN)}{dec_to_bin(self.__seq, FramePack.SEQ_LEN)}{self.__content}{dec_to_bin(int(self.__dst), FramePack.PORT_LEN)}"
         self.__crc = Frame.__generate_crc(crc_target)
         self.__verified = True
 
@@ -97,7 +97,7 @@ class Frame:
         self.__seq = bin_to_dec(
             message[FramePack.PORT_LEN : FramePack.PORT_LEN + FramePack.SEQ_LEN]
         )
-        self.__data = message[
+        self.__content = message[
             FramePack.PORT_LEN
             + FramePack.SEQ_LEN : -FramePack.CRC_LEN
             - FramePack.PORT_LEN

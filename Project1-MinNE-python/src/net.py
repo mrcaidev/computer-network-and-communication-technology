@@ -15,16 +15,14 @@ if __name__ == "__main__":
     net = NetLayer(device_id)
     print(net)
 
-    # 全局变量。
     recv_frame = Frame()
     resp_frame = Frame()
 
     # 开始运作。
     while True:
-        # 如果没有消息可读，就继续等待。
+        # 持续等待，直到有消息可读。
         if not net.readable:
             continue
-        # 如果有消息可读，就接收消息。
         first_message, is_from_app = net.receive_all()
 
         # 如果消息来自本机应用层，说明本机成为发送端。
@@ -50,13 +48,14 @@ if __name__ == "__main__":
                     # 如果超时，就累加1次超时次数。
                     if not success:
                         keepalive_cnt += 1
+                        print("Timeout")
                     # 如果有回复。
                     else:
                         # 重置超时次数。
                         keepalive_cnt = 0
                         # 解包读取回复。
                         resp_frame.read(resp_binary)
-                        resp_message = decode_ascii(resp_frame.data)
+                        resp_message = decode_ascii(resp_frame.content)
                         if resp_message == FramePack.ACK:
                             print("ACK")
                             resend_flag = False
@@ -85,7 +84,7 @@ if __name__ == "__main__":
                         has_at_least_one_response = True
                         # 解包读取回复。
                         resp_frame.read(resp_binary)
-                        resp_message = decode_ascii(resp_frame.data)
+                        resp_message = decode_ascii(resp_frame.content)
                         if resp_message == FramePack.ACK:
                             ack_cnt += 1
                         elif resp_message == FramePack.NAK:
@@ -169,14 +168,14 @@ if __name__ == "__main__":
                     cur_seq = recv_frame.seq
                     if cur_seq == 0:
                         recv_total = bin_to_dec(
-                            recv_frame.data[: FramePack.DATA_LEN // 2]
+                            recv_frame.content[: FramePack.DATA_LEN // 2]
                         )
                         recv_msgtype = decode_ascii(
-                            recv_frame.data[FramePack.DATA_LEN // 2 :]
+                            recv_frame.content[FramePack.DATA_LEN // 2 :]
                         )
                         print(f"[Log] Total: {recv_total}")
                     else:
-                        recv_message += recv_frame.data
+                        recv_message += recv_frame.content
                     print(f"{recv_frame} | Verified")
                     ack = net.generate_ack(seq=recv_frame.seq, dst=recv_frame.src)
                     net.send_to_phy(ack)
