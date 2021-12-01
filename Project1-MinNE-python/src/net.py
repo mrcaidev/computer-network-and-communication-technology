@@ -122,8 +122,6 @@ if __name__ == "__main__":
             cur_seq, recv_total, keepalive_cnt = -1, 0, 0
             recv_msgtype = recv_message = ""
             is_first_recv = True
-            start_tick = time()
-            write_log(device_id, "Recv start")
             # 持续接收消息。
             while True:
                 # 从物理层接收消息。
@@ -143,6 +141,17 @@ if __name__ == "__main__":
                     keepalive_cnt = 0
                     # 解析接收到的帧。
                     recv_frame.read(new_binary)
+
+                    # 第一帧收到的必须序号为0，不然就不能接收。
+                    if new_binary == first_message:
+                        try:
+                            assert recv_frame.seq == 0
+                        except AssertionError:
+                            is_first_recv = True
+                            break
+                        else:
+                            start_tick = time()
+                            write_log(device_id, "Recv start")
 
                     # 如果帧不是给自己的，就什么都不做，重新开始等待。
                     if not net.should_receive(recv_frame.dst):
