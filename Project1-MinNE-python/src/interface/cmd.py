@@ -127,34 +127,42 @@ class CommandUI(QMainWindow):
         self.__Vlayout.addWidget(self.__file_radio)
 
     def __onclick_unicast_radio(self) -> None:
+        """单播按钮点击事件。"""
         self.__mode = Mode.UNICAST
         if not self.__dst_combo.isEnabled():
             self.__dst_combo.setEnabled(True)
 
     def __onclick_broadcast_radio(self) -> None:
+        """广播按钮点击事件。"""
         self.__mode = Mode.BROADCAST
         if self.__dst_combo.isEnabled():
             self.__dst_combo.setEnabled(False)
 
     def __onactivate_src_combo(self) -> None:
+        """源下拉框激活事件。"""
         self.__src = self.__src_combo.currentText()
 
     def __onactivate_dst_combo(self) -> None:
+        """目标下拉框激活事件。"""
         self.__dst = self.__dst_combo.currentText()
 
     def __onclick_text_radio(self) -> None:
+        """文本按钮点击事件。"""
         self.__msgtype = MessageType.TEXT
 
     def __onclick_file_radio(self) -> None:
+        """文件按钮点击事件。"""
         self.__msgtype = MessageType.FILE
 
     def __onedit_text_edit(self) -> None:
+        """文本输入框编辑事件。"""
         self.__text = self.__text_edit.text()
         if not self.__text_radio.isChecked():
             self.__text_radio.setChecked(True)
             self.__msgtype = MessageType.TEXT
 
     def __onclick_file_btn(self) -> None:
+        """文件选择按钮点击事件。"""
         filename = QFileDialog.getOpenFileName(
             self, "打开", "", "Image files (*.jpg *.png)"
         )
@@ -166,6 +174,11 @@ class CommandUI(QMainWindow):
             self.__msgtype = MessageType.FILE
 
     def __is_valid(self) -> bool:
+        """检验当前输入数据的合理性。
+
+        Returns:
+            合理为`True`，不合理为`False`。
+        """
         if not self.__mode:
             CommandUI.__raise_critical("请选择发送模式！")
         elif self.__src_combo.currentIndex() == -1:
@@ -185,6 +198,7 @@ class CommandUI(QMainWindow):
         return False
 
     def _onclick_send_btn(self) -> None:
+        """发送按钮点击事件。"""
         if not self.__is_valid():
             return
         self._user_data = {
