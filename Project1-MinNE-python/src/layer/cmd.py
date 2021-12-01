@@ -5,7 +5,10 @@ from layer._abstract import AbstractLayer
 
 
 class CommandLayer(AbstractLayer, CommandUI):
-    """控制台。"""
+    """控制台。
+
+    实现的消息收发：GUI->控制台->主机应用层。
+    """
 
     def __init__(self) -> None:
         """初始化控制台。"""
@@ -13,10 +16,14 @@ class CommandLayer(AbstractLayer, CommandUI):
         CommandUI.__init__(self)
 
     def __str__(self) -> str:
-        """打印控制台信息。"""
-        return f"[CMD] <Cmd layer @{Topology.CMD_PORT}>\n{'-'*30}"
+        """打印端口号。"""
+        return f"[CMD] <Command Layer @{Topology.CMD_PORT}>\n{'-'*30}"
 
     def _onclick_send_btn(self) -> None:
+        """发送按钮点击事件。
+
+        重载GUI类的点击事件，将GUI打包的用户数据发送到源主机应用层。
+        """
         super()._onclick_send_btn()
-        src = self._user_input.pop("src")
-        self._send(str(self._user_input), src)
+        src = self._user_data.pop("src")
+        self._send(str(self._user_data), src)

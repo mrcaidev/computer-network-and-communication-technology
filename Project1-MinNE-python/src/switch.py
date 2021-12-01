@@ -21,7 +21,7 @@ if __name__ == "__main__":
             continue
 
         # 读取消息。
-        binary, in_port, _ = switch.receive_from_phys()
+        binary, in_port = switch.receive_from_phys()
         frame = Frame()
         frame.read(binary)
 

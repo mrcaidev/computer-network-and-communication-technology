@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from utils.coding import bits_to_string, string_to_bits
 from utils.io import get_switch_phynum
-from utils.params import Network, Topology
+from utils.params import *
 
 from layer._abstract import AbstractLayer
 
@@ -77,8 +77,7 @@ class SwitchTable:
         return updated
 
     def search_locals(self, remote: str) -> list[str]:
-        """
-        在端口地址表中查找本地端口号。
+        """在端口地址表中查找本地端口号。
 
         Args:
             remote: 某一远程应用层的端口号。
@@ -94,8 +93,7 @@ class SwitchTable:
         )
 
     def search_remotes(self, local: str) -> list[str]:
-        """
-        在端口地址表中查找远程端口号。
+        """在端口地址表中查找远程端口号。
 
         Args:
             local: 某一本地物理层的端口号。
@@ -106,10 +104,10 @@ class SwitchTable:
         return list(self._table.get(local, {}).keys())
 
 
-class SwitchLayer(SwitchTable, AbstractLayer):
+class SwitchLayer(AbstractLayer, SwitchTable):
     """交换机网络层。
 
-    实现了交换机网络层-交换机物理层的消息单播、广播和select。
+    实现的消息收发：交换机网络层->交换机物理层。（单播、广播）
     """
 
     def __init__(self, device_id: str) -> None:
@@ -136,23 +134,22 @@ class SwitchLayer(SwitchTable, AbstractLayer):
         """打印设备号与端口号。"""
         return f"[Device {self.__device_id}] <Switch Layer @{self.__port}>\n{'-'*30}"
 
-    def receive_from_phys(self) -> tuple[str, str, bool]:
-        """接收来自交换机物理层的消息。
+    def receive_from_phys(self) -> tuple[str, str]:
+        """接收来自本机物理层的消息。
 
         Returns:
-            - [0] 接收到的01字符串。
+            - [0] 接收到的消息。
             - [1] 发来消息的本地物理层端口。
-            - [2] 是否接收成功，成功为`True`，失败为`False`。
         """
         binary, port, success = self._receive()
         binary = bits_to_string(binary) if success else binary
-        return binary, port, success
+        return binary, port
 
     def unicast_to_phy(self, binary: str, port: str) -> int:
-        """向指定物理层单播消息。
+        """向本机指定物理层单播消息。
 
         Args:
-            binary: 要发的01字符串。
+            binary: 要发送的消息。
             port: 信息要送到的本地物理层端口。
 
         Returns:
@@ -163,10 +160,10 @@ class SwitchLayer(SwitchTable, AbstractLayer):
     def broadcast_to_phys(self, binary: str, port: str) -> str:
         """向所有物理层广播消息，除了指定的端口。
 
-        指定的端口一般是发来消息的端口。
+        指定的端口一般是当次发来消息的端口。
 
         Args:
-            binary: 要发的01字符串。
+            binary: 要发送的消息。
             port: 指定的端口号。
 
         Returns:

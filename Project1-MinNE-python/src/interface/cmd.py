@@ -187,7 +187,7 @@ class CommandUI(QMainWindow):
     def _onclick_send_btn(self) -> None:
         if not self.__is_valid():
             return
-        self._user_input = {
+        self._user_data = {
             "src": f"1{self.__src}300",
             "dst": f"1{self.__dst}300"
             if self.__mode == Mode.UNICAST
@@ -196,7 +196,7 @@ class CommandUI(QMainWindow):
             "text": self.__text,
             "file": self.__filepath,
         }
-        print(self._user_input)
+        print(self._user_data)
 
     @staticmethod
     def __raise_critical(message: str):

@@ -62,7 +62,7 @@ class AbstractLayer:
         # 如果接收超时，不进行异常处理。
         except socket.timeout:
             pass
-        # 如果接收成功，则将接收到的`bytes`解码为`str`。
+        # 如果接收成功，则将接收到的`bytes`转码为`str`。
         else:
             result = (data.decode("utf-8"), str(port), True)
         # 不管超不超时，都要恢复默认超时值。

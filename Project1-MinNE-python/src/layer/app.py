@@ -1,4 +1,4 @@
-from utils.params import Network, Topology
+from utils.params import *
 
 from layer._abstract import AbstractLayer
 
@@ -6,7 +6,7 @@ from layer._abstract import AbstractLayer
 class AppLayer(AbstractLayer):
     """主机应用层。
 
-    实现了控制台-主机应用层、主机应用层-主机网络层的消息收发。
+    实现的消息收发：控制台->主机应用层<->主机网络层。
     """
 
     def __init__(self, device_id: str) -> None:
@@ -25,9 +25,7 @@ class AppLayer(AbstractLayer):
         return f"[Device {self.__device_id}] <App Layer @{self.__port}>\n{'-'*30}"
 
     def receive_all(self) -> tuple[str, bool]:
-        """接收发到本层的消息。
-
-        只对控制台与本机网络层开放。
+        """接收来自控制台与本机网络层的消息。
 
         Returns:
             - [0] 接收到的消息。
@@ -43,7 +41,7 @@ class AppLayer(AbstractLayer):
                 continue
 
     def receive_from_cmd(self) -> str:
-        """接收控制台发来的消息。
+        """接收来自控制台的消息。
 
         Returns:
             接收到的消息。
@@ -54,7 +52,7 @@ class AppLayer(AbstractLayer):
         return message
 
     def receive_from_net(self) -> str:
-        """接收本机网络层发来的消息。
+        """接收来自本机网络层的消息。
 
         Returns:
             接收到的消息。
@@ -65,10 +63,10 @@ class AppLayer(AbstractLayer):
         return message
 
     def send_to_net(self, message: str) -> int:
-        """向主机网络层发送消息。
+        """向本机网络层发送消息。
 
         Args:
-            message: 要发的消息。
+            message: 要发送的消息。
 
         Returns:
             总共发送的字节数。

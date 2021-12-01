@@ -2,7 +2,7 @@ from time import sleep
 
 from utils.coding import *
 from utils.frame import Frame
-from utils.params import FramePack, Network, Topology
+from utils.params import *
 
 from layer._abstract import AbstractLayer
 
@@ -10,7 +10,7 @@ from layer._abstract import AbstractLayer
 class NetLayer(AbstractLayer):
     """主机网络层。
 
-    实现了主机应用层-主机网络层、主机网络层-主机物理层的消息收发。
+    实现的消息收发：主机应用层<->主机网络层<->主机物理层。
     """
 
     def __init__(self, device_id: str) -> None:
@@ -30,9 +30,7 @@ class NetLayer(AbstractLayer):
         return f"[Device {self.__device_id}] <Net Layer @{self.__port}>\n{'-'*30}"
 
     def receive_all(self) -> tuple[str, bool]:
-        """接收发到本层的消息。
-
-        只对本机应用层与物理层开放。
+        """接收来自本机应用层与本机物理层的消息。
 
         Returns:
             - [0] 接收到的消息。
@@ -48,7 +46,7 @@ class NetLayer(AbstractLayer):
                 continue
 
     def receive_from_app(self) -> str:
-        """接收来自主机应用层的消息。
+        """接收来自本机应用层的消息。
 
         Returns:
             接收到的消息。
@@ -58,36 +56,36 @@ class NetLayer(AbstractLayer):
             message, port, _ = self._receive(bufsize=Network.IN_NE_BUFSIZE)
         return message
 
-    def send_to_app(self, message: str) -> int:
-        """向主机应用层发送消息。
+    def receive_from_phy(self, timeout: int = Network.RECV_TIMEOUT) -> tuple[str, bool]:
+        """接收来自本机物理层的消息。
 
         Args:
-            message: 要发的消息。
+            timeout: 可选，接收超时时间，单位为秒，默认为`RECV_TIMEOUT`。
+
+        Returns:
+            - [0] 接收到的消息。
+            - [1] 接收成功为`True`，接收超时为`False`。
+        """
+        binary, _, success = self._receive(timeout=timeout)
+        binary = bits_to_string(binary) if success else binary
+        return binary, success
+
+    def send_to_app(self, message: str) -> int:
+        """向本机应用层发送消息。
+
+        Args:
+            message: 要发送的消息。
 
         Returns:
             总共发送的字节数。
         """
         return self._send(message, self.__app)
 
-    def receive_from_phy(self, timeout: int = Network.RECV_TIMEOUT) -> tuple[str, bool]:
-        """接收来自主机物理层的消息。
-
-        Args:
-            timeout: 可选，接收超时时间，单位为秒，默认为`utils.params.Network.RECV_TIMEOUT`。
-
-        Returns:
-            - [0] 接收到的01字符串。
-            - [1] 是否接收成功，成功为`True`，失败为`False`。
-        """
-        binary, _, success = self._receive(timeout=timeout)
-        binary = bits_to_string(binary) if success else binary
-        return binary, success
-
     def send_to_phy(self, binary: str) -> int:
-        """向主机物理层发送消息。
+        """向本机物理层发送消息。
 
         Args:
-            binary: 要发的01字符串。
+            binary: 要发送的消息。
 
         Returns:
             总共发送的字节数。
@@ -96,22 +94,22 @@ class NetLayer(AbstractLayer):
         sleep(Network.FLOW_INTERVAL)
         return self._send(string_to_bits(binary), self.__phy)
 
-    def pack(self, info: dict) -> list[Frame]:
+    def pack(self, message_data: dict) -> list[Frame]:
         """将消息打包为帧。
 
         Args:
-            info: 本机应用层传来的消息数据。
+            message_data: 本机应用层传来的消息数据。
 
         Returns:
-            帧列表。
+            打包的帧列表。
         """
         # 解析传入的字典。
-        message = info["message"]
-        msgtype = info["msgtype"]
-        dst = info["dst"]
+        message = message_data["message"]
+        msgtype = message_data["msgtype"]
+        dst = message_data["dst"]
 
         # 计算总共发送的帧数。
-        send_total = Frame.calc_frame_num(message)
+        total = Frame.calc_frame_num(message)
 
         # 请求帧。
         request = Frame()
@@ -119,29 +117,27 @@ class NetLayer(AbstractLayer):
             {
                 "src": self.__app,
                 "seq": 0,
-                "data": f"{dec_to_bin(send_total, FramePack.DATA_LEN//2)}{encode_ascii(msgtype)}",
+                "data": f"{dec_to_bin(total, FramePack.DATA_LEN//2)}{encode_ascii(msgtype)}",
                 "dst": dst,
             }
         )
-        send_frames = [request]
+        frames = [request]
 
         # 消息帧。
-        for frame in range(0, send_total):
-            cur_message = message[
-                frame * FramePack.DATA_LEN : (frame + 1) * FramePack.DATA_LEN
-            ]
-            send_frame = Frame()
-            send_frame.write(
+        for i in range(0, total):
+            sub_message = message[i * FramePack.DATA_LEN : (i + 1) * FramePack.DATA_LEN]
+            frame = Frame()
+            frame.write(
                 {
                     "src": self.__app,
-                    "seq": (frame + 1) % (2 ** FramePack.SEQ_LEN),
-                    "data": cur_message,
+                    "seq": (i + 1) % (2 ** FramePack.SEQ_LEN),
+                    "data": sub_message,
                     "dst": dst,
                 }
             )
-            send_frames.append(send_frame)
+            frames.append(frame)
 
-        return send_frames
+        return frames
 
     def should_receive(self, port: str) -> bool:
         """判断本层是否应该接收某帧。
@@ -158,11 +154,11 @@ class NetLayer(AbstractLayer):
         """生成ACK帧。
 
         Args:
-            seq: 要ACK的序号。
-            dst: ACK帧的目的地，即原消息的源。
+            seq: ACK的序号。
+            dst: ACK的目的地，即原消息的源。
 
         Returns:
-            ACK帧的01字符串。
+            该ACK的01字符串。
         """
         ack = Frame()
         ack.write(
@@ -179,11 +175,11 @@ class NetLayer(AbstractLayer):
         """生成NAK帧。
 
         Args:
-            seq: 要NAK的序号。
-            dst: NAK帧的目的地，即原消息的源。
+            seq: NAK的序号。
+            dst: NAK的目的地，即原消息的源。
 
         Returns:
-            NAK帧的01字符串。
+            该NAK的01字符串。
         """
         nak = Frame()
         nak.write(
