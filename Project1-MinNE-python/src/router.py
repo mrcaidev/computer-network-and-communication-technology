@@ -38,11 +38,11 @@ if __name__ == "__main__":
             exit_port = router.search(frame.dst)
             # 如果没找到，说明目的地没有上级路由器，或者不知道给哪个交换机。
             if not exit_port:
-                print("Abandon", end="")
+                print("Abandon")
                 continue
             # 如果找到的和发来的是一个端口，就不用再发一遍了。
             elif exit_port == in_port:
-                print("Abandon", end="")
+                print("Abandon")
                 continue
             # 如果找到了，就向其单播。
             else:
