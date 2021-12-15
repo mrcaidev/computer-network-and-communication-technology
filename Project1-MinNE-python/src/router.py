@@ -19,13 +19,13 @@ if __name__ == "__main__":
     router.show_table()
 
     # 开始运作。
-    frame = Frame()
+    parser = FrameParser()
     while True:
         # 持续等待，直到有消息可读。
         if not router.readable:
             continue
         binary, in_port = router.receive_from_phys()
-        frame.read(binary)
+        frame = parser.parse(binary)
 
         print(f"[Log] {frame.src}-{in_port}-", end="")
         # 如果是局域网广播帧，就向局域网广播。

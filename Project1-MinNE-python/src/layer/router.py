@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from time import time
 
 from utils.coding import *
-from utils.frame import Frame
 from utils.io import get_router_LAN, get_router_WAN
 from utils.params import *
 
@@ -36,11 +35,10 @@ class TableCache:
 class RouterTable:
     """路由表。
 
-    内部是`dict`，键值对格式如下：
     - 键：路由器设备号。
     - 值：到达该路由器的路径。
 
-    实现了`Dijkstra`算法、解包、打包。
+    实现了 `Dijkstra` 算法、解包、打包。
     """
 
     def __init__(self, device_id: str) -> None:
@@ -73,8 +71,9 @@ class RouterTable:
         """
         self._WAN: dict[str, Path] = {}
         WAN_env = get_router_WAN(self.__device_id)
+        self._neighbors = list(WAN_env.keys())
 
-        # 到自己的费用始终为0。
+        # 到自己的费用始终为 0。
         self._WAN[self.__device_id] = Path(next="", exit="", cost=0, optimized=True)
 
         # 依传入的字典逐项初始化。
@@ -97,15 +96,15 @@ class RouterTable:
     def package(self) -> str:
         """打包路由表。
 
-        将路由表中的下一跳与费用（除了到达自身的）打包为字符串。
+        将到达邻居的下一跳与费用打包为字符串。
 
         Returns:
-            路由包，格式为"device:dst-cost|dst-cost|...|dst-cost:$"。
+            路由包，格式为 "device:dst-cost|dst-cost|...|dst-cost:$"。
         """
         body = "|".join(
             f"{dst}-{cost}"
             for dst, cost in filter(
-                lambda item: item[0] != self.__device_id,
+                lambda item: item[0] in self._neighbors,
                 [(dst, str(path.cost)) for dst, path in self._WAN.items()],
             )
         )
@@ -120,7 +119,7 @@ class RouterTable:
 
         Returns:
             - [0] 发来路由包的设备号。
-            - [1] 新路由表，键值对格式如下：
+            - [1] 新路由表。
                 - 键：目的路由器网络层端口号。
                 - 值：到达该路由器的费用。
         """
@@ -138,7 +137,7 @@ class RouterTable:
     def merge(self, package: str) -> None:
         """合并外部路由表与本地路由表。
 
-        采用`Dijkstra`算法更新本地路由表路径。
+        采用 `Dijkstra` 算法更新本地路由表路径。
 
         Args:
             package: 发来的路由包。
@@ -215,7 +214,7 @@ class RouterTable:
             dst: 目的应用层端口号。
 
         Returns:
-            到达目的地的本地物理层出口。如果没找到，就返回""。
+            到达目的地的本地物理层出口。如果没找到，就返回 ""。
         """
         # 传入的端口号必须为5位。
         try:
@@ -250,9 +249,9 @@ class RouterTable:
 class RouterLayer(AbstractLayer, RouterTable):
     """路由器网络层。
 
-    实现的消息收发：路由器网络层->路由器物理层。
-        - WAN：广播扩散；
-        - LAN：单播、广播。
+    实现的消息收发: 路由器网络层->路由器物理层。
+        - WAN: 广播扩散；
+        - LAN: 单播、广播。
     """
 
     def __init__(self, device_id: str) -> None:
@@ -305,7 +304,7 @@ class RouterLayer(AbstractLayer, RouterTable):
 
         Args:
             binary: 要发送的消息。
-            port: 可选，指定不发消息的端口号；默认为""。
+            port: 可选，指定不发消息的端口号；默认为 ""。
 
         Returns:
             发送到的端口列表字符串。
@@ -322,7 +321,7 @@ class RouterLayer(AbstractLayer, RouterTable):
 
         Args:
             binary: 要发送的消息。
-            port: 可选，指定不发消息的端口号；默认为""。
+            port: 可选，指定不发消息的端口号；默认为 ""。
 
         Returns:
             发送到的端口列表字符串。
@@ -340,62 +339,3 @@ class RouterLayer(AbstractLayer, RouterTable):
     def show_table(self) -> None:
         """打印路由表。"""
         print(RouterTable.__str__(self))
-
-    def broadcast_table(self) -> None:
-        """向所有路由器扩散自己的路由表。（未付诸实现）"""
-        if time() - self.__broadcast_tick < Network.ROUTER_SPREAD_INTERVAL:
-            return
-        self.__broadcast_tick = time()
-
-        table = self.package
-        send_total = Frame.calc_total(table)
-        for i in range(send_total):
-            seal_message = table[i * FramePack.DATA_LEN : (i + 1) * FramePack.DATA_LEN]
-            send_frame = Frame()
-            send_frame.write(
-                {
-                    "src": self.__port,
-                    "seq": i,
-                    "data": encode_ascii(seal_message),
-                    "dst": Topology.BROADCAST_PORT,
-                }
-            )
-            self.broadcast_to_WAN(send_frame.binary)
-
-    def receive_table(self, src: str, binary: str) -> bool:
-        """接收别的路由器扩散的路由表。（未付诸实现）
-
-        Args:
-            src: 源路由器设备号。
-            binary: 本次发来的路由表部分的01字符串。
-
-        Returns:
-            是否全部接收完毕，是为`True`，不是为`False`。
-        """
-        # 预处理。
-        src_device = src[1]
-        part = decode_ascii(binary)
-
-        # 如果该键之前没有记录，就为其创建默认值。
-        if not self.__cache.get(src_device, None):
-            self.__cache[src_device] = TableCache(string="", completed=False)
-
-        # 如果该键之前被标记为接收完毕，则重新开始接收。
-        if self.__cache[src_device].completed:
-            self.__cache[src_device].string = ""
-            self.__cache[src_device].completed = False
-
-        # 拼接本次接收的部分。
-        self.__cache[src_device].string += part
-
-        # 如果路由表字符串完整了，就标记该键为接收完毕。
-        if self.__cache[src_device].string.endswith("$"):
-            self.__cache[src_device].completed = True
-
-        # 返回是否所有键都接收完毕。
-        return all([cache.completed for cache in self.__cache.values()])
-
-    def dynamic_merge(self) -> None:
-        """动态合并路由表，将缓存内的路由表包全部合并。（未付诸实现）"""
-        while self._next_merge:
-            self.merge(self.__cache[self._next_merge].string)

@@ -1,7 +1,7 @@
 from time import sleep
 
 from utils.coding import *
-from utils.frame import Frame
+from utils.frame import *
 from utils.params import *
 
 from layer._abstract import AbstractLayer
@@ -10,7 +10,7 @@ from layer._abstract import AbstractLayer
 class NetLayer(AbstractLayer):
     """主机网络层。
 
-    实现的消息收发：主机应用层<->主机网络层<->主机物理层。
+    实现了主机应用层 <-> 主机网络层 <-> 主机物理层的消息收发。
     """
 
     def __init__(self, device_id: str) -> None:
@@ -25,6 +25,19 @@ class NetLayer(AbstractLayer):
         self.__phy = f"1{device_id}100"
         super().__init__(self.__port)
 
+        self.__normal_builder = FrameBuilder()
+        self.__normal_builder.build(
+            src=self.__app,
+            reply_state=ReplyState.ACK,
+        )
+        self.__reply_builder = FrameBuilder()
+        self.__reply_builder.build(
+            src=self.__app,
+            session_state=SessionState.NORMAL,
+            data="",
+        )
+        self.__parser = FrameParser()
+
     def __str__(self) -> str:
         """打印设备号与端口号。"""
         return f"[Device {self.__device_id}] <Net Layer @{self.__port}>\n{'-'*30}"
@@ -34,7 +47,7 @@ class NetLayer(AbstractLayer):
 
         Returns:
             - [0] 接收到的消息。
-            - [1] 本机应用层发来为`True`，本机物理层发来为`False`。
+            - [1] 本机应用层发来为 `True`，本机物理层发来为 `False`。
         """
         while True:
             message, port, _ = self._receive(bufsize=Network.IN_NE_BUFSIZE)
@@ -60,11 +73,11 @@ class NetLayer(AbstractLayer):
         """接收来自本机物理层的消息。
 
         Args:
-            timeout: 可选，接收超时时间，单位为秒，默认为`RECV_TIMEOUT`。
+            timeout: 可选，接收超时时间，单位为秒，默认为 `RECV_TIMEOUT`。
 
         Returns:
             - [0] 接收到的消息。
-            - [1] 接收成功为`True`，接收超时为`False`。
+            - [1] 接收成功为 `True`，接收超时为 `False`。
         """
         binary, _, success = self._receive(timeout=timeout)
         binary = bits_to_string(binary) if success else binary
@@ -94,51 +107,6 @@ class NetLayer(AbstractLayer):
         sleep(Network.FLOW_INTERVAL)
         return self._send(string_to_bits(binary), self.__phy)
 
-    def pack(self, message_data: dict) -> list[Frame]:
-        """将消息打包为帧。
-
-        Args:
-            message_data: 本机应用层传来的消息数据。
-
-        Returns:
-            打包的帧列表。
-        """
-        # 解析传入的字典。
-        message = message_data["message"]
-        msgtype = message_data["msgtype"]
-        dst = message_data["dst"]
-
-        # 计算总共发送的帧数。
-        total = Frame.calc_total(message)
-
-        # 请求帧。
-        request = Frame()
-        request.write(
-            {
-                "src": self.__app,
-                "seq": 0,
-                "data": f"{dec_to_bin(total, FramePack.DATA_LEN//2)}{encode_ascii(msgtype)}",
-                "dst": dst,
-            }
-        )
-        frames = [request]
-
-        # 消息帧。
-        for i in range(0, total):
-            sub_message = message[i * FramePack.DATA_LEN : (i + 1) * FramePack.DATA_LEN]
-            frame = Frame()
-            frame.write(
-                {
-                    "src": self.__app,
-                    "seq": (i + 1) % (2 ** FramePack.SEQ_LEN),
-                    "data": sub_message,
-                    "dst": dst,
-                }
-            )
-            frames.append(frame)
-
-        return frames
-
     def should_receive(self, port: str) -> bool:
         """判断本层是否应该接收某帧。
 
@@ -146,48 +114,94 @@ class NetLayer(AbstractLayer):
             发来的帧的目的端口号。
 
         Returns:
-            应该接收为`True`，不应该接收为`False`。
+            应该接收为 `True`，不应该接收为 `False`。
         """
         return port in (self.__app, Topology.BROADCAST_PORT)
 
-    def generate_ack(self, seq: int, dst: str) -> str:
-        """生成ACK帧。
+    def build_pool(self, app_data: dict) -> list[Frame]:
+        """将消息打包为帧。
 
         Args:
-            seq: ACK的序号。
-            dst: ACK的目的地，即原消息的源。
+            app_data: 本机应用层传来的消息数据。
 
         Returns:
-            该ACK的01字符串。
+            打包的帧列表。
         """
-        ack = Frame()
-        ack.write(
-            {
-                "src": self.__app,
-                "seq": seq,
-                "data": encode_ascii(FramePack.ACK),
-                "dst": dst,
-            }
-        )
-        return ack.binary
+        message = app_data["message"]
+        frame_num = Frame.calc_num(message)
 
-    def generate_nak(self, seq: int, dst: str) -> str:
-        """生成NAK帧。
+        # 第一帧是请求帧。
+        request_frame = self.__normal_builder.build(
+            session_state=SessionState.REQ_TXT
+            if app_data["msgtype"] == MessageType.TEXT
+            else SessionState.REQ_IMG,
+            dst=app_data["dst"],
+        )
+        frame_pool = [request_frame]
+
+        # 中间的帧是常规帧。
+        frame_pool.extend(
+            [
+                self.__normal_builder.build(
+                    session_state=SessionState.NORMAL,
+                    data=message[
+                        i * FrameParam.DATA_LEN : (i + 1) * FrameParam.DATA_LEN
+                    ],
+                )
+                for i in range(frame_num - 1)
+            ]
+        )
+
+        # 最后一帧是结束帧。
+        final_frame = self.__normal_builder.build(
+            session_state=SessionState.FIN,
+            data=message[(frame_num - 1) * FrameParam.DATA_LEN :],
+        )
+        frame_pool.append(final_frame)
+
+        return frame_pool
+
+    def build_ack(self, dst: str) -> Frame:
+        """生成 ACK 帧。
 
         Args:
-            seq: NAK的序号。
-            dst: NAK的目的地，即原消息的源。
+            dst: ACK 的目的地，即原消息的源。
 
         Returns:
-            该NAK的01字符串。
+            生成的 ACK 帧。
         """
-        nak = Frame()
-        nak.write(
-            {
-                "src": self.__app,
-                "seq": seq,
-                "data": encode_ascii(FramePack.NAK),
-                "dst": dst,
-            }
-        )
-        return nak.binary
+        return self.__reply_builder.build(reply_state=ReplyState.ACK, dst=dst)
+
+    def build_nak(self, dst: str) -> Frame:
+        """生成 NAK 帧。
+
+        Args:
+            dst: NAK 的目的地，即原消息的源。
+
+        Returns:
+            生成的 NAK 帧。
+        """
+        return self.__reply_builder.build(reply_state=ReplyState.NAK, dst=dst)
+
+    def parse_reply(self, binary: str) -> bool:
+        """解析回复。
+
+        Args:
+            binary: 含有回复的 01 字符串。
+
+        Returns:
+            ACK 为 `True`，NAK 为 `False`。
+        """
+        response = self.__parser.parse(binary)
+        return True if response.reply_state == ReplyState.ACK else False
+
+    def parse_message(self, binary: str) -> Frame:
+        """解析消息。
+
+        Args:
+            binary: 含有消息的 01 字符串。
+
+        Returns:
+            收到的消息帧。
+        """
+        return self.__parser.parse(binary)

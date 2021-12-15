@@ -1,15 +1,14 @@
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from utils.io import get_hosts
-from utils.params import *
+from utils.io import get_host_config
+from utils.params import MessageType, Mode, Topology
 
 
 class CommandUI(QMainWindow):
     """控制台主界面。"""
 
     def __init__(self) -> None:
-        """初始化窗口与属性。"""
         super().__init__()
         self.__mode = Mode.UNICAST
         self.__src = ""
@@ -17,7 +16,7 @@ class CommandUI(QMainWindow):
         self.__msgtype = MessageType.TEXT
         self.__text = ""
         self.__filepath = ""
-        self.__hosts = get_hosts()
+        self.__hosts = get_host_config()
         self.__init_ui()
 
     def __init_ui(self):
@@ -183,9 +182,12 @@ class CommandUI(QMainWindow):
             CommandUI.__raise_critical("请选择发送模式！")
         elif self.__src_combo.currentIndex() == -1:
             CommandUI.__raise_critical("请选择源设备号！")
-        elif self.__mode != Mode.BROADCAST and self.__dst_combo.currentIndex() == -1:
+        elif self.__mode == Mode.UNICAST and self.__dst_combo.currentIndex() == -1:
             CommandUI.__raise_critical("请选择目标设备号！")
-        elif self.__src_combo.currentText() == self.__dst_combo.currentText():
+        elif (
+            self.__mode == Mode.UNICAST
+            and self.__src_combo.currentText() == self.__dst_combo.currentText()
+        ):
             CommandUI.__raise_critical("源与目标不能相同！")
         elif not self.__msgtype:
             CommandUI.__raise_critical("请选择消息类型！")

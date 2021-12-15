@@ -15,13 +15,13 @@ if __name__ == "__main__":
     print(switch)
 
     # 开始运作。
-    frame = Frame()
+    parser = FrameParser()
     while True:
         # 持续等待，直到有消息可读。
         if not switch.readable:
             continue
         binary, in_port = switch.receive_from_phys()
-        frame.read(binary)
+        frame = parser.parse(binary)
 
         # 刷新端口地址表。
         if switch.update(local=in_port, remote=frame.src):

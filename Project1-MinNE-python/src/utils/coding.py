@@ -1,40 +1,8 @@
 from base64 import b64decode, b64encode
 from re import findall
 
-from utils.params import Constant
-
-
-def dec_to_bin(decimal: int, length: int) -> str:
-    """将十进制数转换为二进制原码。
-
-    Args:
-        decimal: 十进制整型数。
-        length: 转换后的二进制原码长度。
-
-    Returns:
-        二进制原码。
-    """
-    if decimal >= 0:
-        return bin(decimal)[2:].zfill(length)
-    else:
-        return f"1{bin(decimal)[3:].zfill(length-1)}"
-
-
-def bin_to_dec(binary: str) -> int:
-    """将二进制原码转换为十进制数。
-
-    Args:
-        binary: 二进制原码。
-
-    Returns:
-        十进制整型数。如果转换出错，就返回0。
-    """
-    try:
-        decimal = int(binary, 2)
-    except Exception:
-        return 0
-    else:
-        return decimal
+BITS_PER_ASCII = 8
+BITS_PER_UNICODE = 16
 
 
 def string_to_bits(string: str) -> str:
@@ -71,7 +39,7 @@ def encode_ascii(ascii: str) -> str:
         编码所得的01字符串。
     """
     return "".join(
-        str(bin(ord(char)))[2:].zfill(Constant.BITS_PER_ASCII) for char in ascii
+        str(bin(ord(char)))[2:].zfill(BITS_PER_ASCII) for char in ascii
     )
 
 
@@ -87,7 +55,7 @@ def decode_ascii(binary: str) -> str:
     return "".join(
         [
             chr(int(char, 2))
-            for char in findall(f".{{{Constant.BITS_PER_ASCII}}}", binary)
+            for char in findall(f".{{{BITS_PER_ASCII}}}", binary)
         ]
     )
 
@@ -102,7 +70,7 @@ def encode_unicode(unicode: str) -> str:
         编码所得的01字符串。
     """
     return "".join(
-        str(bin(ord(char)))[2:].zfill(Constant.BITS_PER_UNICODE) for char in unicode
+        str(bin(ord(char)))[2:].zfill(BITS_PER_UNICODE) for char in unicode
     )
 
 
@@ -118,7 +86,7 @@ def decode_unicode(binary: str) -> str:
     return "".join(
         [
             chr(int(char, 2))
-            for char in findall(f".{{{Constant.BITS_PER_UNICODE}}}", binary)
+            for char in findall(f".{{{BITS_PER_UNICODE}}}", binary)
         ]
     )
 
@@ -153,3 +121,22 @@ def decode_file(binary: str) -> tuple[bytes, bool]:
         return b"", False
     else:
         return data, True
+
+
+if __name__ == "__main__":
+    message = "Hello"
+
+    message_bits = string_to_bits(message)
+    message_string = bits_to_string(message_bits)
+    print(f"{message_bits=}")
+    print(f"{message_string=}")
+
+    ascii_encoded = encode_ascii(message)
+    ascii_decoded = decode_ascii(ascii_encoded)
+    print(f"{ascii_encoded=}")
+    print(f"{ascii_decoded=}")
+
+    unicode_encoded = encode_unicode(message)
+    unicode_decoded = decode_unicode(unicode_encoded)
+    print(f"{unicode_encoded=}")
+    print(f"{unicode_decoded=}")

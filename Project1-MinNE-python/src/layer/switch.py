@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 from utils.coding import bits_to_string, string_to_bits
-from utils.io import get_switch_phynum
+from utils.io import get_switch_config
 from utils.params import *
 
 from layer._abstract import AbstractLayer
@@ -10,9 +10,8 @@ from layer._abstract import AbstractLayer
 class SwitchTable:
     """端口地址表。
 
-    内部是`defaultdict`，键值对格式如下：
     - 键：本地物理层端口号。
-    - 值：远程端口状态，键值对格式如下：
+    - 值：远程端口状态。
         - 键：远程应用层端口号。
         - 值：该远程端口号在表内的剩余寿命。
 
@@ -53,7 +52,7 @@ class SwitchTable:
             remote: 当前激活的远程端口。
 
         Returns:
-            端口地址表是否有更新，有更新为`True`，没有更新为`False`。
+            端口地址表是否有更新，有更新为 `True`，没有更新为 `False`。
         """
         updated = False
 
@@ -107,7 +106,7 @@ class SwitchTable:
 class SwitchLayer(AbstractLayer, SwitchTable):
     """交换机网络层。
 
-    实现的消息收发：交换机网络层->交换机物理层。（单播、广播）
+    实现的消息收发: 交换机网络层 -> 交换机物理层。（单播、广播）
     """
 
     def __init__(self, device_id: str) -> None:
@@ -120,7 +119,7 @@ class SwitchLayer(AbstractLayer, SwitchTable):
         self.__device_id = device_id
         self.__port = f"1{device_id}200"
         self.__phys = [
-            f"1{device_id}10{i}" for i in range(get_switch_phynum(device_id))
+            f"1{device_id}10{i}" for i in range(get_switch_config(device_id))
         ]
         AbstractLayer.__init__(self, self.__port)
 

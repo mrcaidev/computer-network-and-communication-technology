@@ -29,22 +29,23 @@ if __name__ == "__main__":
         if is_from_app:
             # 逐帧封装。
             send_data: dict = eval(first_message)
-            send_frames = net.pack(send_data)
-            send_total = len(send_frames) - 1
+            frame_pool = net.build_pool(send_data)
+            send_total = len(frame_pool) - 1
+
             # 逐帧发送。
-            cur_seq = keepalive_cnt = 0
+            send_cnt = keepalive_cnt = 0
             write_log(device_id, "Send start")
             start_tick = time()
             while True:
                 # 向物理层发送消息。
-                net.send_to_phy(send_frames[cur_seq].binary)
-                print(f"{send_frames[cur_seq]} | Sent, ", end="")
+                net.send_to_phy(frame_pool[send_cnt].binary)
+                print(f"{frame_pool[send_cnt]} | Sent, ", end="")
 
-                # 如果是单播，只有接收到ACK才发下一帧。
+                # 如果是单播，只有接收到 ACK 才发下一帧。
                 if send_data["dst"] != Topology.BROADCAST_PORT:
                     resend_flag = True
                     resp_binary, success = net.receive_from_phy()
-                    # 如果超时，就累加1次超时次数。
+                    # 如果超时，就累加 1 次超时次数。
                     if not success:
                         keepalive_cnt += 1
                         print("Timeout")
@@ -53,46 +54,40 @@ if __name__ == "__main__":
                         # 重置超时次数。
                         keepalive_cnt = 0
                         # 解包读取回复。
-                        resp_frame.read(resp_binary)
-                        resp_message = decode_ascii(resp_frame.content)
-                        if resp_message == FramePack.ACK:
+                        is_ack = net.parse_reply(resp_binary)
+                        if is_ack:
                             print("ACK")
                             resend_flag = False
-                        elif resp_message == FramePack.NAK:
-                            print("NAK")
                         else:
-                            print("Garbled")
+                            print("NAK")
 
-                # 如果是广播，只要至少有一次ACK就发下一帧，不检查ACK数量。
+                # 如果是广播，只要至少有一次 ACK 就发下一帧，不检查 ACK 数量。
                 else:
                     has_at_least_one_response = resend_flag = False
-                    ack_cnt = nak_cnt = garble_cnt = 0
+                    ack_cnt = nak_cnt = 0
                     # 持续等待回复。
                     while True:
                         resp_binary, success = net.receive_from_phy()
                         # 如果没有回复，说明之后也没有信息会发来了。
                         # ! 这是一个潜在的bug，有可能回复因为延时没到达。
                         if not success:
-                            # 如果一次回复都没收到，说明这帧超时，就累加1次超时次数。
+                            # 如果一次回复都没收到，说明这帧超时，就累加 1 次超时次数。
                             if not has_at_least_one_response:
                                 keepalive_cnt += 1
                                 resend_flag = True
                             break
+
                         # 一旦有回复，就重置超时次数。
                         keepalive_cnt = 0
                         has_at_least_one_response = True
                         # 解包读取回复。
-                        resp_frame.read(resp_binary)
-                        resp_message = decode_ascii(resp_frame.content)
-                        if resp_message == FramePack.ACK:
+                        is_ack = net.parse_reply(resp_binary)
+                        if is_ack:
                             ack_cnt += 1
-                        elif resp_message == FramePack.NAK:
+                        else:
                             nak_cnt += 1
                             resend_flag = True
-                        else:
-                            garble_cnt += 1
-                            resend_flag = True
-                    print(f"{ack_cnt} ACK, {nak_cnt} NAK, {garble_cnt} garbled")
+                    print(f"{ack_cnt} ACK, {nak_cnt} NAK")
 
                 # 如果连续多次超时，就停止重传。
                 if keepalive_cnt == Network.KEEPALIVE_MAX_RETRY:
@@ -100,36 +95,33 @@ if __name__ == "__main__":
                     break
                 # 如果不必重传，就可以发送下一帧。
                 if not resend_flag:
-                    cur_seq += 1
+                    send_cnt += 1
                 # 如果没有下一帧了，就跳出循环。
-                if cur_seq == send_total + 1:
+                if send_cnt == send_total + 1:
                     break
 
             # 释放这些帧的空间。
-            del send_frames
+            del frame_pool
 
             # 计算网速。
             end_tick = time()
-            speed = (
-                Constant.BITS_PER_UNICODE
-                * len(send_data["message"])
-                / (end_tick - start_tick)
-            )
+            speed = 16 * len(send_data["message"]) / (end_tick - start_tick)
             write_log(device_id, f"Send finish: {round(speed, 1)}bps")
 
         # 如果消息来自本机物理层，说明本机成为接收端。
         else:
-            cur_seq, recv_total, keepalive_cnt = -1, 0, 0
+            cur_seq, keepalive_cnt = -1, 0
             recv_msgtype = recv_message = ""
             is_first_recv = True
+            recv_finish = False
             # 持续接收消息。
             while True:
                 # 从物理层接收消息。
                 if is_first_recv:
-                    new_binary, success = first_message, True
+                    recv_binary, success = first_message, True
                     is_first_recv = False
                 else:
-                    new_binary, success = net.receive_from_phy()
+                    recv_binary, success = net.receive_from_phy()
 
                 # 如果超时，就累加1次超时次数。
                 if not success:
@@ -140,12 +132,12 @@ if __name__ == "__main__":
                     # 重置超时次数。
                     keepalive_cnt = 0
                     # 解析接收到的帧。
-                    recv_frame.read(new_binary)
+                    recv_frame = net.parse_message(recv_binary)
 
-                    # 第一帧收到的必须序号为0，不然就不能接收。
-                    if new_binary == first_message:
+                    # 第一帧收到的必须有 REQ 标志，不然就不能接收。
+                    if recv_binary == first_message:
                         try:
-                            assert recv_frame.seq == 0
+                            assert recv_frame.session_state in SessionState.REQ_LIST
                         except AssertionError:
                             is_first_recv = True
                             break
@@ -158,41 +150,42 @@ if __name__ == "__main__":
                         print(f"{recv_frame} | Not for me")
                         continue
 
-                    # 如果序号重复，就丢弃这帧，再回复一遍ACK。
+                    # 如果序号重复，就丢弃这帧，再回复一遍 ACK。
                     if cur_seq == recv_frame.seq:
                         print(f"{recv_frame} | Repeated")
-                        ack = net.generate_ack(seq=recv_frame.seq, dst=recv_frame.src)
-                        net.send_to_phy(ack)
+                        ack = net.build_ack(dst=recv_frame.src)
+                        net.send_to_phy(ack.binary)
                         continue
 
-                    # 如果校验未通过，就丢弃这帧，回复NAK。
+                    # 如果校验未通过，就丢弃这帧，回复 NAK。
                     if not recv_frame.verified:
                         print(f"{recv_frame} | Invalid")
-                        nak = net.generate_nak(seq=recv_frame.seq, dst=recv_frame.src)
-                        net.send_to_phy(nak)
+                        nak = net.build_nak(dst=recv_frame.src)
+                        net.send_to_phy(nak.binary)
                         continue
 
-                    # 如果帧信息正确，就接收这帧，回复ACK。
+                    # 如果帧信息正确，就接收这帧，回复 ACK。
                     cur_seq = recv_frame.seq
-                    if cur_seq == 0:
-                        recv_total = bin_to_dec(
-                            recv_frame.content[: FramePack.DATA_LEN // 2]
-                        )
-                        recv_msgtype = decode_ascii(
-                            recv_frame.content[FramePack.DATA_LEN // 2 :]
-                        )
+                    if recv_frame.session_state == SessionState.REQ_TXT:
+                        recv_msgtype = MessageType.TEXT
+                    elif recv_frame.session_state == SessionState.REQ_IMG:
+                        recv_msgtype = MessageType.FILE
+                    elif recv_frame.session_state == SessionState.FIN:
+                        recv_message += recv_frame.data
+                        recv_finish = True
                     else:
-                        recv_message += recv_frame.content
-                    print(f"{recv_frame} | Verified")
-                    ack = net.generate_ack(seq=recv_frame.seq, dst=recv_frame.src)
-                    net.send_to_phy(ack)
+                        recv_message += recv_frame.data
 
-                # 如果超时次数达到Keepalive机制上限，就不再接收。
+                    print(f"{recv_frame} | Verified")
+                    ack = net.build_ack(dst=recv_frame.src)
+                    net.send_to_phy(ack.binary)
+
+                # 如果超时次数达到 Keepalive 机制上限，就不再接收。
                 if keepalive_cnt == Network.KEEPALIVE_MAX_RETRY:
                     print(f"[Warning] Keepalive max retries")
                     break
-                # 如果没有下一帧了，就退出循环。
-                if cur_seq == recv_total:
+                # 如果接收结束，就退出循环。
+                if recv_finish:
                     break
 
             # 如果什么都没收到，就继续开始等待双端消息。
@@ -212,7 +205,5 @@ if __name__ == "__main__":
 
             # 计算网速。
             end_tick = time()
-            speed = (
-                Constant.BITS_PER_UNICODE * len(recv_message) / (end_tick - start_tick)
-            )
+            speed = 16 * len(recv_message) / (end_tick - start_tick)
             write_log(device_id, f"Recv finish: {round(speed, 1)}bps")

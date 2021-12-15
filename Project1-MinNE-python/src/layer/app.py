@@ -6,7 +6,7 @@ from layer._abstract import AbstractLayer
 class AppLayer(AbstractLayer):
     """主机应用层。
 
-    实现的消息收发：控制台->主机应用层<->主机网络层。
+    实现了控制台 -> 主机应用层 <-> 主机网络层的消息收发。
     """
 
     def __init__(self, device_id: str) -> None:
@@ -29,7 +29,7 @@ class AppLayer(AbstractLayer):
 
         Returns:
             - [0] 接收到的消息。
-            - [1] 控制台发来为`True`，本机网络层发来为`False`。
+            - [1] 控制台发来为 `True`，本机网络层发来为 `False`。
         """
         while True:
             message, port, _ = self._receive(bufsize=Network.IN_NE_BUFSIZE)
