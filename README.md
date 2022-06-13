@@ -1,15 +1,5 @@
 # cnt
 
-> 关于我，欢迎关注：
->
-> 个人博客：[mrcai.space](https://mrcai.space)
->
-> GitHub 主页：[MrCaiDev](https://github.com/MrCaiDev)
->
-> 个人邮箱：[1014305148@qq.com](mailto:1014305148@qq.com)
->
-> 工作邮箱（不常用）：[yuwangcai@std.uestc.edu.cn](mailto:yuwangcai@std.uestc.edu.cn)
-
 ## 项目介绍
 
 **电子科技大学 2020 级《计算机网络与通信技术》的单元作业与项目源码。**
